@@ -10,8 +10,8 @@
 
 ## .env file template
 ```
-DB_NAME=ncep_temperature
-DB_TABLE=interpolated
-DB_USER=ncep_api
+DB_NAME=ncep_temp
+DB_USER=ncep_temp
 DB_PASS=1n2c3e4p
+DB_HOST=localhost
 ```

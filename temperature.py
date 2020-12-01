@@ -16,6 +16,8 @@ def _interpolate_time(line, tick_min=60):
     return line
 
 def get(lat, lon, start_time, end_time):
+    lat = round(lat, 2)
+    lon = round(lon, 2)
     data = proxy.query(lat, lon, start_time, end_time)
     approximated = _approximate_for_point(lat, lon)
     # result = [_interpolate_time(line) for line in approximated]
