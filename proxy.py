@@ -1,7 +1,16 @@
-import numpy as np
 import os
+import numpy as np
 from netCDF4 import Dataset, num2date, date2index
 from datetime import datetime
+import logging as log
+log.basicConfig(
+    format='%(asctime)s/%(levelname)s: %(message)s', level=log.INFO,
+    handlers=[
+        log.FileHandler('log.log', mode='a'),
+        log.StreamHandler()
+    ]
+)
+
 import psycopg2
 pg_conn = psycopg2.connect(
     dbname = os.environ.get("DB_NAME"),
@@ -12,16 +21,24 @@ pg_conn = psycopg2.connect(
 LEVELS = [1000.0, 925.0, 850.0, 700.0, 600.0, 500.0, 400.0, 300.0, 250.0, 200.0,
  150.0, 100.0, 70.0, 50.0, 30.0, 20.0, 10.0]
 
+stations = []
+def _fetch_existing():
+    with pg_conn.cursor() as cursor:
+        cursor.execute('SELECT lat, lon, name FROM index')
+        log.info(f"Starting with {cursor.rowcount} stations")
+        for row in cursor.fetchall():
+            stations.append({'name': row[2], 'lat': row[0], 'lon': row[1]})
+            _create_if_not_exists(row[0], row[1])
+
 def _table_name(lat, lon):
     return f"proc_lat_{int(lat*100)}_lon_{int(lon*100)}"
-
 def _create_if_not_exists(lat, lon):
     with pg_conn.cursor() as cursor:
         query = f'''CREATE TABLE IF NOT EXISTS {_table_name(lat, lon)} (
         time TIMESTAMP NOT NULL,
         {", ".join([f"p_{int(l)} REAL NOT NULL" for l in LEVELS])})'''
-        print(query)
         cursor.execute(query)
+        pg_conn.commit()
 
 def _extract(filename, lat, lon, start_time, end_time):
     data = Dataset(filename, 'r')
@@ -43,10 +60,10 @@ def _extract(filename, lat, lon, start_time, end_time):
 # return list of time period turples for which data is missing
 def _select_and_analyze(lat, lon, start_time, end_time):
     _create_if_not_exists(lat, lon)
-    with pg_conn.cursor() as cursor:
-        cursor.execute('')
-        for row in cursor.fetchall():
-            print(row)
+    #with pg_conn.cursor() as cursor:
+        #cursor.execute('')
+    #    for row in cursor.fetchall():
+    #        print(row)
 
 def query(lat, lon, start_time, end_time):
     data = _select_and_analyze(lat, lon, start_time, end_time)
@@ -56,6 +73,8 @@ def query(lat, lon, start_time, end_time):
 #_extract('./tmp/air.nc/air.2019.nc', 0, 0,
 #    datetime.strptime('2020-01-01', '%Y-%m-%d'),
 #    datetime.strptime('2020-01-02', '%Y-%m-%d'))
-query(0,0,0,0)
 
-print()
+#query(0,0,0,0)
+
+_fetch_existing()
+print(stations)
