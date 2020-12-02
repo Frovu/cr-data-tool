@@ -1,6 +1,7 @@
 import numpy as np
 from datetime import datetime, timedelta, time
 import proxy
+import parser
 
 # receives 2d array a[lat][lon]
 # returns value approximated for given coords
@@ -23,12 +24,10 @@ def get(lat, lon, start_time, end_time):
     if not missing_intervals:
         return None
     elif len(missing_intervals) > 0:
+        parser.obtain(missing_intervals)
         # data = proxy.query(lat, lon, start_time, end_time)
         # approximated = _approximate_for_point(lat, lon)
         # result = [_interpolate_time(line) for line in approximated]
-        print("Missing intervals:")
-        for i in missing_intervals:
-            print(f"\tfrom {i[0].ctime()}\n\t\tto {i[1].ctime()}")
         return True # Accepted data processing query
     else:
         return proxy.select(lat, lon, start_time, end_time)

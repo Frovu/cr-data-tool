@@ -1,6 +1,4 @@
 import os
-import numpy as np
-from netCDF4 import Dataset, num2date, date2index
 from datetime import datetime, timedelta, time
 import logging as log
 log.basicConfig(
@@ -39,23 +37,6 @@ def _create_if_not_exists(lat, lon):
         {", ".join([f"p_{int(l)} REAL NOT NULL" for l in LEVELS])})'''
         cursor.execute(query)
         pg_conn.commit()
-
-def _extract(filename, lat, lon, start_time, end_time):
-    data = Dataset(filename, 'r')
-    print(data.title)
-    print(", ".join([str(i) for i in data.variables["level"][:]]))
-    assert "NMC reanalysis" in data.title
-    air = data.variables["air"]
-    times = data.variables["time"]
-    print(end_time in num2date(times[:], units=times.units))
-    lat_idx = np.where(data.variables["lat"][:] == lat)
-    lon_idx = np.where(data.variables["lon"][:] == lon)
-    start_idx = date2index(start_time, times)
-    end_idx = date2index(end_time, times)
-    print(f"lat={lat} lon={lon} from={start_time.date()}({start_idx}) to={end_time.date()}({end_idx})")
-    for level_i, level in enumerate(data.variables["level"][:]):
-        line = [a[level_i][lat][lon] for a in air[start_idx:end_idx]]
-        print(f'{level}:\t{"  ".join([str("%.1f" % i) for i in line])}')
 
 # return list of time period turples for which data is missing
 def analyze_integrity(lat, lon, start_time, end_time):
