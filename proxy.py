@@ -58,7 +58,11 @@ def _extract(filename, lat, lon, start_time, end_time):
         print(f'{level}:\t{"  ".join([str("%.1f" % i) for i in line])}')
 
 # return list of time period turples for which data is missing
-def _analyze_integrity(lat, lon, start_time, end_time):
+def analyze_integrity(lat, lon, start_time, end_time):
+    station = next((x for x in stations if (x.get('lat') == lat and x.get('lon') == lon)), None)
+    if not station:
+        return False
+    log.info(f'Querying station \'{station.get("name")}\' from {start_time} to {end_time}')
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT time FROM {_table_name(lat, lon)} ' +
             'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
@@ -82,27 +86,12 @@ def _analyze_integrity(lat, lon, start_time, end_time):
     return missing
 
 def _select(lat, lon, start_time, end_time):
+    result = []
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT time FROM {_table_name(lat, lon)} ' +
+        cursor.execute(f'SELECT * FROM {_table_name(lat, lon)} ' +
             'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
-        result = []
         for row in cursor.fetchall():
             result.append(row)
-
-def query(lat, lon, start_time, end_time):
-    station = next((x for x in stations if (x.get('lat') == lat and x.get('lon') == lon)), None)
-    if not station:
-        return False
-    log.info(f'Querying station \'{station.get("name")}\' from {start_time} to {end_time}')
-    missing_intervals = _analyze_integrity(lat, lon, start_time, end_time)
-    if len(missing_intervals):
-        print("Missing intervals:")
-        for i in missing_intervals:
-            print(f"\tfrom {i[0].ctime()}\n\t\tto {i[1].ctime()}")
-    else:
-        _select
+    return result
 
 _fetch_existing()
-query(55.47, 37.32 ,
-    datetime.strptime('2020-01-01', '%Y-%m-%d'),
-    datetime.strptime('2020-01-02', '%Y-%m-%d'))

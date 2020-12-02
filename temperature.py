@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import datetime, timedelta, time
 import proxy
 
 # receives 2d array a[lat][lon]
@@ -18,6 +19,22 @@ def _interpolate_time(line, tick_min=60):
 def get(lat, lon, start_time, end_time):
     lat = round(lat, 2)
     lon = round(lon, 2)
-    data = proxy.query(lat, lon, start_time, end_time)
-    approximated = _approximate_for_point(lat, lon)
-    # result = [_interpolate_time(line) for line in approximated]
+    missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)
+    if not missing_intervals:
+        return None
+    elif len(missing_intervals) > 0:
+        # data = proxy.query(lat, lon, start_time, end_time)
+        # approximated = _approximate_for_point(lat, lon)
+        # result = [_interpolate_time(line) for line in approximated]
+        print("Missing intervals:")
+        for i in missing_intervals:
+            print(f"\tfrom {i[0].ctime()}\n\t\tto {i[1].ctime()}")
+        return True # Accepted data processing query
+    else:
+        return proxy.select(lat, lon, start_time, end_time)
+
+g = get(55.47, 37.32,
+    datetime.strptime('2020-01-01', '%Y-%m-%d'),
+    datetime.strptime('2020-01-02', '%Y-%m-%d'))
+
+print(g)
