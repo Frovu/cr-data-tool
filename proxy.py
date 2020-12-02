@@ -65,19 +65,19 @@ def _analyze_integrity(lat, lon, start_time, end_time):
         rows = cursor.fetchall()
 
     missing = []
-    inc = timedelta(hours=6)
+    inc = timedelta(hours=1)
     # round start and end to 6h periods
-    start = datetime.combine(start_time, time(start_time.hour // 6 * 6))
-    if start_time.hour % 6 == 0 and start_time.minute+start_time.second > 0: start += inc
-    end = datetime.combine(end_time, time(end_time.hour // 6 * 6))
+    start = datetime.combine(start_time, time(start_time.hour))
+    if start_time.minute+start_time.second > 0: start += inc
+    end = datetime.combine(end_time, time(end_time.hour))
 
     cur = start # next timestamp we want to see
     for row in rows:
-        if row[0] != cur: # if something skipped account missing interval
+        if row[0] > cur: # if something skipped account missing interval
             missing.append((cur, row[0] - inc))
             cur = row[0]
         cur += inc
-    if cur != end: # if end not reached
+    if cur <= end: # if end not reached (cur==end means last is missing)
         missing.append((cur, end))
     return missing
 
