@@ -1,4 +1,8 @@
+import os
+from progressbar import ProgressBar
 import numpy as np
+from proxy import log
+from ftplib import FTP
 from netCDF4 import Dataset, num2date, date2index
 
 def _extract_file(filename, lat, lon, start_time, end_time):
@@ -17,6 +21,21 @@ def _extract_file(filename, lat, lon, start_time, end_time):
     for level_i, level in enumerate(data.variables["level"][:]):
         line = [a[level_i][lat][lon] for a in air[start_idx:end_idx]]
         print(f'{level}:\t{"  ".join([str("%.1f" % i) for i in line])}')
+
+def _download_netcdf(year):
+    fname = f'air.{year}.nc'
+    ftp = FTP('ftp2.psl.noaa.gov')
+    log.info('FTP login: '+ftp.login())
+    ftp.cwd('Datasets/ncep.reanalysis/pressure')
+    pbar = ProgressBar(maxval=ftp.size(fname))
+    pbar.start()
+    with open(os.path.join('tmp', fname), 'wb') as file:
+        def write(data):
+           file.write(data)
+           nonlocal pbar
+           pbar += len(data)
+        ftp.retrbinary(f'RETR {fname}', write)
+    log.info(f'Downloaded file {fname}')
 
 # @params: date period to get data for
 # @returns: 4d array [time][level][lat][lon]

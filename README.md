@@ -1,8 +1,11 @@
 ## Install
 
 - `pip install numpy`
+- `pip install scipy`
 - `pip install psycopg2`
 - `pip install netCDF4`
+- `pip install progressbar2`
+
 
 ## Run
 
