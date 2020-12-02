@@ -31,7 +31,7 @@ def _fetch_existing():
             _create_if_not_exists(row[0], row[1])
 
 def _table_name(lat, lon):
-    return f"proc_lat_{int(lat*100)}_lon_{int(lon*100)}"
+    return f"proc_{int(lat*100)}_{'N' if lat>0 else 'S'}_{int(lon*100)}_{'E' if lat>0 else 'W'}"
 def _create_if_not_exists(lat, lon):
     with pg_conn.cursor() as cursor:
         query = f'''CREATE TABLE IF NOT EXISTS {_table_name(lat, lon)} (

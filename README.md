@@ -29,3 +29,10 @@ CREATE TABLE index (
 	description TEXT
 );
 ```
+
+### New station manual insertion
+Requires application restart
+```sql
+INSERT INTO index(lat, lon, name, description)
+values(55.47, 37.32, 'Moscow', 'Moscow Neutron Monitor');
+```
