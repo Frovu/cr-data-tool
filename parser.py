@@ -3,6 +3,7 @@ from progressbar import ProgressBar
 import numpy as np
 from proxy import log
 from ftplib import FTP
+from datetime import datetime
 from netCDF4 import Dataset, num2date, date2index
 
 def _extract_file(filename, lat, lon, start_time, end_time):
@@ -22,7 +23,7 @@ def _extract_file(filename, lat, lon, start_time, end_time):
         line = [a[level_i][lat][lon] for a in air[start_idx:end_idx]]
         print(f'{level}:\t{"  ".join([str("%.1f" % i) for i in line])}')
 
-def _download_netcdf(year):
+def _download(year):
     fname = f'air.{year}.nc'
     ftp = FTP('ftp2.psl.noaa.gov')
     log.info('FTP login: '+ftp.login())
@@ -37,9 +38,43 @@ def _download_netcdf(year):
         ftp.retrbinary(f'RETR {fname}', write)
     log.info(f'Downloaded file {fname}')
 
+# find out files downloads required to satisfy given interval
+def _require_years(intervals):
+    required = []
+    current_year = datetime.now().year
+    for interval in intervals:
+        diff = interval[1].year - interval[0].year
+        for i in range(diff + 1):
+            year = interval[0].year + i
+            if year in required: break # already required
+            if year > current_year: break # no data for future
+            fpath = os.path.join('tmp', f'air.{year}.nc')
+            if not os.path.exists(fpath):
+                required.append(year)
+            else: # check that existing netcdf file is full and contains all required lines
+                data = Dataset(fpath, 'r')
+                times = data.variables["time"]
+                if ((year == current_year and num2date(times[-1], units=times.units) <= interval[1])
+                    or (year != current_year and times.size < (365*4))): # cant use '==' due to leap year
+                    required.append(year)
+    print(required)
+
+# concurrently download all required files
+def download_required_files(missing_intervals):
+    threads = []
+    for i in intervals: # spawn download/parse threads
+        thread = Thread(target=lambda: queue.put(parser.obtain(i[0], i[1])))
+        thread.start()
+        threads.append(thread)
+    for t in threads:
+        t.join() # wait for all download/parse threads to finish
+
 # @params: date period to get data for
 # @returns: 4d array [time][level][lat][lon]
 def obtain(dt_start, dt_end):
     print("Missing intervals:")
     for period in missing_periods:
         print(f"\tfrom {period[0].ctime()}\n\t\tto {period[1].ctime()}")
+
+_require_years([[datetime.strptime('2016-01-01', '%Y-%m-%d'),
+    datetime.strptime('2020-01-04', '%Y-%m-%d')]])
