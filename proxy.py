@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from netCDF4 import Dataset, num2date, date2index
-from datetime import datetime
+from datetime import datetime, timedelta, time
 import logging as log
 log.basicConfig(
     format='%(asctime)s/%(levelname)s: %(message)s', level=log.INFO,
@@ -59,22 +59,39 @@ def _extract(filename, lat, lon, start_time, end_time):
 
 # return list of time period turples for which data is missing
 def _select_and_analyze(lat, lon, start_time, end_time):
-    _create_if_not_exists(lat, lon)
-    #with pg_conn.cursor() as cursor:
-        #cursor.execute('')
-    #    for row in cursor.fetchall():
-    #        print(row)
+    missing = []
+    cursor = pg_conn.cursor()
+    cursor.execute(f'SELECT time FROM {_table_name(lat, lon)} WHERE time >= %s AND time <= %s',
+        [start_time, end_time])
+    inc = timedelta(hours=6)
+    # round start and end to 6h periods
+    start = datetime.combine(start_time, time(start_time.hour // 6 * 6))
+    if start_time.hour % 6 == 0 and start_time.minute+start_time.second > 0: start += inc
+    end = datetime.combine(end_time, time(end_time.hour // 6 * 6))
+    cur = start
+    cur_missing = [cur, None]
+    for row in cursor.fetchall():
+        print(row)
+    cursor.close()
+    # still open missing interval means all data is missing
+    if not cur_missing[1]:
+        cur_missing[1] = end
+        missing.append(cur_missing)
+    return missing
+
+
 
 def query(lat, lon, start_time, end_time):
-    data = _select_and_analyze(lat, lon, start_time, end_time)
-
-
-# './tmp/air.nc/air.2020.nc'
-#_extract('./tmp/air.nc/air.2019.nc', 0, 0,
-#    datetime.strptime('2020-01-01', '%Y-%m-%d'),
-#    datetime.strptime('2020-01-02', '%Y-%m-%d'))
-
-#query(0,0,0,0)
+    station = next((x for x in stations if (x.get('lat') == lat and x.get('lon') == lon)), None)
+    if not station:
+        return False
+    log.info(f'Querying station \'{station.get("name")}\' from {start_time} to {end_time}')
+    missing_intervals = _select_and_analyze(lat, lon, start_time, end_time)
+    print("Missing intervals:")
+    for i in missing_intervals:
+        print(f"\tfrom {i[0].ctime()}\n\t\tto {i[1].ctime()}")
 
 _fetch_existing()
-print(stations)
+query(55.47, 37.32 ,
+    datetime.strptime('2020-01-01', '%Y-%m-%d'),
+    datetime.strptime('2020-01-02', '%Y-%m-%d'))
