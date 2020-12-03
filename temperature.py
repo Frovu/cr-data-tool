@@ -1,9 +1,9 @@
 import numpy as np
 from datetime import datetime, timedelta, time
 import proxy
+log = proxy.log
 import parser
 from threading import Thread
-from queue import Queue
 
 _lock = False
 
@@ -22,7 +22,7 @@ def _interpolate_time(line, tick_min=60):
     return line
 
 def _fill_gap(interval, lat, lon):
-    log.debug(f"Processing interval for lat={lat} lon={lon} from {interval[0].ctime()} to {interval[1].ctime()}")
+    log.debug(f"Processing interval for lat={lat} lon={lon} from {interval[0].isoformat()} to {interval[1].isoformat()}")
     data = parser.obtain(interval[0], interval[1])
     approximated = _approximate_for_point(data, lat, lon)
     result = [_interpolate_time(line) for line in approximated]
@@ -56,7 +56,7 @@ def _fill_all_gaps(missing_intervals, lat, lon):
     _lock = False
 
 def get(lat, lon, start_time, end_time):
-    log.debug(f"Queried for lat={lat} lon={lon} from {start_time.ctime()} to {end_time.ctime()} ")
+    log.debug(f"Queried for lat={lat} lon={lon} from {start_time.isoformat()} to {end_time.isoformat()} ")
     lat = round(lat, 2)
     lon = round(lon, 2)
     missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)
