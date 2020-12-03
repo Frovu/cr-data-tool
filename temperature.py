@@ -7,19 +7,26 @@ from threading import Thread
 
 _lock = False
 
-# receives 2d array a[lat][lon]
+# receives 2d grid a[lat][lon]
 # returns value approximated for given coords
-def _interpolate_coords(data, lat, lon):
-    return data[0][0] # TODO
+def _approximate_coords(grid, lat, lon):
+    return grid[0][0] # TODO
 
 # receives 4d array a[time][level][lat][lon] (raw data)
-# returns 2d array a[level][time] (approximated for given coords)
+# returns 2d array a[time][level] (approximated for given coords)
 def _approximate_for_point(data, lat, lon):
-    return data
+    approximated = []
+    for levels_line in data:
+        new_line = []
+        for coords_grid in levels_line:
+            approx = _approximate_coords(coords_grid, lat, lon)
+            new_line.append(approx)
+        approximated.append(new_line)
+    return approximated
 
 # receives 2d array a[level][time]
 def _interpolate_time(line, tick_min=60):
-    return line
+    return line # TODO
 
 def _fill_gap(interval, lat, lon):
     log.debug(f"Processing interval for lat={lat} lon={lon} from {interval[0].isoformat()} to {interval[1].isoformat()}")
@@ -27,6 +34,9 @@ def _fill_gap(interval, lat, lon):
     approximated = _approximate_for_point(data, lat, lon)
     result = [_interpolate_time(line) for line in approximated]
     # TODO: insert into sql (on conflict update)
+    for line in result:
+        print(f'lvl:\t{"  ".join([str("%.1f" % i) for i in line])}')
+
     log.debug(f"Interval processed for lat={lat} lon={lon}")
 
 # intevals time is 1h aligned, we should align it to data (6h)
@@ -48,6 +58,7 @@ def _fill_all_gaps(missing_intervals, lat, lon):
     for i in aligned_intervals: # fill gaps concurrently
         thread = Thread(target=_fill_gap, args=(i, lat, lon))
         thread.start()
+        threads.append(thread)
     for t in threads:
         t.join() # wait for all threads to finish
     log.debug("All intervals done")
@@ -75,6 +86,6 @@ def get(lat, lon, start_time, end_time):
 
 g = get(55.47, 37.32,
     datetime.strptime('2020-01-01', '%Y-%m-%d'),
-    datetime.strptime('2020-01-02', '%Y-%m-%d'))
+    datetime.strptime('2020-01-01', '%Y-%m-%d'))
 
 print(g)
