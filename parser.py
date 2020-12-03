@@ -26,7 +26,8 @@ def _extract_file(filename, lat, lon, start_time, end_time):
 def _download(year):
     fname = f'air.{year}.nc'
     ftp = FTP('ftp2.psl.noaa.gov')
-    log.info('FTP login: '+ftp.login())
+    log.debug('FTP login: '+ftp.login())
+    log.info(f'Downloading file: {fname}')
     ftp.cwd('Datasets/ncep.reanalysis/pressure')
     pbar = ProgressBar(maxval=ftp.size(fname))
     pbar.start()
@@ -36,7 +37,7 @@ def _download(year):
            nonlocal pbar
            pbar += len(data)
         ftp.retrbinary(f'RETR {fname}', write)
-    log.info(f'Downloaded file {fname}')
+    log.info(f'Downloaded file: {fname}')
 
 # find out files downloads required to satisfy given interval
 def _require_years(intervals):

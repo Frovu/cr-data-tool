@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta, time
 import logging as log
 log.basicConfig(
-    format='%(asctime)s/%(levelname)s: %(message)s', level=log.INFO,
+    format='%(asctime)s/%(levelname)s: %(message)s', level=log.DEBUG,
     handlers=[
         log.FileHandler('log.log', mode='a'),
         log.StreamHandler()
@@ -39,6 +39,7 @@ def _create_if_not_exists(lat, lon):
         pg_conn.commit()
 
 # return list of time period turples for which data is missing
+# this could be done by complex SQL query probably
 def analyze_integrity(lat, lon, start_time, end_time):
     station = next((x for x in stations if (x.get('lat') == lat and x.get('lon') == lon)), None)
     if not station:

@@ -21,19 +21,26 @@ def _approximate_for_point(data, lat, lon):
 def _interpolate_time(line, tick_min=60):
     return line
 
-def _fill_gaps(missing_intervals):
+# inteval time is 1h aligned, we should align it to data (6h), probably adding trailing 
+def _fill_gap(interval, lat, lon):
+    data = parser.obtain(interval[0], interval[1])
+    log.debug(f"Interval processed for lat={lat} lon={lon} from {interval[0].ctime()} to {interval[1].ctime()}")
+
+def _fill_all_gaps(missing_intervals):
+    parser.download_required_files(missing_intervals) # this operation may take up to 10 minutes
     threads = []
-    queue = Queue()
-    for i in intervals: # spawn download/parse threads
-        thread = Thread(target=lambda: queue.put(parser.obtain(i[0], i[1])))
+    for i in intervals:
+        thread = Thread(target=lambda: queue.put())
         thread.start()
     for t in threads:
-        t.join() # wait for all download/parse threads to finish
+        t.join() # wait for all threads to finish
     for interval in queue.queue:
         print(f"got interval of len {len(interval)}")
         # data = proxy.query(lat, lon, start_time, end_time)
         # approximated = _approximate_for_point(lat, lon)
         # result = [_interpolate_time(line) for line in approximated]
+    log.debug("All intervals done")
+    # release lock
     global _lock
     _lock = False
 
