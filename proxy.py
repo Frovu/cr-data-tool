@@ -9,13 +9,22 @@ log.basicConfig(
     ]
 )
 
+import numpy
 import psycopg2
+import psycopg2.extras
+from psycopg2.extensions import register_adapter, AsIs
+def addapt_float32(numpy_float32):
+    return AsIs(numpy_float32)
+register_adapter(numpy.float32, addapt_float32)
+
 pg_conn = psycopg2.connect(
     dbname = os.environ.get("DB_NAME"),
     user = os.environ.get("DB_USER"),
     password = os.environ.get("DB_PASS"),
     host = os.environ.get("DB_HOST")
 )
+
+_INSERT_CHUNK_SIZE = 100
 LEVELS = [1000.0, 925.0, 850.0, 700.0, 600.0, 500.0, 400.0, 300.0, 250.0, 200.0,
  150.0, 100.0, 70.0, 50.0, 30.0, 20.0, 10.0]
 
@@ -37,6 +46,7 @@ def _create_if_not_exists(lat, lon):
         {", ".join([f"p_{int(l)} REAL NOT NULL" for l in LEVELS])})'''
         cursor.execute(query)
         pg_conn.commit()
+_fetch_existing()
 
 # return list of time period turples for which data is missing
 # this could be done by complex SQL query probably
@@ -76,4 +86,15 @@ def _select(lat, lon, start_time, end_time):
             result.append(row)
     return result
 
-_fetch_existing()
+def insert(data, lat, lon, starting_date):
+    cur_date = starting_date
+    inc_date = timedelta(hours=1)
+    rows = []
+    for levels_row in data:
+        row = [cur_date] + list(levels_row)
+        rows.append(row)
+        cur_date += inc_date
+    with pg_conn.cursor() as cursor:
+        query = f'INSERT INTO {_table_name(lat, lon)} VALUES %s'
+        psycopg2.extras.execute_values (cursor, query, rows, template=None, page_size=100)
+        pg_conn.commit()

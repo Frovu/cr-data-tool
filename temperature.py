@@ -33,11 +33,9 @@ def _fill_gap(interval, lat, lon):
     data = parser.obtain(interval[0], interval[1])
     approximated = _approximate_for_point(data, lat, lon)
     result = [_interpolate_time(line) for line in approximated]
-    # TODO: insert into sql (on conflict update)
-    for line in result:
-        print(f'lvl:\t{"  ".join([str("%.1f" % i) for i in line])}')
-
     log.debug(f"Interval processed for lat={lat} lon={lon}")
+    proxy.insert(result, lat, lon, interval[0])
+    log.debug(f"Interval inserted")
 
 # intevals time is 1h aligned, we should align it to data (6h)
 # we should also include some additional data for interpolation to complete
