@@ -77,7 +77,7 @@ def analyze_integrity(lat, lon, start_time, end_time):
         missing.append((cur, end))
     return missing
 
-def _select(lat, lon, start_time, end_time):
+def select(lat, lon, start_time, end_time):
     result = []
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT * FROM {_table_name(lat, lon)} ' +

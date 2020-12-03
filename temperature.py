@@ -70,20 +70,19 @@ def get(lat, lon, start_time, end_time):
     lon = round(lon, 2)
     missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)
     if not missing_intervals:
-        return None
-    elif len(missing_intervals) > 0:
-        global _lock
-        if _lock:
-            return False # busy
-        thread = Thread(target=_fill_all_gaps, args=(missing_intervals, lat, lon))
-        _lock = True
-        thread.start()
-        return True # Accepted data processing query
-    else:
         return proxy.select(lat, lon, start_time, end_time)
+    # data processing required
+    global _lock
+    if _lock:
+        return False # busy
+    thread = Thread(target=_fill_all_gaps, args=(missing_intervals, lat, lon))
+    _lock = True
+    thread.start()
+    return True # Accepted data processing query
+
 
 g = get(55.47, 37.32,
     datetime.strptime('2020-01-01', '%Y-%m-%d'),
-    datetime.strptime('2020-01-01', '%Y-%m-%d'))
+    datetime.strptime('2020-01-01 03', '%Y-%m-%d %H'))
 
 print(g)
