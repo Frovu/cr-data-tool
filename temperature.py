@@ -28,14 +28,14 @@ def _approximate_for_point(data, lat, lon):
 # receives 2d array a[time][level] with 6h res, returns it with 1h res
 def _interpolate_time(data):
     levels = []
-    levels_len = len(line[0])
+    levels_len = len(data[0])
     result_len = (len(data) - 1) * 6 + 1
     old_range = np.arange(0, result_len, 6)
     new_range = np.arange(result_len)
     for level_i in range(levels_len): # interpolate each level separately
         old_line = [a[level_i] for a in data]
         spline = interpolate.splrep(old_range, old_line, s=0)
-        new_line = interpolate.splev(range, spline)
+        new_line = interpolate.splev(new_range, spline)
         levels.append(new_line)
     # a[level][time] -> a[time][level]
     result = []
@@ -44,7 +44,7 @@ def _interpolate_time(data):
         for li in range(levels_len):
             lvl_line.append(levels[li][ti])
         result.append(lvl_line)
-    return new_line
+    return result
 
 def _fill_gap(interval, lat, lon):
     log.debug(f"Processing interval for lat={lat} lon={lon} from {interval[0].isoformat()} to {interval[1].isoformat()}")
@@ -98,10 +98,3 @@ def get(lat, lon, start_time, end_time):
     _lock = True
     thread.start()
     return True # Accepted data processing query
-
-
-g = get(55.47, 37.32,
-    datetime.strptime('2020-01-01', '%Y-%m-%d'),
-    datetime.strptime('2020-01-01 03', '%Y-%m-%d %H'))
-
-print(g)
