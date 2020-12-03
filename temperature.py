@@ -21,24 +21,27 @@ def _approximate_for_point(data, lat, lon):
 def _interpolate_time(line, tick_min=60):
     return line
 
-# inteval time is 1h aligned, we should align it to data (6h), probably adding trailing 
 def _fill_gap(interval, lat, lon):
+    # inteval time is 1h aligned, we should align it to data (6h)
+    # we should also include some additional data for interpolation to complete
+    # so we will actually allign it to days (ceil) and add one day to the end
+    start_aligned = datetime.combine(interval[0], time())
+    end_aligned = datetime.combine(interval[1], time()) + timedelta(days=1)
+    log.debug(f"Processing interval for lat={lat} lon={lon} from {start_aligned.ctime()} to {end_aligned.ctime()}")
     data = parser.obtain(interval[0], interval[1])
-    log.debug(f"Interval processed for lat={lat} lon={lon} from {interval[0].ctime()} to {interval[1].ctime()}")
+    approximated = _approximate_for_point(data, lat, lon)
+    result = [_interpolate_time(line) for line in approximated]
+    # TODO: insert into sql
+    log.debug(f"Interval processed for lat={lat} lon={lon}")
 
-def _fill_all_gaps(missing_intervals):
+def _fill_all_gaps(missing_intervals, lat, lon):
     parser.download_required_files(missing_intervals) # this operation may take up to 10 minutes
     threads = []
-    for i in intervals:
-        thread = Thread(target=lambda: queue.put())
+    for i in intervals: # fill gaps concurrently
+        thread = Thread(target=_fill_gap, args=(i, lat, lon))
         thread.start()
     for t in threads:
         t.join() # wait for all threads to finish
-    for interval in queue.queue:
-        print(f"got interval of len {len(interval)}")
-        # data = proxy.query(lat, lon, start_time, end_time)
-        # approximated = _approximate_for_point(lat, lon)
-        # result = [_interpolate_time(line) for line in approximated]
     log.debug("All intervals done")
     # release lock
     global _lock
@@ -54,7 +57,7 @@ def get(lat, lon, start_time, end_time):
         global _lock
         if _lock:
             return False # busy
-        thread = Thread(target=_fill_gaps, args=(missing_intervals, ))
+        thread = Thread(target=_fill_all_gaps, args=(missing_intervals, lat, lon))
         _lock = True
         thread.start()
         return True # Accepted data processing query
