@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import interpolate
 from datetime import datetime, timedelta, time
 import proxy
 log = proxy.log
@@ -24,15 +25,33 @@ def _approximate_for_point(data, lat, lon):
         approximated.append(new_line)
     return approximated
 
-# receives 2d array a[level][time]
-def _interpolate_time(line, tick_min=60):
-    return line # TODO
+# receives 2d array a[time][level] with 6h res, returns it with 1h res
+def _interpolate_time(data):
+    levels = []
+    levels_len = len(line[0])
+    result_len = (len(data) - 1) * 6 + 1
+    old_range = np.arange(0, result_len, 6)
+    new_range = np.arange(result_len)
+    for level_i in range(levels_len): # interpolate each level separately
+        old_line = [a[level_i] for a in data]
+        spline = interpolate.splrep(old_range, old_line, s=0)
+        new_line = interpolate.splev(range, spline)
+        levels.append(new_line)
+    # a[level][time] -> a[time][level]
+    result = []
+    for ti in range(result_len):
+        lvl_line = []
+        for li in range(levels_len):
+            lvl_line.append(levels[li][ti])
+        result.append(lvl_line)
+    return new_line
 
 def _fill_gap(interval, lat, lon):
     log.debug(f"Processing interval for lat={lat} lon={lon} from {interval[0].isoformat()} to {interval[1].isoformat()}")
     data = parser.obtain(interval[0], interval[1])
+    log.debug(f"Interval retreived")
     approximated = _approximate_for_point(data, lat, lon)
-    result = [_interpolate_time(line) for line in approximated]
+    result = _interpolate_time(approximated)
     log.debug(f"Interval processed for lat={lat} lon={lon}")
     proxy.insert(result, lat, lon, interval[0])
     log.debug(f"Interval inserted")
