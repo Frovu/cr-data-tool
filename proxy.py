@@ -86,16 +86,9 @@ def select(lat, lon, start_time, end_time):
             result.append(row)
     return result
 
-def insert(data, lat, lon, starting_date):
-    cur_date = starting_date
-    inc_date = timedelta(hours=1)
-    log.debug(f'Inserting {len(data)} starting from {starting_date}')
-    rows = []
-    for levels_row in data:
-        row = [cur_date] + list(levels_row)
-        rows.append(row)
-        cur_date += inc_date
+def insert(data, lat, lon):
+    log.debug(f'Inserting {len(data)} lines')
     with pg_conn.cursor() as cursor:
         query = f'INSERT INTO {_table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO NOTHING'
-        psycopg2.extras.execute_values (cursor, query, rows, template=None, page_size=100)
+        psycopg2.extras.execute_values (cursor, query, data, template=None, page_size=100)
         pg_conn.commit()
