@@ -16,14 +16,8 @@ def _extract_from_file(year, start_time, end_time):
     data = Dataset(os.path.join('tmp', fname), 'r')
     assert "NMC reanalysis" in data.title
     times = data.variables["time"]
-    #lat_idx = np.where(data.variables["lat"][:] == lat)
-    #lon_idx = np.where(data.variables["lon"][:] == lon)
     start_idx = date2index(start_time, times)
     end_idx = date2index(end_time, times)
-    #print(f"lat={lat} lon={lon} from={start_time.date()}({start_idx}) to={end_time.date()}({end_idx})")
-    #for level_i, level in enumerate(data.variables["level"][:]):
-    #line = [a[level_i][lat][lon] for a in air[start_idx:end_idx]]
-        #print(f'{level}:\t{"  ".join([str("%.1f" % i) for i in line])}')
     return data.variables["air"][start_idx:end_idx]
 
 def _download(year):
@@ -81,8 +75,8 @@ def obtain(dt_start, dt_end):
     if dt_start.year == dt_end.year:
         return _extract_from_file(dt_start.year, dt_start, dt_end)
     # if several years are covered
-    data_acc = _extract_from_file(dt_start.year, dt_start, datetime(dt_start.year, 12, 31, 18))
+    data_acc = [_extract_from_file(dt_start.year, dt_start, datetime(dt_start.year, 12, 31, 18))]
     for year in range(dt_start.year + 1, dt_end.year): # extract fully covered years
-        data_acc += _extract_from_file(year, datetime(year, 1, 1, 0), datetime(year, 12, 31, 18))
-    data_acc += _extract_from_file(dt_end.year, datetime(dt_end, 1, 1, 0), dt_end)
-    return data_acc
+        data_acc.append(_extract_from_file(year, datetime(year, 1, 1, 0), datetime(year, 12, 31, 18)))
+    data_acc.append(_extract_from_file(dt_end.year, datetime(dt_end.year, 1, 1, 0), dt_end))
+    return np.concatenate(data_acc)

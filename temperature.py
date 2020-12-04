@@ -29,7 +29,7 @@ def _approximate_for_point(data, lat, lon):
 def _interpolate_time(data):
     levels = []
     levels_len = len(data[0])
-    result_len = (len(data) - 1) * 6 + 1
+    result_len = len(data) * 6
     old_range = np.arange(0, result_len, 6)
     new_range = np.arange(result_len)
     for level_i in range(levels_len): # interpolate each level separately
@@ -58,11 +58,11 @@ def _fill_gap(interval, lat, lon):
 
 # intevals time is 1h aligned, we should align it to data (6h)
 # we should also include some additional data for interpolation to complete
-# so we will actually allign it to days (ceil) and add one day to the end
+# so we will actually allign it to days (ceil) and add one day to the end and start
 def _align_intervals(intervals):
     aligned = []
     for interval in intervals:
-        start = datetime.combine(interval[0], time())
+        start = datetime.combine(interval[0], time()) - timedelta(days=1)
         end = datetime.combine(interval[1], time()) + timedelta(days=1)
         aligned.append((start, end))
     return aligned
