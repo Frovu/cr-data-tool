@@ -12,12 +12,12 @@ def _filename(year):
 
 def _extract_from_file(year, start_time, end_time):
     fname = _filename(year)
-    log.debug(f"Reading file: {fname} from {start_time.isoformat()} to {end_time.isoformat()}")
+    log.debug(f"Reading file: {fname} from {start_time} to {end_time}")
     data = Dataset(os.path.join('tmp', fname), 'r')
     assert "NMC reanalysis" in data.title
     times = data.variables["time"]
     start_idx = date2index(start_time, times)
-    end_idx = date2index(end_time, times)
+    end_idx = date2index(end_time, times) + 1 # inclusive
     return data.variables["air"][start_idx:end_idx]
 
 def _download(year):
@@ -79,4 +79,5 @@ def obtain(dt_start, dt_end):
     for year in range(dt_start.year + 1, dt_end.year): # extract fully covered years
         data_acc.append(_extract_from_file(year, datetime(year, 1, 1, 0), datetime(year, 12, 31, 18)))
     data_acc.append(_extract_from_file(dt_end.year, datetime(dt_end.year, 1, 1, 0), dt_end))
+    print(len(data_acc[0]), len(data_acc[1]))
     return np.concatenate(data_acc)

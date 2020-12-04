@@ -29,8 +29,8 @@ def _approximate_for_point(data, lat, lon):
 def _interpolate_time(data):
     levels = []
     levels_len = len(data[0])
-    result_len = len(data) * 6
-    old_range = np.arange(0, result_len, 6)
+    result_len = (len(data) - 1) * 6
+    old_range = np.arange(0, result_len + 1, 6) # +1 for inclusive
     new_range = np.arange(result_len)
     for level_i in range(levels_len): # interpolate each level separately
         old_line = [a[level_i] for a in data]
@@ -49,7 +49,7 @@ def _interpolate_time(data):
 def _fill_gap(interval, lat, lon):
     log.debug(f"Processing interval for lat={lat} lon={lon} from {interval[0].isoformat()} to {interval[1].isoformat()}")
     data = parser.obtain(interval[0], interval[1])
-    log.debug(f"Interval retreived")
+    log.debug(f"Interval retrieved, len={len(data)}")
     approximated = _approximate_for_point(data, lat, lon)
     result = _interpolate_time(approximated)
     log.debug(f"Interval processed for lat={lat} lon={lon}")

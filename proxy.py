@@ -89,6 +89,7 @@ def select(lat, lon, start_time, end_time):
 def insert(data, lat, lon, starting_date):
     cur_date = starting_date
     inc_date = timedelta(hours=1)
+    log.debug(f'Inserting {len(data)} starting from {starting_date}')
     rows = []
     for levels_row in data:
         row = [cur_date] + list(levels_row)
