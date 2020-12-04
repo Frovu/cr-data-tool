@@ -18,12 +18,12 @@ def fetch():
     tm.sleep(1.5)
 #fetch()
 
-dfrom = datetime.strptime('2020-10-30', '%Y-%m-%d')
-dto = datetime.strptime('2020-10-31', '%Y-%m-%d')
+dfrom = datetime.strptime('2020-11-20', '%Y-%m-%d')
+dto = datetime.strptime('2020-12-1', '%Y-%m-%d')
 
-data = temperature.get(55.47, 37.32, dfrom, dto)
+data = temperature.get(90, 0, dfrom, dto)
 tm.sleep(1.5)
-data = temperature.get(55.47, 37.32, dfrom, dto)
+data = temperature.get(90, 0, dfrom, dto)
 
 if isinstance(data, list):
     logging.disable(logging.DEBUG)

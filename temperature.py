@@ -94,12 +94,12 @@ def get(lat, lon, start_time, end_time):
     lon = round(lon, 2)
     missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)
     if not missing_intervals:
-        return proxy.select(lat, lon, start_time, end_time)
+        return 200, proxy.select(lat, lon, start_time, end_time)
     # data processing required
     global _lock
     if _lock:
-        return False # busy
+        return 102, None # busy
     thread = Thread(target=_fill_all_gaps, args=(missing_intervals, lat, lon))
     _lock = True
     thread.start()
-    return True # Accepted data processing query
+    return 205, None # Accepted data processing query
