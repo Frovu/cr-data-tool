@@ -34,24 +34,23 @@ def _interpolate_time(times, data):
     for level_col in range(data.shape[1]): # interpolate each level separately
         old_line = data[:,level_col]
         spline = interpolate.splrep(times, old_line, s=0) #.astype('datetime64')
-        new_line = interpolate.splev(new_times, spline)
-        levels.append(new_line)
+        result[:,level_col] = interpolate.splev(new_times, spline)
     return new_times.astype(datetime), result
 
-# we should query some additional data on the edges for smooth spline
-# so we will query interval +- 1 day
-def _fill_gap(interval, lat, lon):
-    delta = timedelta(days=1)
-    log.debug(f"Obtaining interval for lat={lat} lon={lon} from {interval[0].isoformat()} to {interval[1].isoformat()}")
-    times, data = parser.obtain(interval[0] - delta, interval[1] + delta)
+def _fill_gap(interval, lat, lon, delta):
+    log.debug(f"Obtaining interval for lat={lat} lon={lon} from {interval[0] - delta} to {interval[1] + delta}")
+    times_6h, data = parser.obtain(interval[0] - delta, interval[1] + delta)
     log.debug(f"Interval retrieved, len={len(data)}")
     approximated = _approximate_for_point(data, lat, lon)
     log.debug(f"Interval approximated for lat={lat} lon={lon}")
-    result = _interpolate_time(approximated)
+    times_1h, result = _interpolate_time(times_6h, approximated)
+    log.debug(f"Interval interpolated for time, len={times_1h.size}")
     # We will not insert edges data so result should be trimmed
     # also proxy.insert requires array of (time, p_...)
-    time_i =
-    proxy.insert(result, lat, lon, interval[0])
+    trim_from = np.nonzero(times_1h == interval[0])
+    trim_to = np.nonzero(times_1h == interval[1])
+    rows = [[times_1h[i]] + result[i] for i in range(trim_from, trim_to)]
+    proxy.insert(rows, lat, lon)
     log.debug(f"Interval inserted")
 
 # intevals time is 1h aligned, we should align it to data (6h)
@@ -59,17 +58,21 @@ def _align_intervals(intervals):
     aligned = []
     for interval in intervals:
         start = datetime.combine(interval[0], time(interval[0].hour // 6 * 6))
-        end = datetime.combine(interval[1], time(interval[1].hour // 6 * 6 + 1)) # +1 to include not even trail
+        inc_end = 0 if interval[1].hour % 6 == 0 else 6
+        end = datetime.combine(interval[1], time(interval[1].hour // 6 * 6 + inc_end)) # +1 to include not even trail
         aligned.append((start, end))
     return aligned
 
+# we should query some additional data on the edges for smooth spline
+# so we will query interval +- 1 day
 def _fill_all_gaps(missing_intervals, lat, lon):
     aligned_intervals = _align_intervals(missing_intervals)
-    parser.download_required_files(aligned_intervals) # this operation may take up to 10 minutes
+    delta = timedelta(days=1)
+    parser.download_required_files(aligned_intervals, delta) # this operation may take up to 10 minutes
     threads = []
     log.debug(f"About to fill {len(aligned_intervals)} interval(s)")
     for i in aligned_intervals: # fill gaps concurrently
-        thread = Thread(target=_fill_gap, args=(i, lat, lon))
+        thread = Thread(target=_fill_gap, args=(i, lat, lon, delta))
         thread.start()
         threads.append(thread)
     for t in threads:
