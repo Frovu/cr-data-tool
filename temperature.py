@@ -55,8 +55,9 @@ def _align_intervals(intervals):
     aligned = []
     for interval in intervals:
         start = datetime.combine(interval[0], time(interval[0].hour // 6 * 6))
-        inc_end = 0 if interval[1].hour % 6 == 0 else 6
-        end = datetime.combine(interval[1], time(interval[1].hour // 6 * 6 + inc_end)) # +1 to include not even trail
+        end = datetime.combine(interval[1], time(interval[1].hour // 6 * 6))
+        if interval[1].hour % 6 != 0: # include not even trail
+            end += timedelta(hours=6)
         aligned.append((start, end))
     return aligned
 
