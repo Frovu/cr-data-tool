@@ -50,6 +50,17 @@ def _fill_gap(interval, lat, lon, delta):
     proxy.insert(rows, lat, lon)
     log.debug(f"Interval inserted")
 
+# split interval to smaller intervals to decrease memory load
+def _split_interval(start, end):
+    split = []
+    delta = timedelta(days=500)
+    cur = start
+    while cur + delta < end:
+        split.append((cur, cur+delta))
+        cur += delta
+    split.append((cur, end))
+    return split
+
 # intevals time is 1h aligned, we should align it to data (6h)
 def _align_intervals(intervals):
     aligned = []
@@ -58,7 +69,7 @@ def _align_intervals(intervals):
         end = datetime.combine(interval[1], time(interval[1].hour // 6 * 6))
         if interval[1].hour % 6 != 0: # include not even trail
             end += timedelta(hours=6)
-        aligned.append((start, end))
+        aligned.extend(_split_interval(start, end))
     return aligned
 
 # we should query some additional data on the edges for smooth spline
