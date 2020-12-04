@@ -26,26 +26,17 @@ def _approximate_for_point(data, lat, lon):
     return approximated
 
 # receives 2d array a[time][level] with 6h res, returns it with 1h res
-# assumes arg is 6h aligned without gaps (it will break everything)
-def _interpolate_time(data):
-    levels = []
-    levels_len = len(data[0])
-    result_len = (len(data) - 1) * 6
-    old_range = np.arange(0, result_len + 1, 6) # +1 for inclusive
-    new_range = np.arange(result_len)
-    for level_i in range(levels_len): # interpolate each level separately
-        old_line = [a[level_i] for a in data]
-        spline = interpolate.splrep(old_range, old_line, s=0)
-        new_line = interpolate.splev(new_range, spline)
+def _interpolate_time(times, data):
+    result = np.empty(np.flip(data.shape))
+    # create new times axis
+    inc = timedelta(hours=1)
+    new_times = np.arange(times[0], times[-1] + inc, inc)
+    for level_col in range(data.shape[1]): # interpolate each level separately
+        old_line = data[:,level_col]
+        spline = interpolate.splrep(times, old_line, s=0) #.astype('datetime64')
+        new_line = interpolate.splev(new_times, spline)
         levels.append(new_line)
-    # a[level][time] -> a[time][level]
-    result = []
-    for ti in range(result_len):
-        lvl_line = []
-        for li in range(levels_len):
-            lvl_line.append(levels[li][ti])
-        result.append(lvl_line)
-    return result
+    return new_times.astype(datetime), result
 
 # we should query some additional data on the edges for smooth spline
 # so we will query interval +- 1 day
@@ -59,7 +50,7 @@ def _fill_gap(interval, lat, lon):
     result = _interpolate_time(approximated)
     # We will not insert edges data so result should be trimmed
     # also proxy.insert requires array of (time, p_...)
-    time_i = 
+    time_i =
     proxy.insert(result, lat, lon, interval[0])
     log.debug(f"Interval inserted")
 
