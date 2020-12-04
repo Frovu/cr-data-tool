@@ -42,7 +42,7 @@ def _table_name(lat, lon):
 def _create_if_not_exists(lat, lon):
     with pg_conn.cursor() as cursor:
         query = f'''CREATE TABLE IF NOT EXISTS {_table_name(lat, lon)} (
-        time TIMESTAMP NOT NULL,
+        time TIMESTAMP NOT NULL PRIMARY KEY,
         {", ".join([f"p_{int(l)} REAL NOT NULL" for l in LEVELS])})'''
         cursor.execute(query)
         pg_conn.commit()
@@ -95,6 +95,6 @@ def insert(data, lat, lon, starting_date):
         rows.append(row)
         cur_date += inc_date
     with pg_conn.cursor() as cursor:
-        query = f'INSERT INTO {_table_name(lat, lon)} VALUES %s'
+        query = f'INSERT INTO {_table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO NOTHING'
         psycopg2.extras.execute_values (cursor, query, rows, template=None, page_size=100)
         pg_conn.commit()
