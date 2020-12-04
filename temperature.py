@@ -81,7 +81,6 @@ def _fill_all_gaps(missing_intervals, lat, lon):
     _lock = False
 
 def get(lat, lon, start_time, end_time):
-    log.debug(f"Queried for lat={lat} lon={lon} from {start_time.isoformat()} to {end_time.isoformat()} ")
     lat = round(lat, 2)
     lon = round(lon, 2)
     missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)

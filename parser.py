@@ -18,7 +18,10 @@ def _extract_from_file(year, start_time, end_time):
     times = data.variables["time"]
     start_idx = date2index(start_time, times)
     end_idx = date2index(end_time, times) + 1 # inclusive
-    return num2date(times[start_idx:end_idx], units=times.units), data.variables["air"][start_idx:end_idx]
+    time_values = num2date(times[start_idx:end_idx], units=times.units)
+    air = data.variables["air"][start_idx:end_idx]
+    data.close()
+    return time_values, air
 
 def _download(year):
     fname = _filename(year)
@@ -57,6 +60,7 @@ def _require_years(intervals, delta):
                 if ((year == current_year and num2date(times[-1], units=times.units) <= end)
                     or (year != current_year and times.size < (365*4))): # cant use '==' due to leap year
                     required.append(year)
+                data.close()
     return required
 
 # concurrently download all files required to fill specified intervals
