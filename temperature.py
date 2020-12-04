@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import interpolate
+from scipy import interpolate, ndimage
 from datetime import datetime, timedelta, time
 import proxy
 log = proxy.log
@@ -8,18 +8,20 @@ from threading import Thread
 
 _lock = False
 
-# receives 2d grid a[lat][lon]
-# returns value approximated for given coords
-def _approximate_coords(grid, lat, lon):
-    return grid[0][0] # TODO
+# transform geographical coords to index coords
+def _get_coords(lat, lon):
+    lat_i = interpolate.interp1d([90, -90], [0, 72])
+    lon_i = interpolate.interp1d([-180, 180], [0, 144]) # we will get out of range at lat > 175.5 but I hope its not critical 
+    return [[lat_i(lat)], [lon_i(lon)]]
 
 # receives 4d array a[time][level][lat][lon] (raw data)
 # returns 2d array a[time][level] (approximated for given coords)
 def _approximate_for_point(data, lat, lon):
+    coords = _get_coords()
     approximated = np.empty(data.shape[:2])
     for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            approximated[i][j] = _approximate_coords(data[i][j], lat, lon)
+        for j in range(data.shape[0]):
+            approximated[i][j] = ndimage.map_coordinates(data[i][j], coords, order=3, mode='nearest')
     return approximated
 
 # receives 2d array a[time][level] with 6h res, returns it with 1h res

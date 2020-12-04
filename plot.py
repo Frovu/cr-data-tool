@@ -1,4 +1,5 @@
 import temperature
+import parser
 import logging
 import time as tm
 logging.disable(logging.DEBUG)
@@ -17,12 +18,12 @@ def fetch():
     tm.sleep(1.5)
 #fetch()
 
-dfrom = datetime.strptime('2016-02-1', '%Y-%m-%d')
-dto = datetime.strptime('2020-10-1', '%Y-%m-%d')
+dfrom = datetime.strptime('2020-11-1', '%Y-%m-%d')
+dto = datetime.strptime('2020-12-31', '%Y-%m-%d')
 
 data = temperature.get(55.47, 37.32, dfrom, dto)
-#tm.sleep(1.5)
-#data = temperature.get(55.47, 37.32, dfrom, dto)
+tm.sleep(1.5)
+data = temperature.get(55.47, 37.32, dfrom, dto)
 
 if isinstance(data, list):
     logging.disable(logging.DEBUG)
@@ -30,6 +31,9 @@ if isinstance(data, list):
     level = [a[1] for a in data]
     drange = [a[0] for a in data]
     ax.plot(drange, level, 'c')
+    node_level = [data[i][1] for i in range(0, len(data), 6)]
+    node_date = [data[i][0] for i in range(0, len(data), 6)]
+    ax.plot(node_date, node_level, 'r.')
     legend = plt.legend(['temperature'])
     plt.setp(legend.get_texts(), color='grey')
     plt.show()
