@@ -37,13 +37,15 @@ def _download(year):
     log.info(f'Downloaded file: {fname}')
 
 # find out files downloads required to satisfy given interval
-def _require_years(intervals):
+def _require_years(intervals, delta):
     required = []
     current_year = datetime.now().year
     for interval in intervals:
-        diff = interval[1].year - interval[0].year
+        start = interval[0] - delta
+        end = interval[1] + delta
+        diff = end.year - start.year
         for i in range(diff + 1):
-            year = interval[0].year + i
+            year = start.year + i
             if year in required: break # already required
             if year > current_year: break # no data for future
             fpath = os.path.join('tmp', _filename(year))
@@ -52,14 +54,14 @@ def _require_years(intervals):
             else: # check that existing netcdf file is full and contains all required lines
                 data = Dataset(fpath, 'r')
                 times = data.variables["time"]
-                if ((year == current_year and num2date(times[-1], units=times.units) <= interval[1])
+                if ((year == current_year and num2date(times[-1], units=times.units) <= end)
                     or (year != current_year and times.size < (365*4))): # cant use '==' due to leap year
                     required.append(year)
     return required
 
 # concurrently download all files required to fill specified intervals
-def download_required_files(missing_intervals):
-    to_download = _require_years(missing_intervals)
+def download_required_files(missing_intervals, delta):
+    to_download = _require_years(missing_intervals, delta)
     threads = []
     for year in to_download: # spawn download/parse threads
         thread = Thread(target=_download, args=(year,))
