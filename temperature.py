@@ -45,7 +45,7 @@ def _fill_gap(interval, lat, lon, delta):
     # We will not insert edges data so result should be trimmed
     # also proxy.insert requires array of (time, p_...)
     trim_from = np.nonzero(times_1h == interval[0])[0][0]
-    trim_to = np.nonzero(times_1h == interval[1])[0][0]
+    trim_to = np.nonzero(times_1h == interval[1])[0][0] + 1 # inclusive
     rows = [([times_1h[i]] + list(result[i])) for i in range(trim_from, trim_to)]
     proxy.insert(rows, lat, lon)
     log.debug(f"Interval inserted")
