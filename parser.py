@@ -18,7 +18,7 @@ def _extract_from_file(year, start_time, end_time):
     times = data.variables["time"]
     start_idx = date2index(start_time, times)
     end_idx = date2index(end_time, times) + 1 # inclusive
-    return data.variables["air"][start_idx:end_idx]
+    return data.variables["time"][start_idx:end_idx], data.variables["air"][start_idx:end_idx]
 
 def _download(year):
     fname = _filename(year)
@@ -75,9 +75,13 @@ def obtain(dt_start, dt_end):
     if dt_start.year == dt_end.year:
         return _extract_from_file(dt_start.year, dt_start, dt_end)
     # if several years are covered
-    data_acc = [_extract_from_file(dt_start.year, dt_start, datetime(dt_start.year, 12, 31, 18))]
+    times, data = _extract_from_file(dt_start.year, dt_start, datetime(dt_start.year, 12, 31, 18))
+    time_acc = [times]; data_acc = [data]
     for year in range(dt_start.year + 1, dt_end.year): # extract fully covered years
-        data_acc.append(_extract_from_file(year, datetime(year, 1, 1, 0), datetime(year, 12, 31, 18)))
-    data_acc.append(_extract_from_file(dt_end.year, datetime(dt_end.year, 1, 1, 0), dt_end))
-    print(len(data_acc[0]), len(data_acc[1]))
-    return np.concatenate(data_acc)
+        times, data = _extract_from_file(year, datetime(year, 1, 1, 0), datetime(year, 12, 31, 18))
+        time_acc.append(times)
+        data_acc.append(data)
+    times, data = _extract_from_file(dt_end.year, datetime(dt_end.year, 1, 1, 0), dt_end)
+    time_acc.append(times)
+    data_acc.append(data)
+    return np.concatenate(time_acc), np.concatenate(data_acc)

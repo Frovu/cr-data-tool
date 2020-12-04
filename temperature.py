@@ -26,6 +26,7 @@ def _approximate_for_point(data, lat, lon):
     return approximated
 
 # receives 2d array a[time][level] with 6h res, returns it with 1h res
+# assumes arg is 6h aligned without gaps (it will break everything)
 def _interpolate_time(data):
     levels = []
     levels_len = len(data[0])
@@ -46,24 +47,28 @@ def _interpolate_time(data):
         result.append(lvl_line)
     return result
 
+# we should query some additional data on the edges for smooth spline
+# so we will query interval +- 1 day
 def _fill_gap(interval, lat, lon):
-    log.debug(f"Processing interval for lat={lat} lon={lon} from {interval[0].isoformat()} to {interval[1].isoformat()}")
-    data = parser.obtain(interval[0], interval[1])
+    delta = timedelta(days=1)
+    log.debug(f"Obtaining interval for lat={lat} lon={lon} from {interval[0].isoformat()} to {interval[1].isoformat()}")
+    times, data = parser.obtain(interval[0] - delta, interval[1] + delta)
     log.debug(f"Interval retrieved, len={len(data)}")
     approximated = _approximate_for_point(data, lat, lon)
+    log.debug(f"Interval approximated for lat={lat} lon={lon}")
     result = _interpolate_time(approximated)
-    log.debug(f"Interval processed for lat={lat} lon={lon}")
+    # We will not insert edges data so result should be trimmed
+    # also proxy.insert requires array of (time, p_...)
+    time_i = 
     proxy.insert(result, lat, lon, interval[0])
     log.debug(f"Interval inserted")
 
 # intevals time is 1h aligned, we should align it to data (6h)
-# we should also include some additional data for interpolation to complete
-# so we will actually allign it to days (ceil) and add one day to the end and start
 def _align_intervals(intervals):
     aligned = []
     for interval in intervals:
-        start = datetime.combine(interval[0], time()) - timedelta(days=1)
-        end = datetime.combine(interval[1], time()) + timedelta(days=1)
+        start = datetime.combine(interval[0], time(interval[0].hour // 6 * 6))
+        end = datetime.combine(interval[1], time(interval[1].hour // 6 * 6 + 1)) # +1 to include not even trail
         aligned.append((start, end))
     return aligned
 
