@@ -18,7 +18,7 @@ def _extract_from_file(year, start_time, end_time):
     times = data.variables["time"]
     start_idx = date2index(start_time, times)
     end_idx = date2index(end_time, times) + 1 # inclusive
-    return data.variables["time"][start_idx:end_idx], data.variables["air"][start_idx:end_idx]
+    return num2date(times[start_idx:end_idx], units=times.units), data.variables["air"][start_idx:end_idx]
 
 def _download(year):
     fname = _filename(year)

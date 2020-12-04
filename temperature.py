@@ -16,25 +16,22 @@ def _approximate_coords(grid, lat, lon):
 # receives 4d array a[time][level][lat][lon] (raw data)
 # returns 2d array a[time][level] (approximated for given coords)
 def _approximate_for_point(data, lat, lon):
-    approximated = []
-    for levels_line in data:
-        new_line = []
-        for coords_grid in levels_line:
-            approx = _approximate_coords(coords_grid, lat, lon)
-            new_line.append(approx)
-        approximated.append(new_line)
+    approximated = np.empty(data.shape[:2])
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            approximated[i][j] = _approximate_coords(data[i][j], lat, lon)
     return approximated
 
 # receives 2d array a[time][level] with 6h res, returns it with 1h res
 def _interpolate_time(times, data):
-    result = np.empty(np.flip(data.shape))
-    # create new times axis
-    inc = timedelta(hours=1)
-    new_times = np.arange(times[0], times[-1] + inc, inc)
+    inc = np.timedelta64(1, 'h')
+    times_64 = np.array([np.datetime64(t) for t in times])
+    new_times = np.arange(times_64[0], times_64[-1] + inc, inc)
+    result = np.empty((len(new_times), data.shape[1]))
     for level_col in range(data.shape[1]): # interpolate each level separately
         old_line = data[:,level_col]
-        spline = interpolate.splrep(times, old_line, s=0) #.astype('datetime64')
-        result[:,level_col] = interpolate.splev(new_times, spline)
+        spline = interpolate.splrep(times_64.astype('float64', casting='unsafe'), old_line, s=0)
+        result[:,level_col] = interpolate.splev(new_times.astype('float64', casting='unsafe'), spline)
     return new_times.astype(datetime), result
 
 def _fill_gap(interval, lat, lon, delta):
@@ -47,9 +44,9 @@ def _fill_gap(interval, lat, lon, delta):
     log.debug(f"Interval interpolated for time, len={times_1h.size}")
     # We will not insert edges data so result should be trimmed
     # also proxy.insert requires array of (time, p_...)
-    trim_from = np.nonzero(times_1h == interval[0])
-    trim_to = np.nonzero(times_1h == interval[1])
-    rows = [[times_1h[i]] + result[i] for i in range(trim_from, trim_to)]
+    trim_from = np.nonzero(times_1h == interval[0])[0][0]
+    trim_to = np.nonzero(times_1h == interval[1])[0][0]
+    rows = [([times_1h[i]] + list(result[i])) for i in range(trim_from, trim_to)]
     proxy.insert(rows, lat, lon)
     log.debug(f"Interval inserted")
 

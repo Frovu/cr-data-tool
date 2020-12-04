@@ -87,6 +87,7 @@ def select(lat, lon, start_time, end_time):
     return result
 
 def insert(data, lat, lon):
+    if not data: return
     log.debug(f'Inserting {len(data)} lines from {data[0][0]} to {data[-1][0]}')
     with pg_conn.cursor() as cursor:
         query = f'INSERT INTO {_table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO NOTHING'
