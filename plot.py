@@ -9,6 +9,9 @@ from datetime import datetime, timedelta, time
 plt.rcParams['axes.facecolor'] = 'black'
 plt.rcParams['figure.facecolor'] = 'darkgrey'
 
+# LEVELS = [1000.0, 925.0, 850.0, 700.0, 600.0, 500.0, 400.0, 300.0, 250.0, 200.0,
+# 150.0, 100.0, 70.0, 50.0, 30.0, 20.0, 10.0]
+
 def plot(times, level, label=None):
     logging.disable(logging.DEBUG)
     fig, ax = plt.subplots()
@@ -20,16 +23,17 @@ def plot(times, level, label=None):
     plt.setp(legend.get_texts(), color='grey')
     plt.show()
 
-def query_and_plot(lat, lon, dt_from, dt_to):
+def query_and_plot(level, lat, lon, dt_from, dt_to):
+    level_id = temperature.proxy.LEVELS.index(level)
     status, data = temperature.get(lat, lon, dt_from, dt_to)
     while status != 200:
         print(f"status: {status} waiting 2s")
         tm.sleep(2)
         status, data = temperature.get(lat, lon, dt_from, dt_to)
     times = [a[0] for a in data]
-    level = [a[1] for a in data]
-    plot(times, level, 't at 1000 mb')
+    levels = [a[level_id + 1] for a in data]
+    plot(times, levels, f't at {level} mb')
 
 dt_strt = datetime(2017, 2, 1)
 dt_end = datetime(2020, 11, 1)
-query_and_plot(55.47, 37.32, dt_strt, dt_end)
+query_and_plot(850, 55.47, 37.32, dt_strt, dt_end)
