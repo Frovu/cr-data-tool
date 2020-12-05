@@ -49,7 +49,7 @@ def _require_years(intervals, delta):
         diff = end.year - start.year
         for i in range(diff + 1):
             year = start.year + i
-            if year in required: break # already required
+            if year in required: continue # already required
             if year > current_year: break # no data for future
             fpath = os.path.join('tmp', _filename(year))
             if not os.path.exists(fpath):
