@@ -37,7 +37,7 @@ def _interpolate_time(times, data):
     return new_times.astype(datetime), result
 
 def _fill_gap(interval, lat, lon, delta):
-    log.debug(f"Obtaining interval for lat={lat} lon={lon} from {interval[0] - delta} to {interval[1] + delta}")
+    log.info(f"Obtaining interval for lat={lat} lon={lon} from {interval[0] - delta} to {interval[1] + delta}")
     times_6h, data = parser.obtain(interval[0] - delta, interval[1] + delta)
     log.debug(f"Interval retrieved, len={len(data)}")
     approximated = _approximate_for_point(data, lat, lon)
@@ -81,10 +81,10 @@ def _fill_all_gaps(missing_intervals, lat, lon):
     delta = timedelta(days=1)
     parser.download_required_files(aligned_intervals, delta) # this operation may take up to 10 minutes
     threads = []
-    log.debug(f"About to fill {len(aligned_intervals)} interval(s)")
+    log.info(f"About to fill {len(aligned_intervals)} interval(s)")
     for i in aligned_intervals:
         _fill_gap(i, lat, lon, delta)
-    log.debug("All intervals done")
+    log.info("All intervals done")
     # release lock
     global _lock
     _lock = False

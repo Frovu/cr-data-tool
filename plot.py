@@ -27,13 +27,13 @@ def query_and_plot(level, lat, lon, dt_from, dt_to):
     level_id = temperature.proxy.LEVELS.index(level)
     status, data = temperature.get(lat, lon, dt_from, dt_to)
     while status != 200:
-        print(f"status: {status} waiting 2s")
-        tm.sleep(2)
+        print(f"status: {status} waiting 5s")
+        tm.sleep(5)
         status, data = temperature.get(lat, lon, dt_from, dt_to)
     times = [a[0] for a in data]
     levels = [a[level_id + 1] for a in data]
     plot(times, levels, f't at {level} mb')
 
-dt_strt = datetime(2017, 2, 1)
-dt_end = datetime(2020, 11, 1)
+dt_strt = datetime(2012, 1, 1)
+dt_end = datetime(2020, 1, 1)
 query_and_plot(850, 55.47, 37.32, dt_strt, dt_end)
