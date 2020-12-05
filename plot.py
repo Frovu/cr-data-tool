@@ -9,31 +9,27 @@ from datetime import datetime, timedelta, time
 plt.rcParams['axes.facecolor'] = 'black'
 plt.rcParams['figure.facecolor'] = 'darkgrey'
 
-def fetch():
-    temperature.get(55.47, 37.32, datetime.strptime('2020-01-3', '%Y-%m-%d'), datetime.strptime('2020-01-4', '%Y-%m-%d'))
-    tm.sleep(1.5)
-    temperature.get(55.47, 37.32, datetime.strptime('2020-01-7', '%Y-%m-%d'), datetime.strptime('2020-01-8', '%Y-%m-%d'))
-    tm.sleep(1.5)
-    temperature.get(55.47, 37.32, datetime.strptime('2020-01-1', '%Y-%m-%d'), datetime.strptime('2020-01-10', '%Y-%m-%d'))
-    tm.sleep(1.5)
-#fetch()
-
-dfrom = datetime.strptime('2020-12-1', '%Y-%m-%d')
-dto = datetime.strptime('2020-12-31', '%Y-%m-%d')
-
-temperature.get(55.47, 37.32, dfrom, dto)
-tm.sleep(1.5)
-status, data = temperature.get(55.47, 37.32, dfrom, dto)
-print(status)
-if isinstance(data, list):
+def plot(times, level, label=None):
     logging.disable(logging.DEBUG)
     fig, ax = plt.subplots()
-    level = [a[1] for a in data]
-    drange = [a[0] for a in data]
-    ax.plot(drange, level, 'c')
-    node_level = [data[i][1] for i in range(0, len(data), 6)]
-    node_date = [data[i][0] for i in range(0, len(data), 6)]
+    ax.plot(times, level, 'c')
+    node_level = [level[i] for i in range(0, len(times), 6)]
+    node_date = [times[i] for i in range(0, len(times), 6)]
     ax.plot(node_date, node_level, 'r.')
-    legend = plt.legend(['temperature'])
+    legend = plt.legend([label or 'temp'])
     plt.setp(legend.get_texts(), color='grey')
     plt.show()
+
+def query_and_plot(lat, lon, dt_from, dt_to):
+    status, data = temperature.get(lat, lon, dt_from, dt_to)
+    while status != 200:
+        print(f"status: {status} waiting 2s")
+        tm.sleep(2)
+        status, data = temperature.get(lat, lon, dt_from, dt_to)
+    times = [a[0] for a in data]
+    level = [a[1] for a in data]
+    plot(times, level, 't at 1000 mb')
+
+dt_strt = datetime(2017, 2, 1)
+dt_end = datetime(2020, 11, 1)
+query_and_plot(55.47, 37.32, dt_strt, dt_end)
