@@ -48,10 +48,13 @@ def _create_if_not_exists(lat, lon):
         pg_conn.commit()
 _fetch_existing()
 
+def get_station(lat, lon):
+    return next((x for x in stations if (x.get('lat') == lat and x.get('lon') == lon)), None)
+
 # return list of time period turples for which data is missing
 # this could be done by complex SQL query probably
 def analyze_integrity(lat, lon, start_time, end_time):
-    station = next((x for x in stations if (x.get('lat') == lat and x.get('lon') == lon)), None)
+    station = get_station(lat, lon)
     if not station:
         return False
     log.info(f'Querying station \'{station.get("name")}\' from {start_time} to {end_time}')

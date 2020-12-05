@@ -92,6 +92,8 @@ def _fill_all_gaps(missing_intervals, lat, lon):
 def get(lat, lon, start_time, end_time):
     lat = round(lat, 2)
     lon = round(lon, 2)
+    if not proxy.get_station(lat, lon):
+        return 400, None
     if start_time < datetime(1948, 1, 1):
         start_time = datetime(1948, 1, 1)
     end_trim = datetime.combine(datetime.now(), time()) - timedelta(days=2)
