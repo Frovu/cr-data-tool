@@ -11,8 +11,8 @@ _lock = False
 # transform geographical coords to index coords
 def _get_coords(lat, lon):
     lat_i = interpolate.interp1d([90, -90], [0, 72])
-    lon_i = interpolate.interp1d([-180, 180], [0, 144]) # we will get out of range at lat > 175.5 but I hope its not critical
-    return [[lat_i(lat)], [lon_i(lon)]]
+    lon_i = interpolate.interp1d([0, 360], [0, 144]) # we will get out of range at lat > 175.5 but I hope its not critical
+    return [[lat_i(lat)], [lon_i((lon + 360) % 360)]] # lon: [-180;180]->[0;360]
 
 # receives 4d array a[time][level][lat][lon] (raw data)
 # returns 2d array a[time][level] (approximated for given coords)
