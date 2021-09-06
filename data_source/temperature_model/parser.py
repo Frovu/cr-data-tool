@@ -1,11 +1,14 @@
 import os
 from progressbar import ProgressBar
 import numpy as np
-from proxy import log
+from data_source.temperature_model.proxy import log
 from ftplib import FTP
 from datetime import datetime, timedelta
 from netCDF4 import Dataset, num2date, date2index
 from threading import Thread
+
+if not os.path.exists('tmp'):
+    os.makedirs('tmp')
 
 def _filename(year):
     return f'air.{year}.nc'

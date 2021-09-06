@@ -18,10 +18,10 @@ def addapt_float32(numpy_float32):
 register_adapter(numpy.float32, addapt_float32)
 
 pg_conn = psycopg2.connect(
-    dbname = os.environ.get("DB_NAME"),
-    user = os.environ.get("DB_USER"),
-    password = os.environ.get("DB_PASS"),
-    host = os.environ.get("DB_HOST")
+    dbname = os.environ.get("NCEP_DB_NAME"),
+    user = os.environ.get("NCEP_DB_USER"),
+    password = os.environ.get("NCEP_DB_PASS"),
+    host = os.environ.get("NCEP_DB_HOST")
 )
 
 _INSERT_CHUNK_SIZE = 100

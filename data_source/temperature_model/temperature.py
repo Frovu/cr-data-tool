@@ -1,9 +1,9 @@
 import numpy as np
 from scipy import interpolate, ndimage
 from datetime import datetime, timedelta, time
-import proxy
+import data_source.temperature_model.proxy as proxy
 log = proxy.log
-import parser
+import data_source.temperature_model.parser as parser
 from threading import Thread
 
 _lock = False

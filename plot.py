@@ -1,5 +1,4 @@
-import temperature
-import parser
+import data_source.temperature_model.temperature as temperature
 import logging
 import time as tm
 logging.disable(logging.DEBUG)
@@ -34,6 +33,6 @@ def query_and_plot(level, lat, lon, dt_from, dt_to):
     levels = [a[level_id + 1] for a in data]
     plot(times, levels, f't at {level} mb')
 
-dt_strt = datetime(2012, 1, 1)
-dt_end = datetime(2020, 1, 1)
+dt_strt = datetime(2019, 6, 1)
+dt_end = datetime(2020, 6, 1)
 query_and_plot(850, 55.47, 37.32, dt_strt, dt_end)
