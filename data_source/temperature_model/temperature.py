@@ -47,10 +47,14 @@ def _fill_gap(interval, lat, lon, delta):
     # We will not insert edges data so result should be trimmed
     # also proxy.insert requires array of (time, p_...)
     trim_from = np.nonzero(times_1h == interval[0])[0][0]
-    trim_to = np.nonzero(times_1h == interval[1])[0][0] + 1 # inclusive
-    rows = [([times_1h[i]] + list(result[i])) for i in range(trim_from, trim_to)]
-    proxy.insert(rows, lat, lon)
-    log.debug(f"Interval inserted")
+    times_end_interval = np.nonzero(times_1h == interval[1])
+    trim_to = (times_end_interval[0][0] + 1) if len(times_end_interval[0]) else len(result) - 4  # inclusive
+    rows = [([times_1h[i]] + list(result[i])) for i in range(trim_from, trim_to if trim_to > 0 else 0)]
+    if len(rows):
+        proxy.insert(rows, lat, lon)
+        log.debug(f"Interval inserted")
+    else:
+        log.debug(f"Interval empty")
 
 # split interval to smaller intervals to decrease memory load
 def _split_interval(start, end):
@@ -83,7 +87,10 @@ def _fill_all_gaps(missing_intervals, lat, lon):
     threads = []
     log.info(f"About to fill {len(aligned_intervals)} interval(s)")
     for i in aligned_intervals:
-        _fill_gap(i, lat, lon, delta)
+        try:
+            _fill_gap(i, lat, lon, delta)
+        except Exception as e:
+            log.error(f"Failed filling interval: {e}")
     log.info("All intervals done")
     # release lock
     global _lock
@@ -96,11 +103,11 @@ def get(lat, lon, start_time, end_time):
         return 400, None
     if start_time < datetime(1948, 1, 1):
         start_time = datetime(1948, 1, 1)
-    end_trim = datetime.combine(datetime.now(), time()) - timedelta(days=2)
+    end_trim = datetime.combine(datetime.now(), time()) - timedelta(days=1)
     if end_time > end_trim:
         end_time = end_trim
     missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)
-    if not missing_intervals:
+    if not missing_intervals or missing_intervals[-1][0] >= end_trim - timedelta(days=1):
         return 200, proxy.select(lat, lon, start_time, end_time)
     # data processing required
     global _lock

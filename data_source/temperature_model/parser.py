@@ -20,7 +20,7 @@ def _extract_from_file(year, start_time, end_time):
     assert "NMC reanalysis" in data.title
     times = data.variables["time"]
     start_idx = date2index(start_time, times)
-    end_idx = -1 if end_time > num2date(times[-1], times.units) else date2index(end_time, times) + 1 # inclusive
+    end_idx = None if end_time >= num2date(times[-1], times.units) else date2index(end_time, times) + 1 # inclusive
     time_values = num2date(times[start_idx:end_idx], units=times.units)
     air = data.variables["air"][start_idx:end_idx]
     data.close()
@@ -61,7 +61,7 @@ def _require_years(intervals, delta):
                 try:
                     data = Dataset(fpath, 'r')
                     times = data.variables["time"]
-                    if ((year == current_year and num2date(times[-1], times.units) <= end - timedelta(days=1))
+                    if ((year == current_year and num2date(times[-1], times.units) <= interval[1] - timedelta(days=1))
                         or (year != current_year and times.size < (365*4))): # cant use '==' due to leap year
                         required.append(year)
                     data.close()

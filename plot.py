@@ -33,6 +33,6 @@ def query_and_plot(level, lat, lon, dt_from, dt_to):
     levels = [a[level_id + 1] for a in data]
     plot(times, levels, f't at {level} mb')
 
-dt_strt = datetime(2019, 6, 1)
-dt_end = datetime(2020, 6, 1)
-query_and_plot(850, 55.47, 37.32, dt_strt, dt_end)
+dt_strt = datetime(2021, 8, 1)
+dt_end = datetime(2022, 6, 1)
+query_and_plot(1000, 55.47, 37.32, dt_strt, dt_end)
