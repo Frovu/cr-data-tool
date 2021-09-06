@@ -1,5 +1,6 @@
 ## Install
 
+- `pip install flask`
 - `pip install numpy`
 - `pip install scipy`
 - `pip install psycopg2`
@@ -8,7 +9,7 @@
 
 ## Run
 
-`export $(cat .env | xargs) && python3 server.py`
+`export $(cat .env | xargs) && flask run`
 
 ## .env file template
 ```

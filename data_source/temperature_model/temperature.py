@@ -103,7 +103,7 @@ def get(lat, lon, start_time, end_time):
         return 400, None
     if start_time < datetime(1948, 1, 1):
         start_time = datetime(1948, 1, 1)
-    end_trim = datetime.combine(datetime.now(), time()) - timedelta(days=1)
+    end_trim = datetime.combine(datetime.now(), time()) - timedelta(days=1, hours=12)
     if end_time > end_trim:
         end_time = end_trim
     missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)

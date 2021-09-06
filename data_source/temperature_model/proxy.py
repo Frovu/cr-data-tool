@@ -86,7 +86,7 @@ def select(lat, lon, start_time, end_time):
         cursor.execute(f'SELECT * FROM {_table_name(lat, lon)} ' +
             'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
         for row in cursor.fetchall():
-            result.append(row)
+            result.append([row[0].timestamp()]+list(row[1:]))
     return result
 
 def insert(data, lat, lon):
