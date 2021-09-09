@@ -1,13 +1,6 @@
 import os
 from datetime import datetime, timedelta, time
 import logging as log
-log.basicConfig(
-    format='%(asctime)s/%(levelname)s: %(message)s', level=log.DEBUG,
-    handlers=[
-        log.FileHandler('log.log', mode='a'),
-        log.StreamHandler()
-    ]
-)
 
 import numpy
 import psycopg2
