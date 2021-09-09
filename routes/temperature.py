@@ -14,10 +14,11 @@ def get():
     except ValueError:
         return {}, 400
     status, data = temperature.get(lat, lon, dt_from, dt_to)
-    if status != 200:
-        body = { "download": data } if (status == 102 and data) else {}
-        return body, status
-    return {
-        "fields": ['time'] + temperature.proxy.LEVELS,
-        "data": data
-    }
+    body = { "status": status }
+    if status != 'ok':
+        if status == 'busy' and data:
+            body["download"] = data
+        return body
+    body["fields"] = ['time'] + temperature.proxy.LEVELS
+    body["data"] = data
+    return body

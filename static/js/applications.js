@@ -4,6 +4,8 @@ const applications = {
 	temperature
 };
 
+// let active = 'temperature';
+
 export function ping() {
 	for (const m in applications) {
 		applications[m].ping();

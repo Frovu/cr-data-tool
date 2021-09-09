@@ -100,7 +100,7 @@ def get(lat, lon, start_time, end_time):
     lat = round(lat, 2)
     lon = round(lon, 2)
     if not proxy.get_station(lat, lon):
-        return 400, None
+        return 'unknown', None
     if start_time < datetime(1948, 1, 1):
         start_time = datetime(1948, 1, 1)
     end_trim = datetime.combine(datetime.now(), time()) - timedelta(days=1, hours=12)
@@ -108,12 +108,12 @@ def get(lat, lon, start_time, end_time):
         end_time = end_trim
     missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)
     if not missing_intervals or missing_intervals[-1][0] >= end_trim - timedelta(days=1):
-        return 200, proxy.select(lat, lon, start_time, end_time)
+        return 'ok', proxy.select(lat, lon, start_time, end_time)
     # data processing required
     global _lock
     if _lock:
-        return 102, parser.get_download_progress() # server busy
+        return 'busy', parser.get_download_progress() # server busy
     thread = Thread(target=_fill_all_gaps, args=(missing_intervals, lat, lon))
     _lock = True
     thread.start()
-    return 205, None # accepted data processing query
+    return 'accepted', None # accepted data processing query
