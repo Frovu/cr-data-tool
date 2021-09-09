@@ -15,7 +15,8 @@ def get():
         return {}, 400
     status, data = temperature.get(lat, lon, dt_from, dt_to)
     if status != 200:
-        return {}, status
+        body = { "download": data } if (status == 102 and data) else {}
+        return body, status
     return {
         "fields": ['time'] + temperature.proxy.LEVELS,
         "data": data

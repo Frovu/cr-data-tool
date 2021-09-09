@@ -24,8 +24,7 @@ sh = logging.StreamHandler()
 sh.setFormatter(formatter)
 
 logger = logging.getLogger()
-logger.addHandler(log_rotate)
-logger.addHandler(sh)
+logger.handlers = [ log_rotate, sh ]
 logger.setLevel(logging.DEBUG)
 
 app = Flask(__name__,

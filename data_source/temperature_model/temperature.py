@@ -112,8 +112,8 @@ def get(lat, lon, start_time, end_time):
     # data processing required
     global _lock
     if _lock:
-        return 102, None # busy
+        return 102, parser.get_download_progress() # server busy
     thread = Thread(target=_fill_all_gaps, args=(missing_intervals, lat, lon))
     _lock = True
     thread.start()
-    return 205, None # Accepted data processing query
+    return 205, None # accepted data processing query
