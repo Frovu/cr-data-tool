@@ -1,5 +1,6 @@
 from flask import Flask, send_file
 from routes import temperature
+import zlib
 import os
 import logging
 import logging.handlers
@@ -10,7 +11,7 @@ def rotator(source, dest):
     with open(source, "rb") as sf:
         data = sf.read()
         compressed = zlib.compress(data, 9)
-        with open(dest, "wb") as df:
+        with open(dest+'.gz', "wb") as df:
             df.write(compressed)
     os.remove(source)
 
