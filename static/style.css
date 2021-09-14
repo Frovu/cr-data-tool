@@ -1,7 +1,58 @@
 body {
-	display: inline flex !important;
+	display: grid !important;
+	grid-template-columns: 4fr 6fr;
+	gap: 8px;
 	font-family: monospace;
 	font-size: 11pt;
+}
+
+.tool-selector {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.tool-option {
+	display: block;
+}
+
+.tool-option input {
+	display: none;
+}
+
+.tool-option label {
+	display: block;
+	text-align: center;
+	text-shadow: 1px 1px darkgray;
+	color: gray;
+	padding: 2px 11px 2px 11px;
+	border: 1px gray solid;
+	cursor: pointer;
+}
+
+.tool-option label:hover {
+	background-color: cyan;
+}
+
+[type=radio]:checked+label {
+	text-shadow: 1px 1px cyan;
+	color: black;
+	padding: 1px 10px 1px 10px;
+	font-weight: bold;
+	border-color: black;
+	border-width: 2px;
+}
+
+[type=radio]:checked+label:hover {
+	background-color: white;
+}
+
+.tool-content {
+	padding: 0.5rem;
+	border: 2px black solid;
+	min-height: 50vh;
+	grid-row-end: span 3;
+	grid-column: 1;
 }
 
 select {
@@ -16,65 +67,11 @@ select:hover {
 	background-color: cyan;
 }
 
-.tools {
-	position: absolute;
-	border
-}
-
-.tab {
-	float: left;
-}
-
-.tab [type=radio] {
-	display: none;
-}
-
-.tab-content {
-	box-sizing: border-box;
-	width: 100%;
-	height: calc(100vh - 100px);
-	border: 2px solid;
-	border-top: none;
-	position: absolute;
-	padding-left: 12px;
-	top: 26px;
-	left: 0px;
-	opacity: 0;
-}
-
-label.tab {
-	text-shadow: 1px 1px darkgray;
-	color: gray;
-	padding: 2px 24px 4px 24px;
-	cursor: pointer;
-	border: 1px gray solid;
-	border-bottom: 2px black solid;
-}
-
-label.tab:hover {
-	background-color: cyan;
-}
-
-[for=tabhide] {
-	border-bottom: 2px black solid !important;
-	padding-bottom: 4px !important;
-}
-
-[type=radio]:checked ~ label.tab {
-	text-shadow: 1px 1px cyan;
-	padding-bottom: 5px;
-	color: black;
-	font-weight: bold;
-	border-bottom: none;
-	border-color: black;
-	border-width: 2px;
-}
-
-[type=radio]:checked ~ label.tab:hover {
-	background-color: white;
-}
-
-[type=radio]:checked ~ .tab-content {
-	opacity: 1;
-	z-index: 1;
+.graph {
+	display: block;
+	border: 2px black solid;
+	grid-row-start: 1;
+	grid-row-end: span 3;
+	grid-column: 2;
+	background-color: gray;
 }

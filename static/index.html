@@ -3,48 +3,44 @@
 	<head>
 		<meta charset="utf-8">
 		<link rel="stylesheet" href="style.css">
-		<title></title>
+		<title>CRDT</title>
 	</head>
 	<body style="display: none;">
-		<div class="tools">
-			<div class="tab">
-				<input type="radio" name="tabbtn" id="tab1" checked>
-				<label class="tab" for="tab1">Application</label>
-				<div class="tab-content">
-					<p>
-						<label for="app">Select application:</label>
-						<select name="app">
-							<option value="temperature">Temperature</option>
-							<option value="muones">Muones</option>
-						</select>
-					</p>
-				</div>
+		<div class="tool-selector">
+			<div class="tool-option">
+				<input type="radio" name="tool-select" id="app-btn" checked>
+				<label for="app-btn">Application</label>
 			</div>
-			<div class="tab">
-				<input type="radio" name="tabbtn" id="tab2">
-				<label class="tab" for="tab2">Query</label>
-				<div class="tab-content">
-					<p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Incidunt libero ipsum, veniam magni modi exercitationem debitis ducimus assumenda ratione corporis, illum eius, laborum tempore cumque amet id perspiciatis nostrum unde?</p>
-				</div>
+			<div class="tool-option">
+				<input type="radio" name="tool-select" id="query-btn">
+				<label for="query-btn">Query</label>
 			</div>
-			<div class="tab">
-				<input type="radio" name="tabbtn" id="tab3">
-				<label class="tab" for="tab3">Tools</label>
-				<div class="tab-content">
-					<p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Incidunt libero ipsum, veniam magni modi exercitationem debitis ducimus assumenda ratione corporis, illum eius, laborum tempore cumque amet id perspiciatis nostrum unde?</p>
-				</div>
+			<div class="tool-option">
+				<input type="radio" name="tool-select" id="tools-btn">
+				<label for="tools-btn">Tools</label>
 			</div>
-			<div class="tab">
-				<input type="radio" name="tabbtn" id="tab4">
-				<label class="tab" for="tab4">View</label>
-				<div class="tab-content">
-					<p>Lorem ipsum, dolor sit amet consectetur adipisicing elit. Incidunt libero ipsum, veniam magni modi exercitationem debitis ducimus assumenda ratione corporis, illum eius, laborum tempore cumque amet id perspiciatis nostrum unde?</p>
-				</div>
+			<div class="tool-option">
+				<input type="radio" name="tool-select" id="view-btn">
+				<label for="view-btn">View</label>
 			</div>
-			<div class="tab">
-				<input type="radio" name="tabbtn" id="tabhide">
-				<label class="tab" for="tabhide">Graph</label>
+			<div class="tool-option">
+				<input type="radio" name="tool-select" id="export-btn">
+				<label for="export-btn">Export</label>
 			</div>
+			<div class="tool-option">
+				<input type="radio" name="tool-select" id="graph-btn">
+				<label for="graph-btn">Graph</label>
+			</div>
+		</div>
+		<div class="tool-content">
+			<label for="app">Select application:</label>
+			<select name="app">
+				<option value="temperature">Temperature</option>
+				<option value="muones">Muones</option>
+			</select>
+		</div>
+		<div class="graph">
+
 		</div>
 	</body>
 </html>
