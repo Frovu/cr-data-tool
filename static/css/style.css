@@ -1,7 +1,7 @@
 body {
 	display: grid !important;
 	grid-auto-flow: row;
-	grid-template-columns: auto 6fr;
+	grid-template-columns: auto minmax(360px, 6fr);
 	gap: 8px;
 	font-family: monospace;
 	font-size: 11pt;
@@ -76,5 +76,5 @@ select:hover {
 	grid-row-start: 1;
 	grid-row-end: span 3;
 	grid-column: 2;
-	background-color: darkgray;
+	background-color: rgba(0,0,0,0.05);
 }
