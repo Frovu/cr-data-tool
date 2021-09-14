@@ -76,5 +76,14 @@ select:hover {
 	grid-row-start: 1;
 	grid-row-end: span 3;
 	grid-column: 2;
-	background-color: rgba(0,0,0,0.05);
+}
+
+@media (max-width: 1000px) {
+	.graph {
+		grid-column: 1;
+		grid-row-start: 3;
+	}
+	body {
+		grid-template-columns: auto;
+	}
 }
