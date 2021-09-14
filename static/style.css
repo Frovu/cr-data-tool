@@ -1,6 +1,7 @@
 body {
 	display: grid !important;
-	grid-template-columns: 4fr 6fr;
+	grid-auto-flow: row;
+	grid-template-columns: auto 6fr;
 	gap: 8px;
 	font-family: monospace;
 	font-size: 11pt;
@@ -50,8 +51,9 @@ body {
 .tool-content {
 	padding: 0.5rem;
 	border: 2px black solid;
-	min-height: 50vh;
-	grid-row-end: span 3;
+	min-height: 30vh;
+	max-width: 600px;
+	grid-row-end: 3;
 	grid-column: 1;
 }
 
@@ -68,10 +70,11 @@ select:hover {
 }
 
 .graph {
-	display: block;
+	min-height: 360px;
+	max-width: 1200px;
 	border: 2px black solid;
 	grid-row-start: 1;
 	grid-row-end: span 3;
 	grid-column: 2;
-	background-color: gray;
+	background-color: darkgray;
 }
