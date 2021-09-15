@@ -9,6 +9,10 @@
 	<body style="display: none;">
 		<div class="tool-selector">
 			<div class="tool-option">
+				<input type="radio" name="tool-select" id="info-btn">
+				<label for="info-btn">?</label>
+			</div>
+			<div class="tool-option">
 				<input type="radio" name="tool-select" id="app-btn" checked>
 				<label for="app-btn">Application</label>
 			</div>
@@ -33,25 +37,27 @@
 				<label for="graph-btn">Graph</label>
 			</div>
 		</div>
-		<div class="tool-content">
-			<div class="tab" id="app-tab">
-				<label for="app">Select application:</label>
-				<select name="app">
-					<option value="temperature">Temperature</option>
-					<option value="muones">Muones</option>
-				</select>
-				<p id="progress"></p>
-			</div>
-			<div class="tab active" id="query-tab">
-				sodfjsdfsodfjsdf sd adfsodfjsdf sd adfsodfjsdf sd adfsodfjsdf sd ad  fas
-			</div>
-			<div class="tab" id="tools-tab">
-				sodfjsdfsodfjsdf sd sodfjsdf sd adfsodfjsdf sd adfsod sd adfsodfjsdf sd adfsodfjsdf sd ad  fas
-				sodfjsdffjsdf sd adfsodfjsdf sd sodfjsdf sd adfsodfjsdf sd adfsodad  fas
-				sodfjsdfsodfjsdf sd adfsodfjsdf sd adfsodfjsdf sd adfsodfjsdf sd ad  fas
-			</div>
+		<div class="tab active" id="app-tab">
+			<label for="app">Select application:</label>
+			<select name="app">
+				<option value="temperature">Temperature</option>
+				<option value="muones">Muones</option>
+			</select>
+			<p id="progress"></p>
 		</div>
-		<div class="graph"></div>
+		<div class="tab" id="query-tab"></div>
+		<div class="tab" id="tools-tab"></div>
+		<div class="tab" id="view-tab"></div>
+		<div class="tab" id="export-tab"></div>
+		<div class="graph" id="graph-tab"></div>
+		<div class="tab" id="info-tab">
+			<h4>Cosmic Rays Data Tool</h4>
+			Status: WIP
+			<h4>Plot interactions</h4>
+			- Click and drag to zoom<br>
+			- Double-click to reset zoom
+			<p style="text-align: right; margin-top: 2rem;">(c) 2021-2021 Frovy, IZMIRAN</p>
+		</div>
 		<script type="module" src="js/main.js"></script>
 	</body>
 </html>
