@@ -1,11 +1,18 @@
 body {
 	display: grid !important;
 	grid-auto-flow: row;
-	grid-template-columns: auto minmax(360px, 6fr);
+	grid-template-columns: minmax(360px, 4fr) minmax(360px, 6fr);
 	gap: 8px;
 	font-family: monospace;
 	font-size: 11pt;
 }
+
+@media (min-width: 1800px) {
+	body {
+		grid-template-columns: 4fr 8fr 2fr;
+	}
+}
+
 
 .tool-selector {
 	display: flex;
@@ -70,6 +77,7 @@ select:hover {
 }
 
 .graph {
+	display: block;
 	min-height: 360px;
 	max-width: 1200px;
 	border: 2px black solid;
@@ -78,12 +86,23 @@ select:hover {
 	grid-column: 2;
 }
 
+.tab {
+	display: none;
+}
+
+.tab.active {
+	display: block;
+}
+
 @media (max-width: 1000px) {
+	.tool-content {
+		max-width: 480px;
+	}
 	.graph {
 		grid-column: 1;
 		grid-row-start: 3;
 	}
 	body {
-		grid-template-columns: auto;
+		grid-template-columns: 90%;
 	}
 }
