@@ -1,10 +1,14 @@
 import * as temperature from './applications/temperature.js';
 
-const applications = {
+export const applications = {
 	temperature
 };
 
-// let active = 'temperature';
+let active;
+
+export async function swith(app) {
+	active = app;
+}
 
 export async function query(app) {
 	return applications[app].fetchData();

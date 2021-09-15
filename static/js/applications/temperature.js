@@ -38,7 +38,3 @@ export function fetchData() {
 		});
 	});
 }
-
-export function ping() {
-	// console.log('temperature');
-}
