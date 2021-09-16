@@ -1,0 +1,27 @@
+
+.tab {
+	position: relative;
+}
+
+.tab button {
+	padding: 2px 10px 2px 10px;
+	font-family: inherit;
+	font-size: 11pt;
+	text-shadow: 1px 1px darkgray;
+	border: 2px black outset;
+	background-color: inherit;
+}
+
+.tab button:hover {
+	background-color: cyan;
+}
+
+.tab button:active {
+	border-style: inset;
+}
+
+button.submit {
+	position: absolute;
+	bottom: 0.5rem;
+	right: 0.5rem;
+}

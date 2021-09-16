@@ -3,8 +3,8 @@ import * as tabs from '../tabsUtil.js';
 
 const LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10];
 const params = {
-	from: Date.now()/1000 - 86400*375,
-	to: Date.now()/1000 - 86400*10,
+	from: Math.floor(Date.now()/1000) - 86400*375,
+	to: Math.floor(Date.now()/1000) - 86400*10,
 	lat: 55.47,
 	lon: 37.32
 };
@@ -66,7 +66,7 @@ function stopFetch() {
 
 function receiveData(resp) {
 	console.log(resp);
-	const rows = resp.rows, len = resp.rows.length, rowLen = resp.fields.length;
+	const rows = resp.data, len = resp.data.length, rowLen = resp.fields.length;
 	const idx = Array(rowLen);
 	['time'].concat(LEVELS).forEach((field, i) => {
 		idx[resp.fields.indexOf(field)] = i;
@@ -110,9 +110,9 @@ export function initTabs() {
 		if (data) receiveData(data);
 	});
 	tabs.fill('query', [
-		tabs.input('time', (from, to) => {
-
-		}),
+		// tabs.input('time', (from, to) => {
+		//
+		// }),
 		queryBtn
 	]);
 	tabs.disable('tools');
