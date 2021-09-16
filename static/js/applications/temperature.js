@@ -9,7 +9,7 @@ const params = {
 	lon: 37.32
 };
 let data;
-let columns = [0, 1, 2];
+let activeSeries = [0, 1, 2];
 let dataFetch;
 let queryBtn;
 // let progress;
@@ -85,7 +85,7 @@ function color(idx) {
 }
 
 function plotInit() {
-	const series = ['time'].concat(columns.map(col => {return {
+	const series = ['time'].concat(activeSeries.map(col => {return {
 		scale: 'K',
 		label: `h=${LEVELS[col].toFixed(0)}mb`,
 		color: color(col),
@@ -95,11 +95,12 @@ function plotInit() {
 		scale: 'K'
 	});
 	plot.init(series, axes);
+	plotData();
 }
 
 function plotData() {
 	if (data) {
-		const plotData = [data[0]].concat(columns.map(col => data[col+1]));
+		const plotData = [data[0]].concat(activeSeries.map(col => data[col+1]));
 		plot.data(plotData);
 	}
 }
@@ -107,6 +108,17 @@ function plotData() {
 async function fetchData() {
 	const data = await startFetch();
 	if (data) receiveData(data);
+}
+
+function viewSeries(idx, show) {
+	if (show) {
+		if (activeSeries.includes(idx)) return;
+		activeSeries.push(idx);
+		activeSeries.sort();
+	} else {
+		activeSeries = activeSeries.filter(s => s !== idx);
+	}
+	plotInit();
 }
 
 export function initTabs() {
@@ -118,11 +130,15 @@ export function initTabs() {
 		div.classList.add('view-option');
 		const id = `ser-${lvl}mb`;
 		box.setAttribute('type', 'checkbox');
+		if (activeSeries.includes(i)) box.setAttribute('checked', true);
 		box.setAttribute('id', id);
 		lbl.setAttribute('for', id);
 		lbl.setAttribute('style', `border-color: ${color(i)};`);
 		lbl.innerHTML = `h = ${lvl} mb<span class="color-box" style="background-color: ${color(i)};"></span>`;
 		div.append(box, lbl);
+		div.addEventListener('change', () => {
+			viewSeries(i, document.getElementById(id).checked);
+		});
 		return div;
 	});
 	tabs.fill('query', [

@@ -46,7 +46,7 @@ button.submit {
 }
 
 .view-option input:not(:checked) + label span {
-	display: none;
+	background-color: rgba(0,0,0,0.1) !important;
 }
 
 .view-option .color-box {
@@ -54,5 +54,5 @@ button.submit {
 	top: -2px;
 	right: -22px;
 	height: 22px;
-	width: 22px;
+	width: 20px;
 }
