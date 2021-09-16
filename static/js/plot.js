@@ -8,7 +8,7 @@ function getPlotSize() {
 	const height = parentEl.offsetWidth * 0.5;
 	return {
 		width: parentEl.offsetWidth,
-		height: height > MIN_HEIGHT ? height : MIN_HEIGHT,
+		height: height > (window.innerHeight-80) ? window.innerHeight-80 : (height > MIN_HEIGHT ? height : MIN_HEIGHT),
 	};
 }
 

@@ -88,11 +88,11 @@ function plotInit() {
 	const series = ['time'].concat(columns.map(col => {return {
 		scale: 'K',
 		label: `h=${LEVELS[col].toFixed(0)}mb`,
-		color: color(col)
+		color: color(col),
+		precision: 1
 	};}));
 	const axes = ['time'].concat({
-		scale: 'K',
-		precision: 1
+		scale: 'K'
 	});
 	plot.init(series, axes);
 }
@@ -104,11 +104,13 @@ function plotData() {
 	}
 }
 
+async function fetchData() {
+	const data = await startFetch();
+	if (data) receiveData(data);
+}
+
 export function initTabs() {
-	queryBtn = tabs.input('query', async () => {
-		const data = await startFetch();
-		if (data) receiveData(data);
-	});
+	queryBtn = tabs.input('query', fetchData);
 	tabs.fill('query', [
 		// tabs.input('time', (from, to) => {
 		//
@@ -121,6 +123,7 @@ export function initTabs() {
 
 export function load() {
 	plotInit();
+	fetchData();
 }
 
 export function unload() {
