@@ -12,45 +12,45 @@ function getPlotSize() {
 	};
 }
 
-export default function initPlot(data) {
+function prepareSeries(series) {
+	return series.map(s => {
+		return s === 'time' ? { value: '{YYYY}-{MM}-{DD} {HH}:{mm}' } : {
+			stroke: s.color,
+			label: s.label,
+			scale: s.scale,
+			value: (u, v) => v == null ? '-' : v.toFixed(s.precision||0) + ' ' + s.scale,
+		};
+	});
+}
+
+function prepareAxes(axes) {
+	return axes.map(a => {
+		return a === 'time' ? {} : {
+			scale: a.scale,
+			values: (u, vals) => vals.map(v => v.toFixed(a.precision||0) + ' ' + a.scale),
+		};
+	});
+}
+
+export function init(series, axes) {
+	if (uplot) uplot.destroy();
 	uplot = new uPlot({
 		...getPlotSize(),
-		series: [
-			{
-				value: '{YYYY}-{MM}-{DD} {HH}:{mm}'
-			},
-			{
-				stroke: 'red',
-				label: 'Temperature',
-				scale: 'K',
-				value: (u, v) => v == null ? '-' : v.toFixed(1) + ' K',
-			},
-			{
-				stroke: 'green',
-				label: 'Temperature',
-				scale: 'K',
-				value: (u, v) => v == null ? '-' : v.toFixed(1) + ' K',
-			},
-			{
-				stroke: 'blue',
-				label: 'Temperature',
-				scale: 'K',
-				value: (u, v) => v == null ? '-' : v.toFixed(1) + ' K',
-			}
-		],
-		axes: [
-			{},
-			{
-				scale: 'K',
-				values: (u, vals) => vals.map(v => v.toFixed(0) + ' K'),
-			},
-		],
+		series: prepareSeries(series),
+		axes: prepareAxes(axes),
 		cursor: {
-			drag: { dist: 16 },
+			drag: { dist: 12 },
 			points: { size: 6, fill: (self, i) => self.series[i]._stroke }
 		}
-	}, data, parentEl);
+	}, null, parentEl);
 	window.addEventListener('resize', () => {
 		uplot.setSize(getPlotSize());
 	});
+}
+
+export function data(data) {
+	if (uplot)
+		uplot.setData(data);
+	else
+		console.error('plot does not exist');
 }
