@@ -9,7 +9,8 @@ const params = {
 	lon: 37.32
 };
 let data;
-let activeSeries = [0, 1, 2];
+let activeSeries = [0, 2];
+// activeSeries = LEVELS.map((a,i)=>i)
 let dataFetch;
 let queryBtn;
 // let progress;
@@ -65,7 +66,6 @@ function stopFetch() {
 }
 
 function receiveData(resp) {
-	console.log(resp);
 	const rows = resp.data, len = resp.data.length, rowLen = resp.fields.length;
 	const idx = Array(rowLen);
 	['time'].concat(LEVELS).forEach((field, i) => {
@@ -81,7 +81,9 @@ function receiveData(resp) {
 }
 
 function color(idx) {
-	return idx < 3 ? ['red', 'green', 'blue'][idx] : 'gray';
+	const inc = 15*idx/3;
+	const base = [`255,${inc+50},${inc+50}`, `${inc},255,${inc}`, `${inc-100},${inc+255},255`][idx%3];
+	return `rgba(${base},1)`;
 }
 
 function plotInit() {
@@ -114,7 +116,7 @@ function viewSeries(idx, show) {
 	if (show) {
 		if (activeSeries.includes(idx)) return;
 		activeSeries.push(idx);
-		activeSeries.sort();
+		activeSeries = activeSeries.sort((a, b) => a-b);
 	} else {
 		activeSeries = activeSeries.filter(s => s !== idx);
 	}
