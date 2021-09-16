@@ -31,5 +31,6 @@ export async function swithApp(nextApp) {
 	} else {
 		applications[nextApp].initTabs();
 	}
+	if (applications[nextApp].load) applications[nextApp].load();
 	active = nextApp;
 }
