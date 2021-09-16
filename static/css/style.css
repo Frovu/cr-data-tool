@@ -49,7 +49,7 @@ body {
 	background-color: cyan;
 }
 
-[type=radio]:checked+label {
+.tool-option [type=radio]:checked+label {
 	text-shadow: 1px 1px cyan;
 	color: black;
 	padding: 1px 9px 1px 9px;
@@ -58,8 +58,13 @@ body {
 	border-width: 2px;
 }
 
-[type=radio]:checked+label:hover {
+.tool-option [type=radio]:checked+label:hover {
 	background-color: white;
+}
+
+.tool-option [type=radio]:disabled+label {
+	text-decoration: line-through;
+	background-color: rgba(0,0,0,0.2);
 }
 
 select {

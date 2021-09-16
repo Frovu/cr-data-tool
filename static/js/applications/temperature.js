@@ -93,7 +93,8 @@ export function initTabs() {
 
 		})
 	]);
-	tab.append(tabs.input('time'));
+	tabs.disable('tools');
+	tabs.disable('export');
 }
 
 export function unload() {
