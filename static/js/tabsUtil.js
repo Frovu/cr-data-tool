@@ -1,6 +1,7 @@
 
 export function fill(tab, items) {
 	const el = document.getElementById(`${tab}-tab`);
+	console.log(tab, items);
 	el.append(...items);
 }
 

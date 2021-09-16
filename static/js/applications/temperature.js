@@ -12,7 +12,7 @@ let data;
 let columns = [0, 1, 2];
 let dataFetch;
 let queryBtn;
-let progress;
+// let progress;
 
 function encodeParams(obj) {
 	const keys = Object.keys(obj);
@@ -111,12 +111,27 @@ async function fetchData() {
 
 export function initTabs() {
 	queryBtn = tabs.input('query', fetchData);
+	const viewSelectors = LEVELS.map((lvl, i) => {
+		const div = document.createElement('div');
+		const box = document.createElement('input');
+		const lbl = document.createElement('label');
+		div.classList.add('view-option');
+		const id = `ser-${lvl}mb`;
+		box.setAttribute('type', 'checkbox');
+		box.setAttribute('id', id);
+		lbl.setAttribute('for', id);
+		lbl.setAttribute('style', `border-color: ${color(i)};`);
+		lbl.innerHTML = `h = ${lvl} mb<span class="color-box" style="background-color: ${color(i)};"></span>`;
+		div.append(box, lbl);
+		return div;
+	});
 	tabs.fill('query', [
 		// tabs.input('time', (from, to) => {
 		//
 		// }),
 		queryBtn
 	]);
+	tabs.fill('view', viewSelectors);
 	tabs.disable('tools');
 	tabs.disable('export');
 }

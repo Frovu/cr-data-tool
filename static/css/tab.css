@@ -25,3 +25,34 @@ button.submit {
 	bottom: 1rem;
 	right: 1rem;
 }
+
+.view-option {
+	margin: 4px;
+}
+
+.view-option label {
+	position: relative;
+	user-select: none;
+	padding-left: 2px;
+	padding-right: 4px;
+	border-style: solid;
+	border-width: 2px;
+}
+
+.view-option input:not(:checked) + label {
+	color: gray;
+	background-color: rgba(0,0,0,0.1);
+	border-color: transparent !important;
+}
+
+.view-option input:not(:checked) + label span {
+	display: none;
+}
+
+.view-option .color-box {
+	position: absolute;
+	top: -2px;
+	right: -22px;
+	height: 22px;
+	width: 22px;
+}
