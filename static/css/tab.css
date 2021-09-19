@@ -26,8 +26,13 @@ button.submit {
 	right: 1rem;
 }
 
+#view-tab.active {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+}
+
 .view-option {
-	margin: 4px;
+	margin: 2px;
 }
 
 .view-option label {

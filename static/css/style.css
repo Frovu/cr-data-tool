@@ -97,7 +97,6 @@ select:hover {
 }
 
 .tab {
-	display: none;
 	padding: 0.5rem;
 	border: 2px black solid;
 	min-height: 30vh;
@@ -106,13 +105,13 @@ select:hover {
 	grid-column: 1;
 }
 
+.tab:not(.active) {
+	display: none;
+}
+
 h4 {
 	margin-top: 0.5rem;
 	margin-bottom: 0.5rem;
-}
-
-.tab.active {
-	display: block;
 }
 
 @media (max-width: 1000px) {
