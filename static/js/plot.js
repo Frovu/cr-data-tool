@@ -18,7 +18,7 @@ function prepareSeries(series) {
 			stroke: s.color,
 			label: s.label,
 			scale: s.scale,
-			value: (u, v) => v == null ? '-' : v.toFixed(s.precision||0) + ' ' + s.scale,
+			value: (u, v) => v == null ? '-' : (s.transform?s.transform(v):v).toFixed(s.precision||0) + ' ' + s.scale,
 		};
 	});
 }
@@ -27,7 +27,7 @@ function prepareAxes(axes) {
 	return axes.map(a => {
 		return a === 'time' ? {} : {
 			scale: a.scale,
-			values: (u, vals) => vals.map(v => v.toFixed(a.precision||0) + ' ' + a.scale),
+			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + ' ' + a.scale),
 		};
 	});
 }

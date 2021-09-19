@@ -6,11 +6,6 @@ const applications = {
 
 const tabsCache = {};
 
-// for (const a in applications) {
-// 	const app = applications[a];
-// 	tabsCache[a] = {};
-// }
-
 let active;
 
 export async function swithApp(nextApp) {

@@ -13,6 +13,7 @@ let activeSeries = [0, 2];
 // activeSeries = LEVELS.map((a,i)=>i)
 let dataFetch;
 let queryBtn;
+let temperatureUnit = 'K';
 // let progress;
 
 function encodeParams(obj) {
@@ -87,14 +88,17 @@ function color(idx) {
 }
 
 function plotInit() {
+	const transform = temperatureUnit!=='K' && (t => t-273.15);
 	const series = ['time'].concat(activeSeries.map(col => {return {
-		scale: 'K',
+		scale: temperatureUnit,
 		label: `h=${LEVELS[col].toFixed(0)}mb`,
 		color: color(col),
-		precision: 1
+		precision: 1,
+		transform
 	};}));
 	const axes = ['time'].concat({
-		scale: 'K'
+		scale: temperatureUnit,
+		transform
 	});
 	plot.init(series, axes);
 	plotData();
@@ -142,7 +146,10 @@ export function initTabs() {
 			viewSeries(i, document.getElementById(id).checked);
 		});
 		return div;
-	});
+	}).concat(tabs.input('switch', unit => {
+		temperatureUnit = unit;
+		plotInit();
+	}, { options: ['K', '°C'], text: 'Unit: ' }));
 	tabs.fill('query', [
 		// tabs.input('time', (from, to) => {
 		//
