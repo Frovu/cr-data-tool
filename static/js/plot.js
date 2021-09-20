@@ -3,6 +3,9 @@ import uPlot from './uPlot.iife.min.js';
 const MIN_HEIGHT = 360;
 let uplot;
 const parentEl = document.getElementsByClassName('graph')[0];
+window.addEventListener('resize', () => {
+	if (uplot) uplot.setSize(getPlotSize());
+});
 
 function getPlotSize() {
 	const height = parentEl.offsetWidth * 0.5;
@@ -32,25 +35,54 @@ function prepareAxes(axes) {
 	});
 }
 
-export function init(series, axes) {
+export function init(axes) {
 	if (uplot) uplot.destroy();
 	uplot = new uPlot({
 		...getPlotSize(),
-		series: prepareSeries(series),
+		series: [],
 		axes: prepareAxes(axes),
 		cursor: {
 			drag: { dist: 12 },
 			points: { size: 6, fill: (self, i) => self.series[i]._stroke }
 		}
 	}, null, parentEl);
-	window.addEventListener('resize', () => {
-		uplot.setSize(getPlotSize());
-	});
 }
 
-export function data(data) {
-	if (uplot)
-		uplot.setData(data);
-	else
-		console.error('plot does not exist');
+export function data(data, reset=true) {
+	if (!uplot)
+		return console.error('plot does not exist');
+	uplot.setData(data, reset);
+	if (!reset) uplot.redraw();
+}
+
+export function series(series) {
+	const prepared = prepareSeries(series);
+	const toDelete = uplot.series.length - 1;
+	for (let i=0; i < toDelete; ++i)
+		uplot.delSeries(1);
+	for (let i=1; i < prepared.length; ++i)
+		uplot.addSeries(prepared[i]);
+	/*
+	*** This code may be faster or more generic but is much less clean ***
+	let found = [];
+	for (let i=0; i < uplot.series.length; ++i) {
+		const s = uplot.series[i];
+		if (s.label === 'Time') {
+			found.push(series.indexOf('time'));
+			continue;
+		}
+		const idx = prepared.findIndex(es => es.label === s.label && s._stroke === es.stroke && s.scale === es.scale);
+		if (idx >= 0)
+			found.push(idx);
+		else
+			uplot.delSeries(i--);
+	}
+	prepared.forEach((s, i) => {
+		if (!found.includes(i)) {
+			found.push(i);
+			found = found.sort((a, b) => a-b);
+			uplot.addSeries(s, found.indexOf(i));
+		}
+	});
+	*/
 }

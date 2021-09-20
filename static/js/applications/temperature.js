@@ -13,6 +13,7 @@ let activeSeries = [0, 2];
 // activeSeries = LEVELS.map((a,i)=>i)
 let dataFetch;
 let queryBtn;
+const unitOptions = ['K', '°C'];
 let temperatureUnit = 'K';
 // let progress;
 
@@ -87,27 +88,29 @@ function color(idx) {
 	return `rgba(${base},1)`;
 }
 
-function plotInit() {
-	const transform = temperatureUnit!=='K' && (t => t-273.15);
+function plotInit(full=true) {
 	const series = ['time'].concat(activeSeries.map(col => {return {
 		scale: temperatureUnit,
 		label: `h=${LEVELS[col].toFixed(0)}mb`,
 		color: color(col),
 		precision: 1,
-		transform
+		transform: temperatureUnit!=='K' && (t => t-273.15)
 	};}));
-	const axes = ['time'].concat({
-		scale: temperatureUnit,
-		transform
-	});
-	plot.init(series, axes);
-	plotData();
+	if (full) {
+		const axes = ['time'].concat([
+			{ scale: 'K', },
+			{ scale: '°C', transform: t => t-273.15 }
+		]);
+		plot.init(axes);
+	}
+	plot.series(series);
+	plotData(full);
 }
 
-function plotData() {
+function plotData(resetScales=true) {
 	if (data) {
 		const plotData = [data[0]].concat(activeSeries.map(col => data[col+1]));
-		plot.data(plotData);
+		plot.data(plotData, resetScales);
 	}
 }
 
@@ -124,7 +127,7 @@ function viewSeries(idx, show) {
 	} else {
 		activeSeries = activeSeries.filter(s => s !== idx);
 	}
-	plotInit();
+	plotInit(false);
 }
 
 export function initTabs() {
@@ -149,7 +152,7 @@ export function initTabs() {
 	}).concat(tabs.input('switch', unit => {
 		temperatureUnit = unit;
 		plotInit();
-	}, { options: ['K', '°C'], text: 'Unit: ' }));
+	}, { options: unitOptions, text: 'Unit: ' }));
 	tabs.fill('query', [
 		// tabs.input('time', (from, to) => {
 		//
