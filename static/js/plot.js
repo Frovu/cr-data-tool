@@ -29,6 +29,7 @@ function prepareSeries(series) {
 function prepareAxes(axes) {
 	return axes.map(a => {
 		return a === 'time' ? {} : {
+			// side: a.side,
 			scale: a.scale,
 			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + ' ' + a.scale),
 		};
