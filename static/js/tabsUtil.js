@@ -32,7 +32,7 @@ export function input(type, callback, options) {
 	} else if (type === 'query') {
 		elem = document.createElement('button');
 		elem.classList.add('submit');
-		elem.innerHTML = 'Submit';
+		elem.innerHTML = 'Query data';
 		if (callback) elem.addEventListener('click', callback);
 	} else if (type === 'switch') {
 		elem = document.createElement('button');
