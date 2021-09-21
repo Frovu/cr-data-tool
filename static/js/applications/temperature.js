@@ -152,9 +152,12 @@ export function initTabs() {
 		plotInit();
 	}, { options: unitOptions, text: 'Unit: ' }));
 	tabs.fill('query', [
-		// tabs.input('time', (from, to) => {
-		//
-		// }),
+		tabs.input('time', (from, to, force) => {
+			params.from = Math.floor(from.getTime() / 1000);
+			params.to = Math.floor(to.getTime() / 1000);
+			if (force)
+				fetchData();
+		}, { from: new Date(params.from*1000), to: new Date(params.to*1000) }),
 		queryBtn
 	]);
 	tabs.fill('view', viewSelectors);

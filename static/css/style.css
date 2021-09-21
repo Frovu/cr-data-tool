@@ -126,3 +126,7 @@ h4 {
 		grid-template-columns: 99%;
 	}
 }
+
+input, button, select, label {
+	transition: background-color 250ms;
+}

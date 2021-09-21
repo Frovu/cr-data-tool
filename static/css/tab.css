@@ -67,3 +67,19 @@ button.submit {
 	padding: 1px !important;
 	width: 50%;
 }
+
+.time-input input {
+	text-align: center;
+	font-family: inherit;
+	font-size: inherit;
+	color: inherit;
+	width: 128px;
+	margin-left: 4px;
+	margin-right: 4px;
+	background-color: rgba(0,0,0,0.1);
+	border: 1px black dashed;
+}
+
+.time-input input:hover {
+	background-color: cyan;
+}
