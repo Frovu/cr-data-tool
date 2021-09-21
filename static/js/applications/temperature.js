@@ -180,6 +180,14 @@ export function initTabs() {
 		temperatureUnit = unit;
 		plotInit();
 	}, { options: unitOptions, text: 'Unit: ' }));
+	tabs.fill('app', [
+		tabs.text(`<h4>Description</h4>
+Application retrieves atmospheric temperature data of <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> and interpolates it for given coordinates and for 1 hour time period.
+Resulting data consists of 18 series of temperature at certain height.
+<h4>Usage</h4>
+The button on "Query" tab indicates your data query progress.
+When query parameters are changed, the button becomes highlighted.`)
+	]);
 	tabs.fill('query', [
 		tabs.input('time', (from, to, force) => {
 			params.from = Math.floor(from.getTime() / 1000);

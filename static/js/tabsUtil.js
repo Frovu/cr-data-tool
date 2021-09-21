@@ -4,6 +4,12 @@ export function fill(tab, items) {
 	el.append(...items);
 }
 
+export function text(html) {
+	const el = document.createElement('div');
+	el.innerHTML = html;
+	return el;
+}
+
 export function input(type, callback, options) {
 	let elem;
 	if (type === 'time') {
