@@ -26,6 +26,12 @@ export function input(type, callback, options) {
 		options.list.forEach(s => {
 			sel.innerHTML += `<option value="${s.name}">${s.name}</option>`;
 		});
+		sel.onchange = () => {
+			const st = options.list.find(s => s.name === sel.value);
+			lat.value = st.lat;
+			lon.value = st.lon;
+			callback(st.lat, st.lon);
+		};
 		elem.append(sel, 'lat=', lat, 'lon=', lon);
 	} else if (type === 'time') {
 		elem = document.createElement('div');
