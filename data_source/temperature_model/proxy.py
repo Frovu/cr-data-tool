@@ -44,6 +44,9 @@ _fetch_existing()
 def get_station(lat, lon):
     return next((x for x in stations if (x.get('lat') == lat and x.get('lon') == lon)), None)
 
+def get_stations():
+    return stations
+
 # return list of time period turples for which data is missing
 # this could be done by complex SQL query probably
 def analyze_integrity(lat, lon, start_time, end_time):

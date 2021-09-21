@@ -157,7 +157,14 @@ function viewSeries(idx, show) {
 	plotInit(false);
 }
 
+async function fetchStations() {
+	const resp = await fetch('api/temp/stations').catch(()=>{});
+	if (!resp || resp.status !== 200) return null;
+	return (await resp.json()).list;
+}
+
 export function initTabs() {
+
 	queryBtn = tabs.input('query', fetchData);
 	const viewSelectors = LEVELS.map((lvl, i) => {
 		const div = document.createElement('div');
@@ -188,17 +195,25 @@ Resulting data consists of 18 series of temperature at certain height.
 The button on "Query" tab indicates your data query progress.
 When query parameters are changed, the button becomes highlighted.`)
 	]);
-	tabs.fill('query', [
-		tabs.input('time', (from, to, force) => {
-			params.from = Math.floor(from.getTime() / 1000);
-			params.to = Math.floor(to.getTime() / 1000);
-			if (force)
-				fetchData();
-			else
-				settingsChanged();
-		}, { from: new Date(params.from*1000), to: new Date(params.to*1000) }),
-		queryBtn
-	]);
+	fetchStations().then(ss => {
+		tabs.fill('query', [
+			!ss ? tabs.text('Stations failed to load, please refresh tab') :
+				tabs.input('station', (lat, lon) => {
+					params.lat = lat;
+					params.lon = lon;
+					settingsChanged();
+				}, { text: 'in', list: ss, lat: params.lat, lon: params.lon }),
+			tabs.input('time', (from, to, force) => {
+				params.from = Math.floor(from.getTime() / 1000);
+				params.to = Math.floor(to.getTime() / 1000);
+				if (force)
+					fetchData();
+				else
+					settingsChanged();
+			}, { from: new Date(params.from*1000), to: new Date(params.to*1000) }),
+			queryBtn
+		]);
+	});
 	tabs.fill('view', viewSelectors);
 	tabs.disable('tools');
 	tabs.disable('export');

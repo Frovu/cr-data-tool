@@ -117,3 +117,6 @@ def get(lat, lon, start_time, end_time):
     _lock = True
     thread.start()
     return 'accepted', None # accepted data processing query
+
+def get_stations():
+    return proxy.get_stations()

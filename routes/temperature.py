@@ -22,3 +22,8 @@ def get():
     body["fields"] = ['time'] + temperature.proxy.LEVELS
     body["data"] = data
     return body
+
+
+@bp.route('/stations')
+def stations():
+    return { 'list': temperature.get_stations() }

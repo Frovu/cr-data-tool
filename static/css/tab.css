@@ -115,3 +115,14 @@ button.submit.ongoing {
 .time-input input:focus {
 	outline: none;
 }
+
+.station-input select {
+	margin: 4px;
+}
+
+
+.station-input input {
+	font-size: 10pt;
+	margin-right: 4px;
+	width: 64px;
+}

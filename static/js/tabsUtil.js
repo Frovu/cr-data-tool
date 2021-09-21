@@ -12,7 +12,22 @@ export function text(html) {
 
 export function input(type, callback, options) {
 	let elem;
-	if (type === 'time') {
+	if (type === 'station') {
+		elem = document.createElement('div');
+		elem.classList.add('station-input');
+		if (options.text) elem.append(options.text);
+		const sel = document.createElement('select');
+		const lat = document.createElement('input');
+		const lon = document.createElement('input');
+		lat.type = lon.type = 'textbox';
+		lat.value = options.lat || '';
+		lon.value = options.lon || '';
+		lat.disabled = lon.disabled = true;
+		options.list.forEach(s => {
+			sel.innerHTML += `<option value="${s.name}">${s.name}</option>`;
+		});
+		elem.append(sel, 'lat=', lat, 'lon=', lon);
+	} else if (type === 'time') {
 		elem = document.createElement('div');
 		elem.classList.add('time-input');
 		const from = document.createElement('input');
