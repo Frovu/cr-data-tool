@@ -28,7 +28,10 @@ export function input(type, callback, options) {
 				submitChange();
 			};
 		});
-		elem.append('from', from, 'to', to);
+		const footer = document.createElement('p');
+		footer.classList.add('footer');
+		footer.innerHTML = 'date format: yyyy-mm-dd';
+		elem.append('from', from, 'to', to, footer);
 	} else if (type === 'query') {
 		elem = document.createElement('button');
 		elem.classList.add('submit');

@@ -73,6 +73,17 @@ button.submit.active {
 	width: 50%;
 }
 
+.time-input {
+	display: inline-block;
+}
+
+.time-input .footer {
+	font-size: 0.5rem;
+	margin-top: 0;
+	text-align: center;
+	color: rgba(0,0,0,0.5);
+}
+
 .time-input input {
 	text-align: center;
 	font-family: inherit;
