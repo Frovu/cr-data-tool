@@ -85,6 +85,7 @@ def download_required_files(missing_intervals, delta):
         threads.append(thread)
     for t in threads:
         t.join() # wait for all download/parse threads to finish
+    download_total = 0 # done
 
 def get_download_progress():
     return None if download_total == 0 else download_progress / download_total

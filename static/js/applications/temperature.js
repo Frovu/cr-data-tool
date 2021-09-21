@@ -11,10 +11,12 @@ const params = {
 let data;
 let activeSeries = [0, 2];
 // activeSeries = LEVELS.map((a,i)=>i)
+let fetchOngoing = false;
 let dataFetch;
 let queryBtn;
 const unitOptions = ['K', '°C'];
 let temperatureUnit = 'K';
+let settingsChangedDuringFetch;
 // let progress;
 
 function encodeParams(obj) {
@@ -23,17 +25,20 @@ function encodeParams(obj) {
 }
 
 async function tryFetch() {
-	const progress = document.getElementById('progress');
 	const resp = await fetch(`api/temp/${encodeParams(params)}`).catch(()=>{});
 	if (resp && resp.status === 200) {
 		const body = await resp.json().catch(()=>{});
+		console.log('resp:', body);
 		if (body.status === 'ok') {
-			progress.innerHTML = 'done!';
+			queryBtn.innerHTML = 'Done!';
 			return body;
 		} else if (body.status === 'busy') {
-			progress.innerHTML = body.download ? `Downloading: ${(100*body.download).toFixed(0)} %` : 'Calculating';
-		} else if (body.status === 'unknown') {
-			// TODO:
+			queryBtn.innerHTML = body.download ? `Downloading: ${(100*body.download).toFixed(0)} %` : 'Calculating...';
+		// } else if (body.status === 'unknown') {
+		} else if (body.status === 'accepted') {
+			queryBtn.innerHTML = 'Accepted';
+		} else {
+			queryBtn.innerHTML = 'Error..';
 		}
 	} else {
 		console.log('request failed', resp && resp.status);
@@ -64,6 +69,15 @@ function stopFetch() {
 	if (dataFetch) {
 		clearInterval(dataFetch);
 		dataFetch = null;
+	}
+}
+
+function settingsChanged() {
+	if (!fetchOngoing) {
+		queryBtn.classList.add('active');
+		queryBtn.innerHTML = 'Query data';
+	} else {
+		settingsChangedDuringFetch = true;
 	}
 }
 
@@ -113,8 +127,23 @@ function plotData(resetScales=true) {
 }
 
 async function fetchData() {
-	const data = await startFetch();
-	if (data) receiveData(data);
+	if (!fetchOngoing) {
+		queryBtn.classList.add('ongoing');
+		queryBtn.innerHTML = 'Query...';
+		queryBtn.classList.remove('active');
+		fetchOngoing = true;
+		settingsChangedDuringFetch = false;
+		const data = await startFetch();
+		if (data) receiveData(data);
+		fetchOngoing = false;
+		queryBtn.classList.remove('ongoing');
+		if (settingsChangedDuringFetch) {
+			setInterval(() => {
+				queryBtn.classList.add('active');
+				queryBtn.innerHTML = 'Query data';
+			}, 300);
+		}
+	}
 }
 
 function viewSeries(idx, show) {
@@ -157,6 +186,8 @@ export function initTabs() {
 			params.to = Math.floor(to.getTime() / 1000);
 			if (force)
 				fetchData();
+			else
+				settingsChanged();
 		}, { from: new Date(params.from*1000), to: new Date(params.to*1000) }),
 		queryBtn
 	]);

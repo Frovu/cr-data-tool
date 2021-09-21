@@ -12,7 +12,7 @@
 	background-color: inherit;
 }
 
-.tab button:hover {
+.tab button.active:hover {
 	background-color: cyan;
 }
 
@@ -25,10 +25,16 @@ button.submit {
 	position: absolute;
 	bottom: 1rem;
 	right: 1rem;
+	transition: 500ms;
 }
 
 button.submit.active {
 	box-shadow: 0 0 10px 3px cyan;
+}
+
+button.submit.ongoing {
+	width: 200px;
+	background-color: rgba(255,0,0,0.4);
 }
 
 #view-tab.active {
