@@ -104,15 +104,15 @@ function color(idx) {
 
 function plotInit(full=true) {
 	const transform = temperatureUnit!=='K' && (t => t-273.15);
-	const series = ['time'].concat(activeSeries.map(col => {return {
+	const series = activeSeries.map(col => {return {
 		scale: temperatureUnit,
 		label: `h=${LEVELS[col].toFixed(0)}mb`,
 		color: color(col),
 		precision: 1,
 		transform
-	};}));
+	};});
 	if (full) {
-		const axes = ['time'].concat({ scale: temperatureUnit, transform});
+		const axes = [{ scale: temperatureUnit, transform }];
 		plot.init(axes);
 	}
 	plot.series(series);

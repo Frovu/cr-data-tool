@@ -17,7 +17,7 @@ function getPlotSize() {
 
 function prepareSeries(series) {
 	return series.map(s => {
-		return s === 'time' ? { value: '{YYYY}-{MM}-{DD} {HH}:{mm}' } : {
+		return {
 			stroke: s.color,
 			label: s.label,
 			scale: s.scale,
@@ -28,7 +28,7 @@ function prepareSeries(series) {
 
 function prepareAxes(axes) {
 	return axes.map(a => {
-		return a === 'time' ? {} : {
+		return {
 			// side: a.side,
 			scale: a.scale,
 			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + ' ' + a.scale),
@@ -36,12 +36,13 @@ function prepareAxes(axes) {
 	});
 }
 
-export function init(axes) {
+export function init(axes, time=true) {
 	if (uplot) uplot.destroy();
 	uplot = new uPlot({
 		...getPlotSize(),
-		series: [],
-		axes: prepareAxes(axes),
+		tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
+		series: time?[{ value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC' }]:[],
+		axes: (time?[{}]:[]).concat(prepareAxes(axes)),
 		cursor: {
 			drag: { dist: 12 },
 			points: { size: 6, fill: (self, i) => self.series[i]._stroke }
@@ -61,7 +62,7 @@ export function series(series) {
 	const toDelete = uplot.series.length - 1;
 	for (let i=0; i < toDelete; ++i)
 		uplot.delSeries(1);
-	for (let i=1; i < prepared.length; ++i)
+	for (let i=0; i < prepared.length; ++i)
 		uplot.addSeries(prepared[i]);
 	/*
 	*** This code may be faster or more generic but is much less clean ***
