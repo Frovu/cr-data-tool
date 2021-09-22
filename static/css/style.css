@@ -15,7 +15,6 @@ body {
 	}
 }
 
-
 .tool-selector {
 	display: flex;
 	flex-wrap: wrap;
@@ -129,4 +128,8 @@ h4 {
 
 input, button, select, label {
 	transition: background-color 250ms;
+}
+
+.u-value {
+	font-family: monospace;
 }
