@@ -2,13 +2,14 @@ import uPlot from './uPlot.iife.min.js';
 
 const MIN_HEIGHT = 360;
 let uplot;
+let plotTime;
 const parentEl = document.getElementsByClassName('graph')[0];
 window.addEventListener('resize', () => {
 	if (uplot) uplot.setSize(getPlotSize());
 });
 
 function getPlotSize() {
-	const height = parentEl.offsetWidth * 0.5;
+	const height = parentEl.offsetWidth * (plotTime?0.5:0.75);
 	return {
 		width: parentEl.offsetWidth,
 		height: height > (window.innerHeight-80) ? window.innerHeight-80 : (height > MIN_HEIGHT ? height : MIN_HEIGHT),
@@ -28,26 +29,56 @@ function prepareSeries(series) {
 
 function prepareAxes(axes) {
 	return axes.map(a => {
-		return {
-			// side: a.side,
-			scale: a.scale,
-			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + ' ' + a.scale),
-		};
+		return Object.assign(a, {
+			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + ' ' + a.scale)
+		});
 	});
 }
 
-export function init(axes, time=true) {
+export function init(axes, time=true, scales, series) {
+	plotTime = time;
 	if (uplot) uplot.destroy();
 	uplot = new uPlot({
 		...getPlotSize(),
 		tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
-		series: time?[{ value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC' }]:[],
+		series: time?[{ value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC' }]:
+			(series?prepareSeries(series):[]),
 		axes: (time?[{}]:[]).concat(prepareAxes(axes)),
+		scales,
 		cursor: {
 			drag: { dist: 12 },
 			points: { size: 6, fill: (self, i) => self.series[i]._stroke }
 		}
 	}, null, parentEl);
+	// uplot = new uPlot({
+	// 	...getPlotSize(),
+	// 	// tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
+	// 	// series: [{label: 'x', sorted: 1}, {label: 'y', stroke: 'red'}],
+	// 	series: prepareSeries(series),
+	// 	axes: [
+	// 		{ scale: 'mb', side: 3},
+	// 		{ scale: 'K', side: 2}
+	// 	],
+	// 	scales: {
+	// 		mb: {
+	// 			time: false,
+	// 			dir: -1,
+	// 			ori: 1
+	// 		},
+	// 		K: {
+	// 			dir: 1,
+	// 			ori: 0
+	// 		}
+	// 	},
+	// 	// scales: {x: {time: false, ori: 1}},
+	// 	cursor: {
+	// 		drag: { dist: 12 },
+	// 		points: { size: 6, fill: (self, i) => self.series[i]._stroke }
+	// 	}
+	// }, [
+	// 	[1,2,3,4,5,6,7,8],
+	// 	[4,2,3,5,6,7,10,9]
+	// ], parentEl);
 }
 
 export function data(data, reset=true) {
@@ -59,9 +90,9 @@ export function data(data, reset=true) {
 
 export function series(series) {
 	const prepared = prepareSeries(series);
-	const toDelete = uplot.series.length - 1;
+	const toDelete = uplot.series.length - (plotTime?1:0);
 	for (let i=0; i < toDelete; ++i)
-		uplot.delSeries(1);
+		uplot.delSeries(plotTime?1:0);
 	for (let i=0; i < prepared.length; ++i)
 		uplot.addSeries(prepared[i]);
 	/*

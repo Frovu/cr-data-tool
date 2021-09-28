@@ -2,7 +2,7 @@ import * as plot from '../plot.js';
 import * as tabs from '../tabsUtil.js';
 import * as temp from './temperature.js';
 
-const LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10];
+const LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10].reverse();
 const params = {
 	date: Math.floor(Date.now()/1000) - 86400*10,
 	lat: 55.47,
@@ -17,19 +17,30 @@ function receiveData(resp) {
 	LEVELS.forEach(field => {
 		data.push(row[resp.fields.indexOf(field)]);
 	});
-	plot.data(data);
+	plot.data([LEVELS, data]);
 }
 
 function plotInit() {
 	const transform = temperatureUnit!=='K' && (t => t-273.15);
 	plot.init([
-		{ scale: 'height' },
-		{ scale: temperatureUnit, transform }
-	]);
-	plot.series([
+		{ scale: 'mb', side: 3, size: 70 },
+		{ scale: temperatureUnit, transform, side: 2 }
+	], false, {
+		mb: {
+			range: [0, 1000],
+			time: false,
+			dir: -1,
+			ori: 1
+		},
+		[temperatureUnit]: {
+			dir: 1,
+			ori: 0
+		}
+	}, [
 		{
-			scale: 'height',
-
+			scale: 'mb',
+			label: 'Height',
+			color: null
 		}, {
 			scale: temperatureUnit,
 			label: 'Temperature',
@@ -38,10 +49,17 @@ function plotInit() {
 			transform
 		}
 	]);
-	plot.data(data);
+	if (data) plot.data([LEVELS, data]);
+}
+
+function fetchData() {
+	params.from = params.date;
+	params.to = params.from + 3600;
+	temp.fetchData(params, receiveData);
 }
 
 export function initTabs() {
+	temp.createQueryBtn();
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
 Application retrieves atmospheric temperature data of <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> and interpolates it for given coordinates and shows vertical temperature gradient curve.
@@ -60,10 +78,10 @@ When query parameters are changed, the button becomes highlighted.`)
 			tabs.input('timestamp', (date, force) => {
 				params.date = Math.floor(date.getTime() / 1000);
 				if (force)
-					temp.fetchData(params, receiveData);
+					fetchData();
 				else
 					temp.settingsChanged();
-			}, { date: new Date(params.date*1000) }),
+			}, { value: new Date(params.date*1000) }),
 			temp.queryBtn
 		]);
 	});
@@ -79,7 +97,7 @@ When query parameters are changed, the button becomes highlighted.`)
 
 export function load() {
 	plotInit();
-	temp.fetchData();
+	fetchData();
 }
 
 export function unload() {

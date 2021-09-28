@@ -163,8 +163,12 @@ export async function fetchStations() {
 	return (await resp.json()).list;
 }
 
+export function createQueryBtn() {
+	queryBtn = queryBtn || tabs.input('query', fetchData);
+}
+
 export function initTabs() {
-	queryBtn = tabs.input('query', fetchData);
+	createQueryBtn();
 	const viewSelectors = LEVELS.map((lvl, i) => {
 		const div = document.createElement('div');
 		const box = document.createElement('input');

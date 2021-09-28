@@ -29,5 +29,5 @@ window.onload = () => {
 		});
 		if (el.checked) showTab(tab);
 	}
-	applications.swithApp('temperature');
+	applications.init();
 };
