@@ -65,7 +65,7 @@ function startFetch(param) {
 	});
 }
 
-function stopFetch() {
+export function stopFetch() {
 	if (dataFetch) {
 		clearInterval(dataFetch);
 		dataFetch = null;

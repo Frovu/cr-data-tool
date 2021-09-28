@@ -33,6 +33,27 @@ export function input(type, callback, options) {
 			callback(st.lat, st.lon);
 		};
 		elem.append(sel, 'lat=', lat, 'lon=', lon);
+	} else if (type === 'timestamp') {
+		elem = document.createElement('div');
+		elem.classList.add('time-input');
+		const inp = document.createElement('input');
+		inp.value = options.value.toISOString().replace(/T.*/, '') || '';
+		const submitChange = force => {
+			const date = new Date(inp.value);
+			if (!isNaN(date))
+				callback(date, force);
+		};
+		inp.onkeypress = e => { if (e.keyCode === 13) submitChange(true); };
+		inp.onchange = () => {
+			if (isNaN(new Date(inp.value)))
+				return inp.classList.add('invalid');
+			inp.classList.remove('invalid');
+			submitChange();
+		};
+		const footer = document.createElement('p');
+		footer.classList.add('footer');
+		footer.innerHTML = 'date format: yyyy-mm-dd';
+		elem.append('at date', inp, footer);
 	} else if (type === 'time') {
 		elem = document.createElement('div');
 		elem.classList.add('time-input');

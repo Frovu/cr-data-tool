@@ -57,14 +57,13 @@ When query parameters are changed, the button becomes highlighted.`)
 					params.lon = lon;
 					temp.settingsChanged();
 				}, { text: 'in', list: ss, lat: params.lat, lon: params.lon }),
-			tabs.input('time', (from, to, force) => {
-				params.from = Math.floor(from.getTime() / 1000);
-				params.to = Math.floor(to.getTime() / 1000);
+			tabs.input('timestamp', (date, force) => {
+				params.date = Math.floor(date.getTime() / 1000);
 				if (force)
 					temp.fetchData(params, receiveData);
 				else
 					temp.settingsChanged();
-			}, { from: new Date(params.from*1000), to: new Date(params.to*1000) }),
+			}, { date: new Date(params.date*1000) }),
 			temp.queryBtn
 		]);
 	});
