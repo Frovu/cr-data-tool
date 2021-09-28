@@ -13,19 +13,19 @@ let activeSeries = [0, 2];
 // activeSeries = LEVELS.map((a,i)=>i)
 let fetchOngoing = false;
 let dataFetch;
-let queryBtn;
+export let queryBtn;
 const unitOptions = ['K', '°C'];
 let temperatureUnit = 'K';
 let settingsChangedDuringFetch;
 // let progress;
 
-function encodeParams(obj) {
+export function encodeParams(obj) {
 	const keys = Object.keys(obj);
 	return keys.length ? '?' + keys.map(k => `${k}=${obj[k]}`).join('&') : '';
 }
 
-async function tryFetch() {
-	const resp = await fetch(`api/temp/${encodeParams(params)}`).catch(()=>{});
+async function tryFetch(param) {
+	const resp = await fetch(`api/temp/${encodeParams(param)}`).catch(()=>{});
 	if (resp && resp.status === 200) {
 		const body = await resp.json().catch(()=>{});
 		console.log('resp:', body);
@@ -45,12 +45,12 @@ async function tryFetch() {
 	}
 }
 
-function startFetch() {
+function startFetch(param) {
 	return new Promise(resolve => {
-		tryFetch().then(ok => {
+		tryFetch(param).then(ok => {
 			if (!ok) {
 				dataFetch = setInterval(() => {
-					tryFetch().then(okk => {
+					tryFetch(param).then(okk => {
 						if (okk) {
 							resolve(okk);
 							clearInterval(dataFetch);
@@ -126,15 +126,15 @@ function plotData(resetScales=true) {
 	}
 }
 
-async function fetchData() {
+export async function fetchData(param=params, receiver=receiveData) {
 	if (!fetchOngoing) {
 		queryBtn.classList.add('ongoing');
 		queryBtn.innerHTML = 'Query...';
 		queryBtn.classList.remove('active');
 		fetchOngoing = true;
 		settingsChangedDuringFetch = false;
-		const data = await startFetch();
-		if (data) receiveData(data);
+		const data = await startFetch(param);
+		if (data) receiver(data);
 		fetchOngoing = false;
 		queryBtn.classList.remove('ongoing');
 		if (settingsChangedDuringFetch) {
@@ -157,14 +157,13 @@ function viewSeries(idx, show) {
 	plotInit(false);
 }
 
-async function fetchStations() {
+export async function fetchStations() {
 	const resp = await fetch('api/temp/stations').catch(()=>{});
 	if (!resp || resp.status !== 200) return null;
 	return (await resp.json()).list;
 }
 
 export function initTabs() {
-
 	queryBtn = tabs.input('query', fetchData);
 	const viewSelectors = LEVELS.map((lvl, i) => {
 		const div = document.createElement('div');
