@@ -25,7 +25,7 @@ function plotInit() {
 	const transform = temperatureUnit!=='K' && (t => t-273.15);
 	plot.init([
 		{ scale: 'mb', side: 3, size: 70 },
-		{ scale: temperatureUnit, transform, side: 2 }
+		{ scale: temperatureUnit, transform, side: 2, space: 70 }
 	], false, {
 		mb: {
 			range: [0, 1000],
@@ -46,7 +46,7 @@ function plotInit() {
 			scale: temperatureUnit,
 			label: 'Temperature',
 			color: 'red',
-			width: 1,
+			width: 3,
 			precision: 1,
 			paths: 'spline',
 			transform
@@ -65,10 +65,8 @@ export function initTabs() {
 	queryBtn = tabs.input('query', ()=>fetchData());
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
-Application retrieves atmospheric temperature data of <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> and interpolates it for given coordinates and shows vertical temperature gradient curve.
-<h4>Usage</h4>
-The button on "Query" tab indicates your data query progress.
-When query parameters are changed, the button becomes highlighted.`)
+Build atmospheric temperature lapse curve using <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> data.<br>
+Refer to "Temperature" app for more details`)
 	]);
 	temp.fetchStations().then(ss => {
 		tabs.fill('query', [
