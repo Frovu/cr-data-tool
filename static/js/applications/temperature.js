@@ -13,7 +13,7 @@ let activeSeries = [0, 2];
 // activeSeries = LEVELS.map((a,i)=>i)
 let fetchOngoing = false;
 let dataFetch;
-export let queryBtn;
+let queryBtn;
 const unitOptions = ['K', '°C'];
 let temperatureUnit = 'K';
 let settingsChangedDuringFetch;
@@ -24,33 +24,33 @@ export function encodeParams(obj) {
 	return keys.length ? '?' + keys.map(k => `${k}=${obj[k]}`).join('&') : '';
 }
 
-async function tryFetch(param) {
+async function tryFetch(param, status) {
 	const resp = await fetch(`api/temp/${encodeParams(param)}`).catch(()=>{});
 	if (resp && resp.status === 200) {
 		const body = await resp.json().catch(()=>{});
 		console.log('resp:', body);
 		if (body.status === 'ok') {
-			queryBtn.innerHTML = 'Done!';
+			status.innerHTML = 'Done!';
 			return body;
 		} else if (body.status === 'busy') {
-			queryBtn.innerHTML = body.download ? `Downloading: ${(100*body.download).toFixed(0)} %` : 'Calculating...';
+			status.innerHTML = body.download ? `Downloading: ${(100*body.download).toFixed(0)} %` : 'Calculating...';
 		// } else if (body.status === 'unknown') {
 		} else if (body.status === 'accepted') {
-			queryBtn.innerHTML = 'Accepted';
+			status.innerHTML = 'Accepted';
 		} else {
-			queryBtn.innerHTML = 'Error..';
+			status.innerHTML = 'Error..';
 		}
 	} else {
 		console.log('request failed', resp && resp.status);
 	}
 }
 
-function startFetch(param) {
+function startFetch(param, status) {
 	return new Promise(resolve => {
-		tryFetch(param).then(ok => {
+		tryFetch(param, status).then(ok => {
 			if (!ok) {
 				dataFetch = setInterval(() => {
-					tryFetch(param).then(okk => {
+					tryFetch(param, status).then(okk => {
 						if (okk) {
 							resolve(okk);
 							clearInterval(dataFetch);
@@ -72,10 +72,10 @@ export function stopFetch() {
 	}
 }
 
-function settingsChanged() {
+export function settingsChanged(status=queryBtn) {
 	if (!fetchOngoing) {
-		queryBtn.classList.add('active');
-		queryBtn.innerHTML = 'Query data';
+		status.classList.add('active');
+		status.innerHTML = 'Query data';
 	} else {
 		settingsChangedDuringFetch = true;
 	}
@@ -126,21 +126,21 @@ function plotData(resetScales=true) {
 	}
 }
 
-export async function fetchData(param=params, receiver=receiveData) {
+export async function fetchData(param=params, receiver=receiveData, status=queryBtn) {
 	if (!fetchOngoing) {
-		queryBtn.classList.add('ongoing');
-		queryBtn.innerHTML = 'Query...';
-		queryBtn.classList.remove('active');
+		status.classList.add('ongoing');
+		status.innerHTML = 'Query...';
+		status.classList.remove('active');
 		fetchOngoing = true;
 		settingsChangedDuringFetch = false;
-		const data = await startFetch(param);
+		const data = await startFetch(param, status);
 		if (data) receiver(data);
 		fetchOngoing = false;
-		queryBtn.classList.remove('ongoing');
+		status.classList.remove('ongoing');
 		if (settingsChangedDuringFetch) {
 			setInterval(() => {
-				queryBtn.classList.add('active');
-				queryBtn.innerHTML = 'Query data';
+				status.classList.add('active');
+				status.innerHTML = 'Query data';
 			}, 300);
 		}
 	}
@@ -164,11 +164,10 @@ export async function fetchStations() {
 }
 
 export function createQueryBtn() {
-	queryBtn = queryBtn || tabs.input('query', fetchData);
 }
 
 export function initTabs() {
-	createQueryBtn();
+	queryBtn = tabs.input('query', ()=>fetchData());
 	const viewSelectors = LEVELS.map((lvl, i) => {
 		const div = document.createElement('div');
 		const box = document.createElement('input');

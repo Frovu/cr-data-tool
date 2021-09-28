@@ -18,12 +18,11 @@ function getPlotSize() {
 
 function prepareSeries(series) {
 	return series.map(s => {
-		return {
+		return Object.assign(s, {
 			stroke: s.color,
-			label: s.label,
-			scale: s.scale,
+			paths: s.paths && uPlot.paths[s.paths](),
 			value: (u, v) => v == null ? '-' : (s.transform?s.transform(v):v).toFixed(s.precision||0) + ' ' + s.scale,
-		};
+		});
 	});
 }
 

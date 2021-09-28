@@ -10,6 +10,7 @@ const params = {
 };
 let temperatureUnit = 'K';
 let data;
+let queryBtn;
 
 function receiveData(resp) {
 	const row = resp.data[0];
@@ -44,8 +45,10 @@ function plotInit() {
 		}, {
 			scale: temperatureUnit,
 			label: 'Temperature',
-			color: 'rgba(0,255,255,0.8)',
+			color: 'red',
+			width: 1,
 			precision: 1,
+			paths: 'spline',
 			transform
 		}
 	]);
@@ -55,11 +58,11 @@ function plotInit() {
 function fetchData() {
 	params.from = params.date;
 	params.to = params.from + 3600;
-	temp.fetchData(params, receiveData);
+	temp.fetchData(params, receiveData, queryBtn);
 }
 
 export function initTabs() {
-	temp.createQueryBtn();
+	queryBtn = tabs.input('query', ()=>fetchData());
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
 Application retrieves atmospheric temperature data of <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> and interpolates it for given coordinates and shows vertical temperature gradient curve.
@@ -73,16 +76,16 @@ When query parameters are changed, the button becomes highlighted.`)
 				tabs.input('station', (lat, lon) => {
 					params.lat = lat;
 					params.lon = lon;
-					temp.settingsChanged();
+					temp.settingsChanged(queryBtn);
 				}, { text: 'in', list: ss, lat: params.lat, lon: params.lon }),
 			tabs.input('timestamp', (date, force) => {
 				params.date = Math.floor(date.getTime() / 1000);
 				if (force)
-					fetchData();
+					fetchData(params, receiveData, queryBtn);
 				else
-					temp.settingsChanged();
+					temp.settingsChanged(queryBtn);
 			}, { value: new Date(params.date*1000) }),
-			temp.queryBtn
+			queryBtn
 		]);
 	});
 	tabs.fill('view', [
