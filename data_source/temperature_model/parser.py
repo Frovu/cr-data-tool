@@ -35,7 +35,7 @@ def _download(year):
     log.info(f'Downloading file: {fname}')
     ftp.cwd('Datasets/ncep.reanalysis/pressure')
     global download_total
-    download_total = ftp.size(fname)
+    download_total += ftp.size(fname)
     with open(os.path.join('tmp', fname), 'wb') as file:
         def write(data):
            file.write(data)

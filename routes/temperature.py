@@ -1,6 +1,6 @@
 import data_source.temperature_model.temperature as temperature
 from flask import Blueprint, request
-from datetime import datetime, timezone
+from datetime import datetime
 
 bp = Blueprint('temp', __name__, url_prefix='/api/temp')
 

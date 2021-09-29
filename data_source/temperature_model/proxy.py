@@ -11,10 +11,10 @@ def addapt_float32(numpy_float32):
 register_adapter(numpy.float32, addapt_float32)
 
 pg_conn = psycopg2.connect(
-    dbname = os.environ.get("NCEP_DB_NAME"),
-    user = os.environ.get("NCEP_DB_USER"),
-    password = os.environ.get("NCEP_DB_PASS"),
-    host = os.environ.get("NCEP_DB_HOST")
+    dbname = os.environ.get("METEO_DB_NAME"),
+    user = os.environ.get("METEO_DB_USER"),
+    password = os.environ.get("METEO_DB_PASS"),
+    host = os.environ.get("METEO_DB_HOST")
 )
 
 _INSERT_CHUNK_SIZE = 100
@@ -24,14 +24,14 @@ LEVELS = [1000.0, 925.0, 850.0, 700.0, 600.0, 500.0, 400.0, 300.0, 250.0, 200.0,
 stations = []
 def _fetch_existing():
     with pg_conn.cursor() as cursor:
-        cursor.execute('SELECT lat, lon, name FROM index')
+        cursor.execute('SELECT lat, lon, name FROM stations')
         log.info(f"Starting with {cursor.rowcount} stations")
         for row in cursor.fetchall():
             stations.append({'name': row[2], 'lat': row[0], 'lon': row[1]})
             _create_if_not_exists(row[0], row[1])
 
 def _table_name(lat, lon):
-    return f"proc_{int(lat*100)}_{'N' if lat>0 else 'S'}_{int(lon*100)}_{'E' if lat>0 else 'W'}"
+    return f"ncep_proc_{int(lat*100)}_{'N' if lat>0 else 'S'}_{int(lon*100)}_{'E' if lat>0 else 'W'}"
 def _create_if_not_exists(lat, lon):
     with pg_conn.cursor() as cursor:
         query = f'''CREATE TABLE IF NOT EXISTS {_table_name(lat, lon)} (

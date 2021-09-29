@@ -1,7 +1,7 @@
-## Psql tables
+## Required Postgresql tables
 
 ```sql
-CREATE TABLE index (
+CREATE TABLE stations (
 	id SERIAL PRIMARY KEY,
 	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP,
@@ -15,6 +15,9 @@ CREATE TABLE index (
 ### New station manual insertion
 Requires application restart
 ```sql
-INSERT INTO index(lat, lon, name, description)
+INSERT INTO stations(lat, lon, name, description)
 values(55.47, 37.32, 'Moscow', 'Moscow Neutron Monitor');
+INSERT INTO stations(lat, lon, name, description)
+values(61.59, 129.41, 'Yakutsk', 'Yakutsk station');
+
 ```
