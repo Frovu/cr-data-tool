@@ -53,7 +53,7 @@ def analyze_integrity(lat, lon, start_time, end_time):
     station = get_station(lat, lon)
     if not station:
         return False
-    log.info(f'Querying station \'{station.get("name")}\' from {start_time} to {end_time}')
+    log.debug(f'Querying station \'{station.get("name")}\' from {start_time} to {end_time}')
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT time FROM {_table_name(lat, lon)} ' +
             'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])

@@ -85,13 +85,13 @@ def _fill_all_gaps(missing_intervals, lat, lon):
     delta = timedelta(days=1)
     parser.download_required_files(aligned_intervals, delta) # this operation may take up to 10 minutes
     threads = []
-    log.info(f"About to fill {len(aligned_intervals)} interval(s)")
+    log.debug(f"About to fill {len(aligned_intervals)} interval(s)")
     for i in aligned_intervals:
         try:
             _fill_gap(i, lat, lon, delta)
         except Exception as e:
             log.error(f"Failed filling interval: {e}")
-    log.info("All intervals done")
+    log.debug("All intervals done")
     # release lock
     global _lock
     _lock = False
