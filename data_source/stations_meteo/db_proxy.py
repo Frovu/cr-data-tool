@@ -21,5 +21,5 @@ def insert(data, columns, station):
     with pg_conn.cursor() as cursor:
         query = f'''INSERT INTO {_table_name(station)} (time, {", ".join(columns)}) VALUES %s
         ON CONFLICT (time) DO UPDATE SET ({", ".join(FIELDS)}) = ({", ".join([f"EXCLUDED.{f}" for f in FIELDS])})'''
-        psycopg2.extras.execute_values (cursor, query, data, template="(to_timestamp(%s), %s, %s)", page_size=100)
+        psycopg2.extras.execute_values (cursor, query, data, template=None, page_size=100)
         pg_conn.commit()

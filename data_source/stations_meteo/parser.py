@@ -29,20 +29,23 @@ def align_to_period(datasets, period):
             dt_from = datasets[ser][0][0]
         if datasets[ser][0][-1] > dt_to:
             dt_to = datasets[ser][0][-1]
+    print('got', datetime.utcfromtimestamp(dt_from), 'to', datetime.utcfromtimestamp(dt_to))
     dt_from = period * floor(dt_from / period)
     dt_to = period * ceil(dt_to / period)
     keys = list(datasets.keys())
     pressure = keys.index('pressure') if 'pressure' in keys else -1
     res_len = ceil((dt_to-dt_from)/period)
-    data = numpy.empty([res_len, (1 + len(keys))], dtype=numpy.float32)
+    dtype = [('time', datetime)] + [(f'd{i}', numpy.float32) for i in range(len(keys))]
+    data = numpy.empty(res_len, dtype=dtype)
     times = [datasets[k][0] for k in keys]
     values = [datasets[k][1] for k in keys]
     si = [0 for k in keys]
     lens = [len(times[i]) for i in range(len(keys))]
     period_start = dt_from
     for res_i in range(res_len):
+        # print(period_start, datetime.utcfromtimestamp(period_start))
         period_end = period_start + period
-        data[res_i][0] = period_start
+        data[res_i][0] = datetime.utcfromtimestamp(period_start)
         for i in range(len(keys)):
             acc = 0
             cnt = 0
@@ -58,12 +61,13 @@ def align_to_period(datasets, period):
                 acc /= 100
             data[res_i][i+1] = (acc / cnt) if cnt > 0 else None
         period_start += period
-    print(data)
     return data
 
 def obtain_from_aws_rmp(station, time_range, query, period=3600):
     index = AWS_RMP_IDX[station]
     epoch_range = [int(t.replace(tzinfo=timezone.utc).timestamp()) for t in time_range]
+    epoch_range[0] -= period
+    epoch_range[1] += period
     for dt_from in range(epoch_range[0], epoch_range[1], AWS_RMP_PAGE*period):
         dt_to = dt_from + AWS_RMP_PAGE*period
         if dt_to > epoch_range[1]:
@@ -98,6 +102,6 @@ def query(station, time_range, query):
     else:
         return None
 
-dt_strt = datetime(2021, 9, 26, 23, 48)
-dt_end = datetime(2021, 9, 27, 23, 58)
+dt_strt = datetime(2021, 9, 29)
+dt_end = datetime(2021, 9, 30)
 query('Moscow', [dt_strt, dt_end], ['t2'])
