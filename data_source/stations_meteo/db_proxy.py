@@ -1,6 +1,7 @@
-
-from data_source.temperature_model.proxy import pg_conn
+import data_source.temperature_model.proxy as model_proxy
+pg_conn = model_proxy.pg_conn
 import psycopg2.extras
+import numpy
 
 FIELDS = ['t2', 't_indoors', 'pressure']
 
@@ -32,7 +33,25 @@ def analyze_integrity(station, dt_from, dt_to, period=3600):
         return count >= required_count
 
 def select(station, dt_from, dt_to, with_model=False):
-    print(station, dt_from, dt_to)
+    with pg_conn.cursor() as cursor:
+        cursor.execute(f'SELECT lat, lon FROM stations WHERE name = %s', [station])
+        lat, lon = cursor.fetchall()[0]
+    if with_model:
+        fields = ['time', 'p_station', 't2'] + [f't_{int(l)}mb' for l in model_proxy.LEVELS]
+        query = f'''SELECT EXTRACT(EPOCH FROM m.time) AS time, l.pressure as p_station, l.t2 as t2,
+        {", ".join([f'm.p_{int(l)} AS t_{int(l)}mb' for l in model_proxy.LEVELS])}
+        FROM {model_proxy.table_name(lat, lon)} m FULL OUTER JOIN {_table_name(station)} l
+        ON (m.time = l.time) WHERE m.time >= %s AND m.time <= %s ORDER BY m.time'''
+    else:
+        fields = ['time'] + FIELDS
+        query =  f'''
+        SELECT EXTRACT(EPOCH FROM time), {", ".join(FIELDS)} FROM {_table_name(station)} WHERE time >= %s AND time <= %s ORDER BY time'''
+    with pg_conn.cursor() as cursor:
+        cursor.execute(query, [dt_from, dt_to])
+        rows = cursor.fetchall()
+    # for i in range(len(rows)):
+    #     rows[i][0] = rows[i][0].timestamp()
+    return rows, fields
 
 def insert(data, columns, station):
     if not len(data): return

@@ -30,11 +30,11 @@ def _fetch_existing():
             stations.append({'name': row[2], 'lat': row[0], 'lon': row[1]})
             _create_if_not_exists(row[0], row[1])
 
-def _table_name(lat, lon):
+def table_name(lat, lon):
     return f"ncep_proc_{int(lat*100)}_{'N' if lat>0 else 'S'}_{int(lon*100)}_{'E' if lat>0 else 'W'}"
 def _create_if_not_exists(lat, lon):
     with pg_conn.cursor() as cursor:
-        query = f'''CREATE TABLE IF NOT EXISTS {_table_name(lat, lon)} (
+        query = f'''CREATE TABLE IF NOT EXISTS {table_name(lat, lon)} (
         time TIMESTAMP NOT NULL PRIMARY KEY,
         {", ".join([f"p_{int(l)} REAL NOT NULL" for l in LEVELS])})'''
         cursor.execute(query)
@@ -48,14 +48,14 @@ def get_stations():
     return stations
 
 # return list of time period turples for which data is missing
-# this could be done by complex SQL query probably
+# TODO: this could be done by complex SQL query probably
 def analyze_integrity(lat, lon, start_time, end_time):
     station = get_station(lat, lon)
     if not station:
         return False
     log.debug(f'Querying station \'{station.get("name")}\' from {start_time} to {end_time}')
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT time FROM {_table_name(lat, lon)} ' +
+        cursor.execute(f'SELECT time FROM {table_name(lat, lon)} ' +
             'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
         rows = cursor.fetchall()
 
@@ -79,7 +79,7 @@ def analyze_integrity(lat, lon, start_time, end_time):
 def select(lat, lon, start_time, end_time):
     result = []
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT * FROM {_table_name(lat, lon)} ' +
+        cursor.execute(f'SELECT * FROM {table_name(lat, lon)} ' +
             'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
         for row in cursor.fetchall():
             result.append([row[0].timestamp()]+list(row[1:]))
@@ -89,6 +89,6 @@ def insert(data, lat, lon):
     if not data: return
     log.debug(f'Inserting {len(data)} lines from {data[0][0]} to {data[-1][0]}')
     with pg_conn.cursor() as cursor:
-        query = f'INSERT INTO {_table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO NOTHING'
+        query = f'INSERT INTO {table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO NOTHING'
         psycopg2.extras.execute_values (cursor, query, data, template=None, page_size=100)
         pg_conn.commit()

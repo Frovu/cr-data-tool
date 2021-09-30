@@ -62,7 +62,7 @@ def _align_to_period(datasets, period):
             if i == pressure:
                 acc /= 100
             # print("  "*i, datetime.utcfromtimestamp(period_start), cnt)
-            data[res_i][i+1] = (acc / cnt) if cnt > 0 else None
+            data[res_i][i+1] = round(acc / cnt, 2) if cnt > 0 else None
         period_start += period
     return data
 
