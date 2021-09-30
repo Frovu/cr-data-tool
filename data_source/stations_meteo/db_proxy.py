@@ -15,6 +15,19 @@ def _create_if_not_exists(station_name):
         cursor.execute(query)
         pg_conn.commit()
 
+# TODO: use complex sql query to return pairs of edges of missing intervals
+def analyze_integrity(dt_from, dt_to):
+    return False
+
+def select_station(lat, lon):
+    with pg_conn.cursor() as cursor:
+        cursor.execute(f'SELECT name FROM stations WHERE round(lat::numeric,2) = %s AND round(lon::numeric,2) = %s', [round(lat, 2), round(lon, 2)])
+        result = cursor.fetchall()
+        return result[0][0] if result else None
+
+def select(station, dt_from, dt_to, with_model=False):
+    pass
+
 def insert(data, columns, station):
     if not len(data): return
     _create_if_not_exists(station)

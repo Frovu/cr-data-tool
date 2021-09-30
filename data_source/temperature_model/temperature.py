@@ -96,7 +96,10 @@ def _fill_all_gaps(missing_intervals, lat, lon):
     global _lock
     _lock = False
 
-def get(lat, lon, start_time, end_time):
+def get_stations():
+    return proxy.get_stations()
+
+def get(lat, lon, start_time, end_time, no_response=False):
     lat = round(lat, 2)
     lon = round(lon, 2)
     if not proxy.get_station(lat, lon):
@@ -108,7 +111,7 @@ def get(lat, lon, start_time, end_time):
         end_time = end_trim
     missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)
     if not missing_intervals or missing_intervals[-1][0] >= end_trim - timedelta(days=1):
-        return 'ok', proxy.select(lat, lon, start_time, end_time)
+        return 'ok', None if no_response else proxy.select(lat, lon, start_time, end_time)
     # data processing required
     global _lock
     if _lock:
@@ -117,6 +120,3 @@ def get(lat, lon, start_time, end_time):
     _lock = True
     thread.start()
     return 'accepted', None # accepted data processing query
-
-def get_stations():
-    return proxy.get_stations()

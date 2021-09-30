@@ -11,7 +11,7 @@ AWS_RMP_IDX = {
     'Moscow': '91001'
 }
 
-def query_aws_rmp(index, dt_from, dt_to):
+def _query_aws_rmp(index, dt_from, dt_to):
     r = requests.post('http://213.171.38.44:27416/aws.rmp/users/php/getSOAPMeteo.php', data = {
         'index': index,
         'dtFrom': dt_from,
@@ -21,7 +21,7 @@ def query_aws_rmp(index, dt_from, dt_to):
     return json.loads(r.text.encode().decode('utf-8-sig'))
 
 # TODO: introduce spline interpolation for proper alignment if accuracy required
-def align_to_period(datasets, period):
+def _align_to_period(datasets, period):
     if len(datasets.keys()) < 1: return []
     dt_from = datasets[next(iter(datasets))][0][0]
     dt_to = 0
@@ -65,7 +65,7 @@ def align_to_period(datasets, period):
         period_start += period
     return data
 
-def obtain_from_aws_rmp(station, time_range, query, period=3600):
+def _obtain_from_aws_rmp(station, time_range, query, period=3600):
     index = AWS_RMP_IDX[station]
     epoch_range = [int(t.replace(tzinfo=timezone.utc).timestamp()) for t in time_range]
     epoch_range[0] -= period
@@ -75,7 +75,7 @@ def obtain_from_aws_rmp(station, time_range, query, period=3600):
         if dt_to > epoch_range[1]:
             dt_to = epoch_range[1]
         print('query', datetime.utcfromtimestamp(dt_from), 'to', datetime.utcfromtimestamp(dt_to))
-        raw_data = query_aws_rmp(index, dt_from, dt_to)
+        raw_data = _query_aws_rmp(index, dt_from, dt_to)
         if raw_data is None:
             log.error(f'Failed to obtain aws.rmp: {station} {dt_from}:{dt_to}');
         data = dict()
@@ -92,17 +92,18 @@ def obtain_from_aws_rmp(station, time_range, query, period=3600):
                 data['t2'] = (entry.get('time', []), value)
             elif 'pressure' in query and 'BARO-1/MD-20Д' == sensor:
                 data['pressure'] = (entry.get('time', []), value)
-        aligned = align_to_period(data, period)
+        aligned = _align_to_period(data, period)
         log.info(f'aws.rmp:{station} <- [{len(aligned)}] from {time_range[0]} to {time_range[1]}')
         proxy.insert(aligned, list(data.keys()), station)
 
+def get_progress():
+    return .5
 
-def query(station, time_range, query):
+def fill_interval(station, time_range, query):
     if station == 'Moscow':
-        return obtain_from_aws_rmp(station, time_range, query)
+        return _obtain_from_aws_rmp(station, time_range, query)
     else:
         return None
 
-dt_strt = datetime(2021, 5, 30)
-dt_end = datetime(2021, 8, 30)
-query('Moscow', [dt_strt, dt_end], ['t2', 'pressure'])
+def supported(station):
+    return station in ['Moscow']
