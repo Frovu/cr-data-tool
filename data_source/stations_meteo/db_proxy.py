@@ -15,22 +15,28 @@ def _create_if_not_exists(station_name):
         cursor.execute(query)
         pg_conn.commit()
 
-# TODO: use complex sql query to return pairs of edges of missing intervals
-def analyze_integrity(dt_from, dt_to):
-    return False
-
 def select_station(lat, lon):
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT name FROM stations WHERE round(lat::numeric,2) = %s AND round(lon::numeric,2) = %s', [round(lat, 2), round(lon, 2)])
         result = cursor.fetchall()
         return result[0][0] if result else None
 
+# TODO: use complex sql query to return pairs of edges of missing intervals
+def analyze_integrity(station, dt_from, dt_to, period=3600):
+    delta = dt_to - dt_from
+    required_count = delta.days*(86400//period) + delta.seconds//period
+    _create_if_not_exists(station)
+    with pg_conn.cursor() as cursor:
+        cursor.execute(f'SELECT count(*) FROM {_table_name(station)} WHERE time >= %s AND time <= %s', [dt_from, dt_to])
+        count = cursor.fetchall()[0][0]
+        return count >= required_count
+
 def select(station, dt_from, dt_to, with_model=False):
-    pass
+    print(station, dt_from, dt_to)
 
 def insert(data, columns, station):
     if not len(data): return
-    _create_if_not_exists(station)
+    # _create_if_not_exists(station) # technically useless here since analyze_integrity() is always called beforehand
     with pg_conn.cursor() as cursor:
         query = f'''INSERT INTO {_table_name(station)} (time, {", ".join(columns)}) VALUES %s
         ON CONFLICT (time) DO UPDATE SET ({", ".join(FIELDS)}) = ({", ".join([f"EXCLUDED.{f}" for f in FIELDS])})'''

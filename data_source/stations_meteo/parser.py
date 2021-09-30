@@ -3,6 +3,7 @@ import logging as log
 import requests
 import numpy
 import json
+import traceback
 from math import floor, ceil
 import data_source.stations_meteo.db_proxy as proxy
 
@@ -100,10 +101,16 @@ def get_progress():
     return .5
 
 def fill_interval(station, time_range, query):
-    if station == 'Moscow':
-        return _obtain_from_aws_rmp(station, time_range, query)
-    else:
-        return None
+    try:
+        if station == 'Moscow':
+            return _obtain_from_aws_rmp(station, time_range, query)
+        else:
+            return None
+    except Exception:
+        log.error(f'Exception in stations_meteo.parser.obtain: {traceback.format_exc()}')
+        return False
+    finally:
+        return True
 
 def supported(station):
     return station in ['Moscow']
