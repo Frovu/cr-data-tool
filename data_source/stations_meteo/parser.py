@@ -4,6 +4,7 @@ import requests
 import numpy
 import json
 from math import floor, ceil
+import data_source.stations_meteo.db_proxy as proxy
 
 AWS_RMP_PAGE = 8196
 AWS_RMP_IDX = {
@@ -31,12 +32,13 @@ def align_to_period(datasets, period):
     dt_from = period * floor(dt_from / period)
     dt_to = period * ceil(dt_to / period)
     keys = list(datasets.keys())
+    pressure = keys.index('pressure') if 'pressure' in keys else -1
     res_len = ceil((dt_to-dt_from)/period)
     data = numpy.empty([res_len, (1 + len(keys))], dtype=numpy.float32)
     times = [datasets[k][0] for k in keys]
     values = [datasets[k][1] for k in keys]
     si = [0 for k in keys]
-    lens = [len(times) for i in range(len(keys))]
+    lens = [len(times[i]) for i in range(len(keys))]
     period_start = dt_from
     for res_i in range(res_len):
         period_end = period_start + period
@@ -44,17 +46,20 @@ def align_to_period(datasets, period):
         for i in range(len(keys)):
             acc = 0
             cnt = 0
-            if si[i] > lens[i]:
+            if si[i] >= lens[i]:
                 data[res_i][i+1] = None
                 continue
             while times[i][si[i]] < period_end:
                 acc += values[i][si[i]]
                 cnt += 1
                 si[i] += 1
+                if si[i] >= lens[i]: break
+            if i == pressure:
+                acc /= 100
             data[res_i][i+1] = (acc / cnt) if cnt > 0 else None
         period_start += period
     print(data)
-
+    return data
 
 def obtain_from_aws_rmp(station, time_range, query, period=3600):
     index = AWS_RMP_IDX[station]
@@ -74,7 +79,7 @@ def obtain_from_aws_rmp(station, time_range, query, period=3600):
             if sensor is None:
                 continue
             if 'HMP155' == sensor:
-                if len(value) < 1 or value[0] < 200: # weird check that this is actually temperature in Kelvins
+                if len(value) < 1 or value[0] < 200: # weird check that this is actually temperature in Kelvins (not humidity)
                     continue
                 data['t2'] = (entry.get('time', []), value)
             elif 'BARO-1/MD-20Д' == sensor:
@@ -83,6 +88,8 @@ def obtain_from_aws_rmp(station, time_range, query, period=3600):
             if col not in data:
                 log.error(f'Data for \'{col}\' is missing in aws.rmp: {station} {dt_from}:{dt_to}');
         aligned = align_to_period(data, period)
+        log.info(f'aws.rmp:{station} <- [{len(aligned)}] from {time_range[0]} to {time_range[1]}')
+        proxy.insert(aligned, list(data.keys()), station)
 
 
 def query(station, time_range, query):
@@ -91,6 +98,6 @@ def query(station, time_range, query):
     else:
         return None
 
-dt_strt = datetime(2021, 9, 27, 23, 48)
+dt_strt = datetime(2021, 9, 26, 23, 48)
 dt_end = datetime(2021, 9, 27, 23, 58)
 query('Moscow', [dt_strt, dt_end], ['t2'])

@@ -15,10 +15,11 @@ def _create_if_not_exists(station_name):
         cursor.execute(query)
         pg_conn.commit()
 
-def insert(data, station):
-    if not data: return
-    log.debug(f'{_table_name(station)} <- [{len(data)}] from {data[0][0]} to {data[-1][0]}')
+def insert(data, columns, station):
+    if not len(data): return
+    _create_if_not_exists(station)
     with pg_conn.cursor() as cursor:
-        query = f'INSERT INTO {_table_name(station)} VALUES %s ON CONFLICT (time) DO NOTHING'
-        psycopg2.extras.execute_values (cursor, query, data, template=None, page_size=100)
+        query = f'''INSERT INTO {_table_name(station)} (time, {", ".join(columns)}) VALUES %s
+        ON CONFLICT (time) DO UPDATE SET ({", ".join(FIELDS)}) = ({", ".join([f"EXCLUDED.{f}" for f in FIELDS])})'''
+        psycopg2.extras.execute_values (cursor, query, data, template="(to_timestamp(%s), %s, %s)", page_size=100)
         pg_conn.commit()
