@@ -2,14 +2,16 @@ import * as plot from '../plot.js';
 import * as tabs from '../tabsUtil.js';
 
 const LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10];
+const COLUMNS = ['t2'].concat(LEVELS.map(l => `t_${l.toFixed(0)}mb`));
+const DEFAULT_DELTA = 86400*30; // 86400*365
 const params = {
-	from: Math.floor(Date.now()/1000) - 86400*375,
+	from: Math.floor(Date.now()/1000) - 86400*10 - DEFAULT_DELTA,
 	to: Math.floor(Date.now()/1000) - 86400*10,
 	lat: 55.47,
 	lon: 37.32
 };
 let data;
-let activeSeries = [0, 2];
+let activeSeries = [0, 1, 2];
 // activeSeries = LEVELS.map((a,i)=>i)
 let fetchOngoing = false;
 let dataFetch;
@@ -57,7 +59,7 @@ function startFetch(param, status) {
 							dataFetch = null;
 						}
 					});
-				}, 1000);
+				}, 2000);
 			} else {
 				resolve(ok);
 			}
@@ -82,15 +84,18 @@ export function settingsChanged(status=queryBtn) {
 }
 
 function receiveData(resp) {
-	const rows = resp.data, len = resp.data.length, rowLen = resp.fields.length;
-	const idx = Array(rowLen);
-	const expected_fields = LEVELS.map(l => `t_${l.toFixed(0)}mb`);
-	['time'].concat(expected_fields).forEach((field, i) => {
+	const rows = resp.data, len = resp.data.length;
+	const fields = ['time'].concat(COLUMNS);
+	const fieldsLen = Math.min(resp.fields.length, fields.length)
+	const idx = Array(fields.length);
+	fields.forEach((field, i) => {
+		console.log(field, resp.fields.indexOf(field))
 		idx[resp.fields.indexOf(field)] = i;
 	});
-	data = resp.fields.map(() => Array(len));
+	data = fields.map(() => Array(len));
 	for (let i = 0; i < len; ++i) {
 		for (let j = 0; j < rowLen; ++j) {
+			if ()
 			data[idx[j]][i] = rows[i][j];
 		}
 	}
@@ -98,8 +103,10 @@ function receiveData(resp) {
 }
 
 function color(idx) {
-	const inc = 15*idx/3;
-	const base = [`255,${inc+50},${inc+50}`, `${inc},255,${inc}`, `${inc-100},${inc+255},255`][idx%3];
+	if (idx === 0)
+		return 'rgba(155,0,200,1)';
+	const inc = 15*idx/3;idx[j]
+	const base = [`${inc},255,${inc}`, `255,${inc+50},${inc+50}`, `${inc-100},${inc+255},255`][idx%3];
 	return `rgba(${base},1)`;
 }
 
@@ -107,7 +114,7 @@ function plotInit(full=true) {
 	const transform = temperatureUnit!=='K' && (t => t-273.15);
 	const series = activeSeries.map(col => {return {
 		scale: temperatureUnit,
-		label: `h=${LEVELS[col].toFixed(0)}mb`,
+		label: COLUMNS[col],
 		color: color(col),
 		precision: 1,
 		transform
@@ -164,23 +171,21 @@ export async function fetchStations() {
 	return (await resp.json()).list;
 }
 
-export function createQueryBtn() {
-}
-
 export function initTabs() {
 	queryBtn = tabs.input('query', ()=>fetchData());
-	const viewSelectors = LEVELS.map((lvl, i) => {
+	const fillSpaces = s => s + Array(11).fill('&nbsp;').slice(s.length).join('');
+	const viewSelectors = COLUMNS.map((col, i) => {
 		const div = document.createElement('div');
 		const box = document.createElement('input');
 		const lbl = document.createElement('label');
 		div.classList.add('view-option');
-		const id = `ser-${lvl}mb`;
+		const id = `ser-${col}`;
 		box.setAttribute('type', 'checkbox');
 		if (activeSeries.includes(i)) box.setAttribute('checked', true);
 		box.setAttribute('id', id);
 		lbl.setAttribute('for', id);
 		lbl.setAttribute('style', `border-color: ${color(i)};`);
-		lbl.innerHTML = `h = ${lvl} mb<span class="color-box" style="background-color: ${color(i)};"></span>`;
+		lbl.innerHTML = `${fillSpaces(col.replace('_', ', h=').replace('t2', 't2, station'))}<span class="color-box" style="background-color: ${color(i)};"></span>`;
 		div.append(box, lbl);
 		div.addEventListener('change', () => {
 			viewSeries(i, document.getElementById(id).checked);

@@ -1,4 +1,5 @@
-import data_source.temperature_model.temperature as temperature
+import data_source.temperature_model.temperature as t_model
+import data_source.stations_meteo.data as t_stations
 from flask import Blueprint, request
 from datetime import datetime
 
@@ -13,7 +14,11 @@ def get():
         lon = float(request.args.get('lon', ''))
     except ValueError:
         return {}, 400
-    status, data = temperature.get(lat, lon, dt_from, dt_to)
+    only = request.args.get('only', '')
+    if only == 'model':
+        status, data = t_model.get(lat, lon, dt_from, dt_to)
+    else:
+        status, data = t_stations.get_with_model(lat, lon, dt_from, dt_to)
     body = { "status": status }
     if status != 'ok':
         if status == 'busy' and data:
@@ -26,4 +31,4 @@ def get():
 
 @bp.route('/stations')
 def stations():
-    return { 'list': temperature.get_stations() }
+    return { 'list': t_model.get_stations() }
