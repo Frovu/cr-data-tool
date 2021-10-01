@@ -86,17 +86,16 @@ export function settingsChanged(status=queryBtn) {
 function receiveData(resp) {
 	const rows = resp.data, len = resp.data.length;
 	const fields = ['time'].concat(COLUMNS);
-	const fieldsLen = Math.min(resp.fields.length, fields.length)
 	const idx = Array(fields.length);
-	fields.forEach((field, i) => {
-		console.log(field, resp.fields.indexOf(field))
-		idx[resp.fields.indexOf(field)] = i;
+	resp.fields.forEach((field, i) => {
+		const index = fields.indexOf(field);
+		if (index >= 0)
+			idx[index] = i;
 	});
 	data = fields.map(() => Array(len));
 	for (let i = 0; i < len; ++i) {
-		for (let j = 0; j < rowLen; ++j) {
-			if ()
-			data[idx[j]][i] = rows[i][j];
+		for (let j = 0; j < fields.length; ++j) {
+			data[j][i] = rows[i][idx[j]];
 		}
 	}
 	plotData();
@@ -105,7 +104,7 @@ function receiveData(resp) {
 function color(idx) {
 	if (idx === 0)
 		return 'rgba(155,0,200,1)';
-	const inc = 15*idx/3;idx[j]
+	const inc = 15*idx/3;
 	const base = [`${inc},255,${inc}`, `255,${inc+50},${inc+50}`, `${inc-100},${inc+255},255`][idx%3];
 	return `rgba(${base},1)`;
 }
