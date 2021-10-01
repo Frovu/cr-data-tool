@@ -19,8 +19,8 @@ def get():
         if status == 'busy' and data:
             body["download"] = data
         return body
-    body["fields"] = ['time'] + temperature.proxy.LEVELS
-    body["data"] = data
+    body["fields"] = data[1]
+    body["data"] = data[0]
     return body
 
 

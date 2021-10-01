@@ -15,8 +15,8 @@ let queryBtn;
 function receiveData(resp) {
 	const row = resp.data[0];
 	data = [];
-	LEVELS.forEach(field => {
-		data.push(row[resp.fields.indexOf(field)]);
+	LEVELS.forEach(lvl => {
+		data.push(row[resp.fields.indexOf(`t_${lvl.toFixed(0)}mb`)]);
 	});
 	plot.data([LEVELS, data]);
 }

@@ -78,12 +78,13 @@ def analyze_integrity(lat, lon, start_time, end_time):
 
 def select(lat, lon, start_time, end_time):
     result = []
+    fields = ['time'] + [f't_{int(l)}mb' for l in LEVELS]
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT * FROM {table_name(lat, lon)} ' +
             'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
         for row in cursor.fetchall():
             result.append([row[0].timestamp()]+list(row[1:]))
-    return result
+    return result, fields
 
 def insert(data, lat, lon):
     if not data: return

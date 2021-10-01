@@ -44,21 +44,3 @@ def get_with_model(lat, lon, dt_from, dt_to):
             return 'accepted', None
         else:
             return model_status, model_p
-
-
-dt_strt = datetime(2021, 8, 20)
-dt_end = datetime(2021, 8, 30)
-s, d = 0, 0
-import time
-while True:
-    s, d = get_with_model(55.47, 37.32, dt_strt, dt_end)
-    print('<->', s, d if s == 'busy' else '<->')
-    if s == 'ok': break
-    time.sleep(2)
-
-print()
-print()
-for r in d[0][:20]:
-    print(r[:5])
-
-# get_with_coords(55.47, 37.32, 0, 0)

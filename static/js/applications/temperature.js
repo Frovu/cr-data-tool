@@ -84,7 +84,8 @@ export function settingsChanged(status=queryBtn) {
 function receiveData(resp) {
 	const rows = resp.data, len = resp.data.length, rowLen = resp.fields.length;
 	const idx = Array(rowLen);
-	['time'].concat(LEVELS).forEach((field, i) => {
+	const expected_fields = LEVELS.map(l => `t_${l.toFixed(0)}mb`);
+	['time'].concat(expected_fields).forEach((field, i) => {
 		idx[resp.fields.indexOf(field)] = i;
 	});
 	data = resp.fields.map(() => Array(len));
