@@ -88,7 +88,7 @@ def download_required_files(missing_intervals, delta):
     download_total = 0 # done
 
 def get_download_progress():
-    return None if download_total == 0 else download_progress / download_total
+    return None if download_total == 0 else round(download_progress / download_total, 2)
 
 # Obtains data for interval !! Presumes all files are already downloaded !!
 # @params: date period to get data for (should be 6h aligned!)

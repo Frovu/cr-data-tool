@@ -11,13 +11,18 @@ AWS_RMP_PAGE = 24*6 # aws.rmp seems to restrict max resp size by something like 
 AWS_RMP_IDX = {
     'Moscow': '91001'
 }
+progress_total = 0
+progress_current = 0
 
 def _query_aws_rmp(index, dt_from, dt_to):
-    r = requests.post('http://213.171.38.44:27416/aws.rmp/users/php/getSOAPMeteo.php', data = {
-        'index': index,
-        'dtFrom': dt_from,
-        'dtTo': dt_to
-    })
+    try:
+        r = requests.post('http://213.171.38.44:27416/aws.rmp/users/php/getSOAPMeteo.php', data = {
+            'index': index,
+            'dtFrom': dt_from,
+            'dtTo': dt_to
+        })
+    except:
+        return None
     if r.status_code != 200: return None
     return json.loads(r.text.encode().decode('utf-8-sig'))
 
@@ -31,8 +36,7 @@ def _align_to_period(datasets, period):
             dt_from = datasets[ser][0][0]
         if datasets[ser][0][-1] > dt_to:
             dt_to = datasets[ser][0][-1]
-    print('  got', datetime.utcfromtimestamp(dt_from), 'to', datetime.utcfromtimestamp(dt_to))
-    print()
+    # print('  got', datetime.utcfromtimestamp(dt_from), 'to', datetime.utcfromtimestamp(dt_to))
     dt_from = period * floor(dt_from / period)
     dt_to = period * ceil(dt_to / period)
     keys = list(datasets.keys())
@@ -71,14 +75,18 @@ def _obtain_from_aws_rmp(station, time_range, query, period=3600):
     epoch_range = [int(t.replace(tzinfo=timezone.utc).timestamp()) for t in time_range]
     epoch_range[0] -= period
     epoch_range[1] += period
-    for dt_from in range(epoch_range[0], epoch_range[1], AWS_RMP_PAGE*period):
+    pages = range(epoch_range[0], epoch_range[1], AWS_RMP_PAGE*period)
+    global progress_total, progress_current
+    progress_total = len(pages)
+    for dt_from in pages:
         dt_to = dt_from + AWS_RMP_PAGE*period
         if dt_to > epoch_range[1]:
             dt_to = epoch_range[1]
-        print('query', datetime.utcfromtimestamp(dt_from), 'to', datetime.utcfromtimestamp(dt_to))
+        # print('query', datetime.utcfromtimestamp(dt_from), 'to', datetime.utcfromtimestamp(dt_to))
         raw_data = _query_aws_rmp(index, dt_from, dt_to)
         if raw_data is None:
-            log.error(f'Failed to obtain aws.rmp: {station} {dt_from}:{dt_to}');
+            log.error(f'Failed to obtain, aborting aws.rmp: {station} {dt_from}:{dt_to}');
+            return None
         data = dict()
         for entry in raw_data:
             if not (type(entry) is dict):
@@ -94,11 +102,13 @@ def _obtain_from_aws_rmp(station, time_range, query, period=3600):
             elif 'pressure' in query and 'BARO-1/MD-20Д' == sensor:
                 data['pressure'] = (entry.get('time', []), value)
         aligned = _align_to_period(data, period)
-        log.info(f'aws.rmp:{station} <- [{len(aligned)}] from {time_range[0]} to {time_range[1]}')
+        log.info(f'aws.rmp: {station} <- [{len(aligned)}] from {datetime.utcfromtimestamp(dt_from)}')
         proxy.insert(aligned, list(data.keys()), station)
+        progress_current += 1
+    progress_total = progress_current = 0
 
 def get_progress():
-    return .5
+    return round(progress_current / progress_total, 2) if progress_total else 1
 
 def fill_interval(station, time_range, query):
     try:

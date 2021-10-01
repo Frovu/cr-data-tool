@@ -42,19 +42,21 @@ def get_with_model(lat, lon, dt_from, dt_to):
         thread.start()
         if model_status == 'ok':
             return 'accepted', None
+        else:
+            return model_status, model_p
 
 
-dt_strt = datetime(2021, 8, 25)
+dt_strt = datetime(2021, 8, 20)
 dt_end = datetime(2021, 8, 30)
 s, d = 0, 0
 import time
 while True:
     s, d = get_with_model(55.47, 37.32, dt_strt, dt_end)
-    print('<->', s)
+    print('<->', s, d if s == 'busy' else '<->')
     if s == 'ok': break
-    time.sleep(1)
+    time.sleep(2)
 
-print(d[1])
+print()
 print()
 for r in d[0][:20]:
     print(r[:5])

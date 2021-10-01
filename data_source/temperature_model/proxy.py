@@ -25,7 +25,7 @@ stations = []
 def _fetch_existing():
     with pg_conn.cursor() as cursor:
         cursor.execute('SELECT lat, lon, name FROM stations')
-        log.info(f"Starting with {cursor.rowcount} stations")
+        log.info(f"Temperature model: starting with {cursor.rowcount} stations")
         for row in cursor.fetchall():
             stations.append({'name': row[2], 'lat': row[0], 'lon': row[1]})
             _create_if_not_exists(row[0], row[1])
@@ -87,7 +87,7 @@ def select(lat, lon, start_time, end_time):
 
 def insert(data, lat, lon):
     if not data: return
-    log.debug(f'Inserting {len(data)} lines from {data[0][0]} to {data[-1][0]}')
+    log.info(f'Inserting {len(data)} lines from {data[0][0]} to {data[-1][0]}')
     with pg_conn.cursor() as cursor:
         query = f'INSERT INTO {table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO NOTHING'
         psycopg2.extras.execute_values (cursor, query, data, template=None, page_size=100)
