@@ -25,14 +25,16 @@ def fill_worker(station, dt_from, dt_to):
     _lock = False
 
 def get_with_model(lat, lon, dt_from, dt_to):
-    station = proxy.select_station(lat, lon)
-    if station is None or not parser.supported(station):
-        return 'unknown', None
-    local_ready = proxy.analyze_integrity(station, dt_from, dt_to)
     model_status, model_p = temperature.get(lat, lon, dt_from, dt_to, True)
+    if model_status ==  'unknown':
+        return model_status, model_p
+    station = proxy.select_station(lat, lon)
+    local_ready = not parser.supported(station) or proxy.analyze_integrity(station, dt_from, dt_to)
     if local_ready or is_hopeless(station, dt_from, dt_to):
         if model_status != 'ok':
             return model_status, model_p
+        elif not parser.supported(station):
+            return temperature.get(lat, lon, dt_from, dt_to)
         return 'ok', proxy.select(station, dt_from, dt_to, True)
     else:
         global _lock
