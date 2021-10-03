@@ -3,7 +3,7 @@ import data_source.stations_meteo.data as t_stations
 from flask import Blueprint, request
 from datetime import datetime
 
-bp = Blueprint('temp', __name__, url_prefix='/api/temp')
+bp = Blueprint('temperature', __name__, url_prefix='/api/temperature')
 
 @bp.route('/')
 def get():

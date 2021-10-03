@@ -3,7 +3,7 @@ import * as tabs from '../tabsUtil.js';
 
 const LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10];
 const COLUMNS = ['t2'].concat(LEVELS.map(l => `t_${l.toFixed(0)}mb`));
-const DEFAULT_DELTA = 86400*30; // 86400*365
+const DEFAULT_DELTA = 86400*60; // 86400*365
 const params = {
 	from: Math.floor(Date.now()/1000) - 86400*10 - DEFAULT_DELTA,
 	to: Math.floor(Date.now()/1000) - 86400*10,
@@ -27,7 +27,7 @@ export function encodeParams(obj) {
 }
 
 async function tryFetch(param, status) {
-	const resp = await fetch(`api/temp/${encodeParams(param)}`).catch(()=>{});
+	const resp = await fetch(`api/temperature/${encodeParams(param)}`).catch(()=>{});
 	if (resp && resp.status === 200) {
 		const body = await resp.json().catch(()=>{});
 		console.log('resp:', body);
@@ -165,7 +165,7 @@ function viewSeries(idx, show) {
 }
 
 export async function fetchStations() {
-	const resp = await fetch('api/temp/stations').catch(()=>{});
+	const resp = await fetch('api/temperature/stations').catch(()=>{});
 	if (!resp || resp.status !== 200) return null;
 	return (await resp.json()).list;
 }

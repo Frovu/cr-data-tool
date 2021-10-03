@@ -1,5 +1,6 @@
 from flask import Flask, send_file
 from routes import temperature
+from routes import muones
 import gzip
 import os
 import logging
@@ -32,6 +33,7 @@ app = Flask(__name__,
             static_url_path='',
             static_folder='static',)
 app.register_blueprint(temperature.bp)
+app.register_blueprint(muones.bp)
 
 @app.route("/")
 def index():
