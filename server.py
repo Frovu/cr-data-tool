@@ -1,6 +1,3 @@
-from flask import Flask, send_file
-from routes import temperature
-from routes import muones
 import gzip
 import os
 import logging
@@ -29,6 +26,9 @@ logger = logging.getLogger()
 logger.handlers = [ log_rotate, sh ]
 logger.setLevel(logging.DEBUG)
 
+from flask import Flask, send_file
+from routes import temperature
+from routes import muones
 app = Flask(__name__,
             static_url_path='',
             static_folder='static',)
