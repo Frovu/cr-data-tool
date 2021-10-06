@@ -10,10 +10,10 @@ def station(lat, lon):
     return proxy.station(lat, lon)
 
 # TODO: include query arg to select only some values
-def get(station, dt_from, dt_to):
-    ready = proxy.analyze_integrity(station, dt_from, dt_to)
+def get(station, dt_from, dt_to, period=60):
+    ready = proxy.analyze_integrity(station, dt_from, dt_to, period)
     if ready:
-        return 'ok', proxy.select(station, dt_from, dt_to)
+        return 'ok', proxy.select(station, dt_from, dt_to, period)
     if _lock:
         return 'busy', None
     thread = Thread(target=_data_worker, args=(station, dt_from, dt_to))
