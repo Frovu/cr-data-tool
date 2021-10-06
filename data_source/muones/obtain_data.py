@@ -9,7 +9,7 @@ def _psql_query(table, dt_from, dt_to, period, fields):
     return f'''WITH periods AS
 (SELECT generate_series(to_timestamp({t_from}), to_timestamp({t_to}), {interval}) period)
 SELECT COUNT(*), period AS time, {', '.join([f'ROUND(AVG({f})::numeric, 2)' for f in fields[1:]])}
-FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < period + {interval})
+FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < period + {interval} AND dev=0)
 GROUP BY period ORDER BY period
 '''
 #on (period <= date_reg AND date_reg < period + interval '4 hours') group by period order by period;
