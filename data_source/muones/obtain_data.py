@@ -8,7 +8,7 @@ def _psql_query(table, dt_from, dt_to, period, fields):
     interval = f'interval \'{period} seconds\''
     return f'''WITH periods AS
 (SELECT generate_series(to_timestamp({t_from}), to_timestamp({t_to}), {interval}) period)
-SELECT COUNT(*), period AS time, {', '.join([f'ROUND(AVG({f})::numeric, 2)' for f in fields[1:]])}
+SELECT period AS time, COUNT(*), {', '.join([f'ROUND(AVG({f})::numeric, 2)' for f in fields[1:]])}
 FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < period + {interval} AND dev=0)
 GROUP BY period ORDER BY period
 '''
@@ -24,9 +24,3 @@ def obtain(station, dt_from, dt_to, period=3600):
                 cursor.execute(_psql_query('data', dt_from, dt_to, period, ['date_reg', 'n_v', 'pressure']))
                 resp = cursor.fetchall()
                 return resp
-                # return _align_to_period(resp, period)
-
-dt_strt = datetime(2021, 10, 5)
-dt_end = datetime(2021, 10, 7)
-for r in obtain('Moscow', dt_strt, dt_end):
-    print(*r)

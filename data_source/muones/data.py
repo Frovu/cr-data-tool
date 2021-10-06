@@ -3,19 +3,20 @@ from threading import Thread
 
 _lock = False
 
-def _data_worker(station, dt_from, dt_to):
+def _data_worker(station, t_from, t_to):
     pass
 
 def station(lat, lon):
     return proxy.station(lat, lon)
 
 # TODO: include query arg to select only some values
-def get(station, dt_from, dt_to, period=60):
-    ready = proxy.analyze_integrity(station, dt_from, dt_to, period)
-    if ready:
-        return 'ok', proxy.select(station, dt_from, dt_to, period)
+def get_everything(station, t_from, t_to, period=60):
+    global _lock
     if _lock:
         return 'busy', None
-    thread = Thread(target=_data_worker, args=(station, dt_from, dt_to))
+    missing = proxy.analyze_integrity(station, t_from, t_to, period)
+    if not missing:
+        return 'ok', proxy.select(station, t_from, t_to, period)
+    thread = Thread(target=_data_worker, args=(station, t_from, t_to))
     _lock = True
     thread.start()
