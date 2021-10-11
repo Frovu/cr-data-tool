@@ -1,5 +1,6 @@
 import data_source.muones.obtain_data as parser
 import logging
+import os
 
 import psycopg2
 import psycopg2.extras
@@ -47,11 +48,11 @@ input (t_from, t_to, t_interval) AS (
         FROM rec, input
         WHERE gap_end < t_to
     ) r, input )
-SELECT gap_start, gap_end FROM rec WHERE gap_end >= gap_start;'''
-# TODO: EXTRACT(EPOCH FROM gap_start...)
+SELECT EXTRACT(EPOCH FROM gap_start)::integer, EXTRACT(EPOCH FROM gap_end)::integer
+ FROM rec WHERE gap_end >= gap_start;'''
 
 def _table_name(station, period):
-    per = f'{period // 3600}h' if period > 3600 and period % 3600 == 0 else f'{period}s'
+    per = f'{period // 3600}h' if period >= 3600 and period % 3600 == 0 else f'{period}s'
     return f'proc_{station}_{per}'
 
 def _create_if_not_exists(table_name):
@@ -92,9 +93,4 @@ def upsert(station, period, data, columns):
         ON CONFLICT (time) DO UPDATE SET ({", ".join(FIELDS)}) = ({", ".join([f"EXCLUDED.{f}" for f in FIELDS])})'''
         psycopg2.extras.execute_values (cursor, query, data, template=None)
         pg_conn.commit()
-        logging.info(f'Upsert: {_table_name(station, period)}<-[{len(data)}] {columns}')
-
-dt_strt = datetime(2021, 10, 5)
-dt_end = datetime(2021, 10, 7)
-for r in obtain('Moscow', dt_strt, dt_end):
-    print(*r)
+        logging.info(f'Upsert: {_table_name(station, period)} <-[{len(data)}] {",".join(columns)}')
