@@ -52,7 +52,6 @@ def analyze_integrity(lat, lon, dt_from, dt_to):
     station = get_station(lat, lon)
     if not station:
         return False
-    log.debug(f'Querying station \'{station.get("name")}\' from {dt_from} to {dt_to}')
     t_from = dt_from.replace(tzinfo=timezone.utc).timestamp()
     t_to = dt_to.replace(tzinfo=timezone.utc).timestamp()
     q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), f'p_{int(LEVELS[0])}', epoch=False)
@@ -64,13 +63,13 @@ def select(lat, lon, start_time, end_time):
     result = []
     fields = [f't_{int(l)}mb' for l in LEVELS]
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT EXTRACT(EPOCH FROM time), {",".join([f"p_{int(l)}" for l in LEVELS])} ' +
-            'FROM {table_name(lat, lon)} WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
+        cursor.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, {",".join([f"p_{int(l)}" for l in LEVELS])} FROM {table_name(lat, lon)} ' +
+            'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
         return cursor.fetchall(), ['time'] + fields
 
 def insert(data, lat, lon):
     if not data: return
-    log.info(f'Inserting {len(data)} lines from {data[0][0]} to {data[-1][0]}')
+    log.info(f'Insert: {table_name(lat, lon)} <-[{len(data)}] from {data[0][0]}')
     with pg_conn.cursor() as cursor:
         query = f'INSERT INTO {table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO NOTHING'
         psycopg2.extras.execute_values (cursor, query, data, template=None, page_size=100)

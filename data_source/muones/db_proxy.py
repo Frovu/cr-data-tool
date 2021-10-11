@@ -86,11 +86,12 @@ def analyze_integrity(station, t_from, t_to, period, column='n_v'):
 def select(station, t_from, t_to, period, columns=FIELDS):
     pass
 
-def upsert(station, period, data, columns):
+def upsert(station, period, data, columns, epoch=False):
     if not len(data): return
     with pg_conn.cursor() as cursor:
         query = f'''INSERT INTO {_table_name(station, period)} (time, {", ".join(columns)}) VALUES %s
-        ON CONFLICT (time) DO UPDATE SET ({", ".join(FIELDS)}) = ({", ".join([f"EXCLUDED.{f}" for f in FIELDS])})'''
-        psycopg2.extras.execute_values (cursor, query, data, template=None)
+        ON CONFLICT (time) DO UPDATE SET ({", ".join(columns)}) = ({", ".join([f"EXCLUDED.{f}" for f in columns])})'''
+        psycopg2.extras.execute_values (cursor, query, data,
+            template=f'(to_timestamp(%s),{",".join(["%s" for f in columns])})' if epoch else None)
         pg_conn.commit()
         logging.info(f'Upsert: {_table_name(station, period)} <-[{len(data)}] {",".join(columns)}')

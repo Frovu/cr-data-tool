@@ -117,6 +117,7 @@ def get(lat, lon, start_time, end_time, no_response=False):
     global _lock
     if _lock:
         return 'busy', parser.get_download_progress() # server busy
+    log.info(f'NCEP: Filling ({lat}, {lon}) from {start_time} to {end_time}')
     thread = Thread(target=_fill_all_gaps, args=(missing_intervals, lat, lon))
     _lock = True
     thread.start()
