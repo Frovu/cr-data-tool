@@ -6,6 +6,8 @@ import numpy as np
 from scipy import interpolate
 import time
 import re
+import traceback
+from math import floor, ceil
 
 BATCH_SIZE = 4096
 COLUMNS_TEMP = ['T_m']
@@ -17,10 +19,11 @@ def _T_m(ts, levels):
     return np.sum([np.mean([ts[i],ts[i+1]])*diff[i]/1000 for i in range(diff.shape[0])])
 
 def _calculate_temperatures(lat, lon, t_from, t_to, period):
+    pa_from, pa_to = floor(t_from/MODEL_PERIOD)*MODEL_PERIOD, ceil(t_to/MODEL_PERIOD)*MODEL_PERIOD
     logging.debug(f'Muones: querying model temp ({lat}, {lon}) {t_from}:{t_to}')
     delay = .1
     while True:
-        status, data = temperature.get_by_epoch(lat, lon, t_from, t_to)
+        status, data = temperature.get_by_epoch(lat, lon, pa_from, pa_to)
         if status == 'ok':
             logging.debug(f'Muones: got model response')
             levels = [float(re.match(r't_(\d+)mb', f).group(1)) for f in data[1] if re.match(r't_(\d+)mb', f)]
@@ -44,16 +47,15 @@ def _prepare(station, t_from, t_to, period, integrity_column, process_fn):
             i_end = i_start+batch if i_start+batch < interval[1] else interval[1]
             process_fn(i_start, i_end)
 
-def correct(station, t_from, t_to, period):
-    lat, lon = proxy.coordinates(station)
-    _prepare(station, t_from, t_to, period, COLUMNS_TEMP[0],
-        lambda a, b: proxy.upsert(station, period, _calculate_temperatures(lat, lon, a, b, period), COLUMNS_TEMP, True))
-    _prepare(station, t_from, t_to, period, COLUMNS_RAW[0],
-        lambda a, b: proxy.upsert(station, period, parser.obtain(station, period, a, b), COLUMNS_RAW))
+def prepare_data(t_from, t_to, station, period):
+    try:
+        lat, lon = proxy.coordinates(station)
+        _prepare(station, t_from, t_to, period, COLUMNS_TEMP[0],
+            lambda a, b: proxy.upsert(station, period, _calculate_temperatures(lat, lon, a, b, period), COLUMNS_TEMP, True))
+        _prepare(station, t_from, t_to, period, COLUMNS_RAW[0],
+            lambda a, b: proxy.upsert(station, period, parser.obtain(station, period, a, b), COLUMNS_RAW))
+    except Exception:
+        logging.error(f'Muones: failed to prepare: {traceback.format_exc()}')
 
-from datetime import datetime, timezone
-t_strt = datetime(2021, 10, 4).replace(tzinfo=timezone.utc).timestamp()
-t_end = datetime(2021, 10, 4, 12).replace(tzinfo=timezone.utc).timestamp()
-correct('Moscow', t_strt, t_end, 3600)
-# for r in correct('Moscow', dt_strt, dt_end, 60):
-#     print(*r)
+def correct(t_from, t_to, station, period):
+    prepare_data(station, t_from, t_to, period)

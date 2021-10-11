@@ -75,23 +75,34 @@ def coordinates(station):
         result = cursor.fetchall()
         return result[0] if result else None
 
-def analyze_integrity(station, t_from, t_to, period, column='n_v'):
+def analyze_integrity(station, t_from, t_to, period, columns='n_v'):
+    # FIXME: some extra wacky hack to analyze across several columns without geting intervals
+    if type(columns) is list:
+        for col in columns:
+            if analyze_integrity(station, t_from, t_to, period, col):
+                return True
+        return False
+
     table = _table_name(station, period)
     _create_if_not_exists(table)
     with pg_conn.cursor() as cursor:
-        q = integrity_query(t_from, t_to, period, table, column)
+        q = integrity_query(t_from, t_to, period, table, columns)
         cursor.execute(q)
         return cursor.fetchall()
 
-def select(station, t_from, t_to, period, columns=FIELDS):
-    pass
+def select(station, t_from, t_to, period, columns=FIELDS, include_time=True):
+    with pg_conn.cursor() as cursor:
+        q = f'''SELECT {"EXTRACT(EPOCH FROM time)," if include_time else ""}{",".join(columns)}
+            FROM {_table_name(station, period)} WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s)'''
+        cursor.execute(q, [t_from, t_to])
+        return cursor.fetchall()
 
 def upsert(station, period, data, columns, epoch=False):
     if not len(data): return
     with pg_conn.cursor() as cursor:
         query = f'''INSERT INTO {_table_name(station, period)} (time, {", ".join(columns)}) VALUES %s
-        ON CONFLICT (time) DO UPDATE SET ({", ".join(columns)}) = ({", ".join([f"EXCLUDED.{f}" for f in columns])})'''
+        ON CONFLICT (time) DO UPDATE SET (time,{", ".join(columns)}) = ({", ".join([f"EXCLUDED.{f}" for f in ["time"]+columns])})'''
         psycopg2.extras.execute_values (cursor, query, data,
             template=f'(to_timestamp(%s),{",".join(["%s" for f in columns])})' if epoch else None)
         pg_conn.commit()
-        logging.info(f'Upsert: {_table_name(station, period)} <-[{len(data)}] {",".join(columns)}')
+        logging.info(f'Upsert: {_table_name(station, period)} <-[{len(data)}] {",".join(columns)} from {data[0][0]}')

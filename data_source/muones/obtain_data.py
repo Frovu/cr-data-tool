@@ -13,6 +13,7 @@ GROUP BY period ORDER BY period
 #on (period <= date_reg AND date_reg < period + interval '4 hours') group by period order by period;
 
 def obtain(station, period, t_from, t_to):
+    logging.debug(f'Muones: querying raw ({station})[{period}] {t_from}:{t_to}')
     if station == 'Moscow':
         with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
             user = os.environ.get('MUON_MSK_USER'),
