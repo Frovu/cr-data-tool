@@ -7,6 +7,7 @@ import data_source.temperature_model.parser as parser
 from threading import Thread
 
 _lock = False
+START_TRIM = datetime(1948, 1, 1)
 
 # transform geographical coords to index coords
 def _get_coords(lat, lon):
@@ -100,17 +101,17 @@ def get_stations():
     return proxy.get_stations()
 
 def get(lat, lon, start_time, end_time, no_response=False):
-    lat = round(lat, 2)
-    lon = round(lon, 2)
+    lat = round(float(lat), 2)
+    lon = round(float(lon), 2)
     if not proxy.get_station(lat, lon):
         return 'unknown', None
-    if start_time < datetime(1948, 1, 1):
-        start_time = datetime(1948, 1, 1)
+    if start_time < START_TRIM:
+        start_time = START_TRIM
     end_trim = datetime.combine(datetime.now(), time()) - timedelta(days=1, hours=12)
     if end_time > end_trim:
         end_time = end_trim
     missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)
-    if not missing_intervals or missing_intervals[-1][0] >= end_trim - timedelta(days=1):
+    if not missing_intervals or missing_intervals[-1][0].replace(tzinfo=None) >= end_trim - timedelta(days=1):
         return 'ok', None if no_response else proxy.select(lat, lon, start_time, end_time)
     # data processing required
     global _lock
@@ -120,3 +121,8 @@ def get(lat, lon, start_time, end_time, no_response=False):
     _lock = True
     thread.start()
     return 'accepted', None # accepted data processing query
+
+def get_by_epoch(lat, lon, t_from, t_to, no_response=False):
+    dt_from = datetime.utcfromtimestamp(t_from)
+    dt_to = datetime.utcfromtimestamp(t_to)
+    return get(lat, lon, dt_from, dt_to, no_response=False)

@@ -1,7 +1,7 @@
 import os
-from datetime import datetime, timedelta, time
+from datetime import datetime, timezone
 import logging as log
-
+from data_source.muones.db_proxy import integrity_query
 import numpy
 import psycopg2
 import psycopg2.extras
@@ -48,43 +48,25 @@ def get_stations():
     return stations
 
 # return list of time period turples for which data is missing
-# TODO: this could be done by complex SQL query probably
-def analyze_integrity(lat, lon, start_time, end_time):
+def analyze_integrity(lat, lon, dt_from, dt_to):
     station = get_station(lat, lon)
     if not station:
         return False
-    log.debug(f'Querying station \'{station.get("name")}\' from {start_time} to {end_time}')
+    log.debug(f'Querying station \'{station.get("name")}\' from {dt_from} to {dt_to}')
+    t_from = dt_from.replace(tzinfo=timezone.utc).timestamp()
+    t_to = dt_to.replace(tzinfo=timezone.utc).timestamp()
+    q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), f'p_{int(LEVELS[0])}', epoch=False)
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT time FROM {table_name(lat, lon)} ' +
-            'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
-        rows = cursor.fetchall()
-
-    missing = []
-    inc = timedelta(hours=1)
-    # round start and end to 6h periods
-    start = datetime.combine(start_time, time(start_time.hour))
-    if start_time.minute+start_time.second > 0: start += inc
-    end = datetime.combine(end_time, time(end_time.hour))
-
-    cur = start # next timestamp we want to see
-    for row in rows:
-        if row[0] > cur: # if something skipped account missing interval
-            missing.append((cur, row[0] - inc))
-            cur = row[0]
-        cur += inc
-    if cur <= end: # if end not reached (cur==end means last is missing)
-        missing.append((cur, end))
-    return missing
+        cursor.execute(q)
+        return cursor.fetchall()
 
 def select(lat, lon, start_time, end_time):
     result = []
-    fields = ['time'] + [f't_{int(l)}mb' for l in LEVELS]
+    fields = [f't_{int(l)}mb' for l in LEVELS]
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT * FROM {table_name(lat, lon)} ' +
-            'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
-        for row in cursor.fetchall():
-            result.append([row[0].timestamp()]+list(row[1:]))
-    return result, fields
+        cursor.execute(f'SELECT EXTRACT(EPOCH FROM time), {",".join([f"p_{int(l)}" for l in LEVELS])} ' +
+            'FROM {table_name(lat, lon)} WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
+        return cursor.fetchall(), ['time'] + fields
 
 def insert(data, lat, lon):
     if not data: return

@@ -1,12 +1,22 @@
 import data_source.muones.db_proxy as proxy
 import data_source.muones.obtain_data as parser
+import data_source.temperature_model.temperature as temperature
+import logging
 import numpy as np
+import time
 
 BATCH_SIZE = 4096
 COLUMNS_TEMP = ['T_m']
 COLUMNS_RAW = ['raw_acc_cnt', 'n_v_raw', 'pressure']
 
 def _calculate_temperatures(lat, lon, t_from, t_to, period):
+    while True:
+        status, data = temperature.get_by_epoch(lat, lon, t_from, t_to)
+        if status != 'ok':
+            print(status, ':waiting')
+            time.sleep(.5)
+            continue
+        print(data)
     return []
 
 def _prepare(station, t_from, t_to, period, integrity_column, process_fn):

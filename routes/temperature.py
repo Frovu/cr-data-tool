@@ -8,8 +8,10 @@ bp = Blueprint('temperature', __name__, url_prefix='/api/temperature')
 @bp.route('/')
 def get():
     try:
-        dt_from = datetime.fromtimestamp(int(request.args.get('from', '')))
-        dt_to = datetime.fromtimestamp(int(request.args.get('to', '')))
+        t_from = int(request.args.get('from', ''))
+        t_to = int(request.args.get('to', ''))
+        dt_from = datetime.utcfromtimestamp(t_from)
+        dt_to = datetime.utcfromtimestamp(t_to)
         lat = float(request.args.get('lat', ''))
         lon = float(request.args.get('lon', ''))
     except ValueError:

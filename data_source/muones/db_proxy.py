@@ -21,7 +21,7 @@ FIELDS = [
     'T_m'
 ]
 
-def integrity_query(t_from, t_to, period, table, test_column, time_column='time'):
+def integrity_query(t_from, t_to, period, table, test_column, time_column='time', epoch=True):
     return f'''WITH RECURSIVE
 input (t_from, t_to, t_interval) AS (
     VALUES (to_timestamp({t_from}), to_timestamp({t_to}), interval \'{period} seconds\')
@@ -48,7 +48,7 @@ input (t_from, t_to, t_interval) AS (
         FROM rec, input
         WHERE gap_end < t_to
     ) r, input )
-SELECT EXTRACT(EPOCH FROM gap_start)::integer, EXTRACT(EPOCH FROM gap_end)::integer
+SELECT {", ".join([f"EXTRACT(EPOCH FROM {f})::integer" if epoch else f for f in ["gap_start", "gap_end"]])}
  FROM rec WHERE gap_end >= gap_start;'''
 
 def _table_name(station, period):
