@@ -39,23 +39,13 @@ def _calculate_temperatures(lat, lon, t_from, t_to, period):
         delay += .1 if delay < 1 else 0
         time.sleep(delay)
 
-def _prepare(station, t_from, t_to, period, integrity_column, process_fn):
-    missing = proxy.analyze_integrity(station, t_from, t_to, period, integrity_column)
-    for interval in missing:
-        batch = period*BATCH_SIZE
-        for i_start in range(interval[0], interval[1], batch):
-            i_end = i_start+batch if i_start+batch < interval[1] else interval[1]
-            process_fn(i_start, i_end)
-
-def prepare_data(t_from, t_to, station, period):
-    try:
+def get_prepare_tasks(t_from, t_to, station, period):
         lat, lon = proxy.coordinates(station)
         _prepare(station, t_from, t_to, period, COLUMNS_TEMP[0],
             lambda a, b: proxy.upsert(station, period, _calculate_temperatures(lat, lon, a, b, period), COLUMNS_TEMP, True))
         _prepare(station, t_from, t_to, period, COLUMNS_RAW[0],
             lambda a, b: proxy.upsert(station, period, parser.obtain(station, period, a, b), COLUMNS_RAW))
-    except Exception:
-        logging.error(f'Muones: failed to prepare: {traceback.format_exc()}')
+
 
 def correct(t_from, t_to, station, period):
     prepare_data(station, t_from, t_to, period)

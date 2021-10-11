@@ -14,16 +14,18 @@ def station(lat, lon):
 # # TODO: include query arg to select only some values
 # def get_everything(station, t_from, t_to, period=60):
 
-def get_correlation(station, t_from, t_to, columns=['T_m', 'n_v_raw'], period=60):
-    token = station+str(period)
+def get_correlation(station, t_from, t_to, columns=['T_m', 'n_v_raw'], period=3600):
+    token = 'mcorr'+"".join(columns)+station+str(period)
     t_from = floor(t_from / period) * period
     t_to = ceil(t_to / period) * period
-    is_done = scheduler.get(token, t_from, t_to)
+    is_done, info = scheduler.get(token, t_from, t_to)
     if is_done == False:
-        return 'busy', None
+        return 'busy', info
     if is_done or not proxy.analyze_integrity(station, t_from, t_to, period, columns):
         return 'ok', proxy.select(station, t_from, t_to, period, columns)
-    scheduler.schedule(token, t_from, t_to, period, corrections.prepare_data, (station, period))
+    scheduler.schedule(token, t_from, t_to, period, [
+        'mass-avg temp', lambda 
+    ])
     return 'accepted', None
 
 from datetime import datetime, timezone
