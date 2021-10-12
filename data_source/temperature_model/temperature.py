@@ -90,8 +90,9 @@ def _fill_all_gaps(progress, missing_intervals, lat, lon):
     delta = timedelta(days=1)
     parser.download_required_files(aligned_intervals, delta, progress) # this operation may take up to 10 minutes
     # log.debug(f"About to fill {len(aligned_intervals)} interval(s)")
-    progress[2] = 'interpolating temperature'
+    progress[2] = 'interp temp model'
     progress[1] = sum([_i_len(i) for i in aligned_intervals])
+    progress[0] = 0
     for i in aligned_intervals:
         try:
             _fill_gap(i, lat, lon, delta)

@@ -61,12 +61,12 @@ def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=Fals
         exec = ThreadPoolExecutor(max_workers=workers) if multiproc else None
         for interval in missing:
             batch = period*page_size
-            prog[1] = interval[1] - interval[0]
             for i_start in range(interval[0], interval[1], batch):
                 i_end = i_start+batch if i_start+batch < interval[1] else interval[1]
+                prog[1] += i_end - i_start
                 def proc(ist, ien):
                     process_fn((ist, ien))
-                    prog[0] +=  i_end - i_start
+                    prog[0] += ien - ist
                 if exec:
                     exec.submit(proc, i_start, i_end)
                 else:

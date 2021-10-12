@@ -26,15 +26,3 @@ def get_correlation(station, t_from, t_to, period=3600):
     mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
     scheduler.do_fill(token, t_from, t_to, period, corrections.get_prepare_tasks(station, period, fill_fn, mq_fn))
     return 'accepted', None
-
-from datetime import datetime, timezone
-import time
-t_strt = datetime(2019, 8, 1).replace(tzinfo=timezone.utc).timestamp()
-t_end = datetime(2021, 10, 1).replace(tzinfo=timezone.utc).timestamp()
-while True:
-    status, data = get_correlation('Moscow', t_strt, t_end, 3600)
-    if status == 'ok':
-        print('done', len(data))
-        break
-    print(status, data)
-    time.sleep(1)
