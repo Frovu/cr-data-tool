@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timezone
 import logging as log
-from data_source.muones.db_proxy import integrity_query
+from core.sql_queries import integrity_query
 import numpy
 import psycopg2
 import psycopg2.extras
@@ -54,7 +54,7 @@ def analyze_integrity(lat, lon, dt_from, dt_to):
         return False
     t_from = dt_from.replace(tzinfo=timezone.utc).timestamp()
     t_to = dt_to.replace(tzinfo=timezone.utc).timestamp()
-    q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), f'p_{int(LEVELS[0])}', epoch=False)
+    q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), f'p_{int(LEVELS[0])}', return_epoch=False)
     with pg_conn.cursor() as cursor:
         cursor.execute(q)
         return cursor.fetchall()

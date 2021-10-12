@@ -1,6 +1,7 @@
 import os
 import psycopg2
 import logging
+from core.sql_queries import integrity_query
 
 def _psql_query(table, period, t_from, t_to, fields):
     interval = f'interval \'{period} seconds\''
