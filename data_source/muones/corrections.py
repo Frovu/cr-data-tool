@@ -6,7 +6,6 @@ import numpy as np
 from scipy import interpolate
 import time
 import re
-import traceback
 from math import floor, ceil
 
 BATCH_SIZE = 4096
