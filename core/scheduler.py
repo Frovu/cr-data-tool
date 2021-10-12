@@ -5,7 +5,7 @@ class Task:
         self.name = name
         self.progress = progress
         if progress:
-            self.prog = [0, 1]
+            self.prog = [0, 0]
             args = (self.prog,) + args
         self.future = executor.submit(func, *args)
 
@@ -16,7 +16,7 @@ class Task:
         return self.future.done()
 
     def get_progress(self):
-        return self.prog[0] / self.prog[1] if self.progress else None
+        return self.prog[0] / (self.prog[1] or 1) if self.progress else None
 
 class Query:
     def __init__(self, executor, tasks=[]):
@@ -34,13 +34,13 @@ class Query:
 
     def status(self):
         if not self.done:
-            self.prog = dict()
+            self.prog = prog = dict()
             for task in self.tasks:
-                prog = 1 if task.done() else task.get_progress() or 0
+                t_prog = 1 if task.done() else task.get_progress() or 0
                 if not prog.get(task.name):
-                    prog[task.name] = [prog, 1]
+                    prog[task.name] = [t_prog, 1]
                 else:
-                    prog[task.name][0] += prog
+                    prog[task.name][0] += t_prog
                     prog[task.name][1] += 1
             for name in prog:
                 prog[name] = round(prog[name][0] / prog[name][1], 2)
@@ -55,7 +55,6 @@ class Query:
 
 class Scheduler:
     def __init__(self, workers=4):
-        self.query_cl = query_cl
         self.queries = dict()
         self.executor = ThreadPoolExecutor(max_workers=workers)
 

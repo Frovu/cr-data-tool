@@ -12,7 +12,7 @@ class IntervalQuery(Query):
         self.t_from = i_start
         self.t_to = i_end
 
-    def subtract_from(intervals, period):
+    def subtract_from(self, intervals, period):
         res = []
         for i in intervals:
             if self.t_from <= i[0]:
@@ -30,7 +30,7 @@ class IntervalQuery(Query):
 
 class SequenceFiller(Scheduler):
     def __init__(self):
-        super().__init__(query_cl=IntervalQuery)
+        super().__init__()
 
     def do_fill(self, token, t_from, t_to, period, tasks):
         key = (token, t_from, t_to)
@@ -46,24 +46,27 @@ class SequenceFiller(Scheduler):
             if not intervals:
                 return
         for task in tasks:
-            args = (, i[0], i[1], period, )
-            fs = [self.executor.submit(fill_fn, *+args)) for i in intervals]
-            self.cache[(token, t_from, t_to)] = fs
+            for i in intervals:
+                fargs = (i[0], i[1], period) + (task[2] or ())
+                targs = (task[1], fargs, task[0])
+                q.submit_tasks([targs])
 
-    def fill_fn(self, t_from, t_to, period, info_id, integrity_fn, process_fn, multiproc=False, page_size=4096):
-        try:
-            missing = integrity_fn(t_from, t_to, period)
-            if multiproc and len(missing) > 1:
-                executor = ProcessPoolExecutor(max_workers=4)
-            for interval in missing:
-                batch = period*page_size
-                for i_start in range(interval[0], interval[1], batch):
-                    i_end = i_start+batch if i_start+batch < interval[1] else interval[1]
-                    if multiproc:
-                        executor.submit(process_fn, i_start, i_end)
-                    else:
-                        process_fn(i_start, i_end)
-            if multiproc:
-                executor.shutdown()
-        except Exception:
-                logging.error(f'Failed seq fill_fn: {traceback.format_exc()}')
+def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=False, page_size=4096):
+    try:
+        missing = integrity_fn((t_from, t_to))
+        if multiproc and len(missing) > 1:
+            executor = ProcessPoolExecutor(max_workers=4)
+        for interval in missing:
+            batch = period*page_size
+            for i_start in range(interval[0], interval[1], batch):
+                i_end = i_start+batch if i_start+batch < interval[1] else interval[1]
+                ln = i_end - i_start
+                proc = lambda i: process_fn((i[0], i[1])); prog[0] += ln
+                if multiproc:
+                    executor.submit(proc, (i_start, i_end))
+                else:
+                    proc((i_start, i_end))
+        if multiproc:
+            executor.shutdown()
+    except Exception:
+            logging.error(f'Failed seq fill_fn: {traceback.format_exc()}')

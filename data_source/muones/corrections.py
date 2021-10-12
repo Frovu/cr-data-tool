@@ -38,13 +38,20 @@ def _calculate_temperatures(lat, lon, t_from, t_to, period):
         delay += .1 if delay < 1 else 0
         time.sleep(delay)
 
-def get_prepare_tasks(t_from, t_to, station, period):
+def get_prepare_tasks(station, period, fill_fn):
         lat, lon = proxy.coordinates(station)
-        _prepare(station, t_from, t_to, period, COLUMNS_TEMP[0],
-            lambda a, b: proxy.upsert(station, period, _calculate_temperatures(lat, lon, a, b, period), COLUMNS_TEMP, True))
-        _prepare(station, t_from, t_to, period, COLUMNS_RAW[0],
-            lambda a, b: proxy.upsert(station, period, parser.obtain(station, period, a, b), COLUMNS_RAW))
-
+        t_fn = (
+            lambda i: proxy.analyze_integrity(station, i[0], i[1], period, COLUMNS_TEMP[0]),
+            lambda i: proxy.upsert(station, period, _calculate_temperatures(lat, lon, i[0], i[1], period), COLUMNS_TEMP, True)
+        )
+        r_fn = (
+            lambda i: proxy.analyze_integrity(station, i[0], i[1], period, COLUMNS_RAW[0]),
+            lambda i: proxy.upsert(station, period, parser.obtain(station, period, i[0], i[1]), COLUMNS_RAW)
+        )
+        return [
+            ('temp mass-avg', fill_fn, (*t_fn, True)),
+            ('raw data', fill_fn, *r_fn)
+        ]
 
 def correct(t_from, t_to, station, period):
     prepare_data(station, t_from, t_to, period)
