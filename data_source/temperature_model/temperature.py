@@ -1,12 +1,12 @@
+from core.scheduler import Scheduler
 import numpy as np
 from scipy import interpolate, ndimage
 from datetime import datetime, timedelta, time
+import data_source.temperature_model.parser as parser
 import data_source.temperature_model.proxy as proxy
 log = proxy.log
-import data_source.temperature_model.parser as parser
-from threading import Thread
 
-_lock = False
+scheduler = Scheduler()
 START_TRIM = datetime(1948, 1, 1)
 
 # transform geographical coords to index coords
@@ -68,6 +68,10 @@ def _split_interval(start, end):
     split.append((cur, end))
     return split
 
+def _i_len(interval):
+    d = interval[1] - interval[0]
+    return d.days*86400 + d.seconds
+
 # intevals time is 1h aligned, we should align it to data (6h)
 def _align_intervals(intervals):
     aligned = []
@@ -81,21 +85,20 @@ def _align_intervals(intervals):
 
 # we should query some additional data on the edges for smooth spline
 # so we will query interval +- 1 day
-def _fill_all_gaps(missing_intervals, lat, lon):
+def _fill_all_gaps(progress, missing_intervals, lat, lon):
     aligned_intervals = _align_intervals(missing_intervals)
     delta = timedelta(days=1)
-    parser.download_required_files(aligned_intervals, delta) # this operation may take up to 10 minutes
-    threads = []
-    log.debug(f"About to fill {len(aligned_intervals)} interval(s)")
+    parser.download_required_files(aligned_intervals, delta, progress) # this operation may take up to 10 minutes
+    # log.debug(f"About to fill {len(aligned_intervals)} interval(s)")
+    progress[2] = 'interpolating temperature'
+    progress[1] = sum([_i_len(i) for i in aligned_intervals])
     for i in aligned_intervals:
         try:
             _fill_gap(i, lat, lon, delta)
+            progress[0] += _i_len(i)
         except Exception as e:
             log.error(f"Failed filling interval: {e}")
-    log.debug("All intervals done")
-    # release lock
-    global _lock
-    _lock = False
+    # log.debug("All intervals done")
 
 def get_stations():
     return proxy.get_stations()
@@ -105,23 +108,22 @@ def get(lat, lon, start_time, end_time, no_response=False):
     lon = round(float(lon), 2)
     if not proxy.get_station(lat, lon):
         return 'unknown', None
+    done, info = scheduler.status((lat, lon))
+    if done == False:
+        return 'busy', info
     if start_time < START_TRIM:
         start_time = START_TRIM
     end_trim = datetime.combine(datetime.now(), time()) - timedelta(days=1, hours=12)
     if end_time > end_trim:
         end_time = end_trim
-    missing_intervals = proxy.analyze_integrity(lat, lon, start_time, end_time)
-    if not missing_intervals or missing_intervals[-1][0].replace(tzinfo=None) >= end_trim - timedelta(days=1):
+    missing_intervals = done or proxy.analyze_integrity(lat, lon, start_time, end_time)
+    if done or (not missing_intervals or missing_intervals[-1][0].replace(tzinfo=None) >= end_trim - timedelta(days=1)):
         return 'ok', None if no_response else proxy.select(lat, lon, start_time, end_time)
-    # data processing required
-    global _lock
-    if _lock:
-        return 'busy', parser.get_download_progress() # server busy
     log.info(f'NCEP: Filling ({lat}, {lon}) from {start_time} to {end_time}')
-    thread = Thread(target=_fill_all_gaps, args=(missing_intervals, lat, lon))
-    _lock = True
-    thread.start()
-    return 'accepted', None # accepted data processing query
+    query = scheduler.query_tasks((lat, lon), [
+        (_fill_all_gaps, (missing_intervals, lat, lon), 'temperature-model', True)
+    ])
+    return 'accepted', query
 
 def get_by_epoch(lat, lon, t_from, t_to, no_response=False):
     dt_from = datetime.utcfromtimestamp(t_from)

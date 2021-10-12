@@ -32,6 +32,10 @@ class SequenceFiller(Scheduler):
     def __init__(self):
         super().__init__()
 
+    def merge_query(self, token, t_from, t_to, q):
+        sq = self.get((token, t_from, t_to))
+        return sq and sq.append_tasks(q.tasks)
+
     def do_fill(self, token, t_from, t_to, period, tasks):
         key = (token, t_from, t_to)
         q = self.query(key, IntervalQuery(self.executor, t_from, t_to))
@@ -51,7 +55,7 @@ class SequenceFiller(Scheduler):
                 targs = (task[1], fargs, task[0], True)
                 q.submit_tasks([targs])
 
-def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=False, workers=64, page_size=3600):
+def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=False, workers=4, page_size=3600):
     try:
         missing = integrity_fn((t_from, t_to))
         exec = ThreadPoolExecutor(max_workers=workers) if multiproc else None

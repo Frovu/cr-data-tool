@@ -6,9 +6,6 @@ from datetime import datetime, timedelta
 from netCDF4 import Dataset, num2date, date2index
 from threading import Thread
 
-download_progress = 0
-download_total = 0
-
 if not os.path.exists('tmp'):
     os.makedirs('tmp')
 
@@ -28,19 +25,17 @@ def _extract_from_file(year, start_time, end_time):
     data.close()
     return time_values, air
 
-def _download(year):
+def _download(year, progress):
     fname = _filename(year)
     ftp = FTP('ftp2.psl.noaa.gov')
     log.debug('FTP login: '+ftp.login())
     log.info(f'Downloading file: {fname}')
     ftp.cwd('Datasets/ncep.reanalysis/pressure')
-    global download_total
-    download_total += ftp.size(fname)
+    progress[1] += ftp.size(fname)
     with open(os.path.join('tmp', fname), 'wb') as file:
         def write(data):
            file.write(data)
-           global download_progress
-           download_progress += len(data)
+           progress[0] += len(data)
         ftp.retrbinary(f'RETR {fname}', write)
     log.info(f'Downloaded file: {fname}')
 
@@ -72,23 +67,20 @@ def _require_years(intervals, delta):
     return required
 
 # concurrently download all files required to fill specified intervals
-def download_required_files(missing_intervals, delta):
+def download_required_files(missing_intervals, delta, progress):
     to_download = _require_years(missing_intervals, delta)
     log.debug(f'About to download: {to_download}')
     threads = []
-    global download_total, download_progress
-    download_progress = 0
-    download_total = 0
+    progress[0] = 0
+    progress[1] = 0
+    progress[2] = 'downloading model'
     for year in to_download: # spawn download/parse threads
-        thread = Thread(target=_download, args=(year,))
+        thread = Thread(target=_download, args=(year, progress))
         thread.start()
         threads.append(thread)
     for t in threads:
         t.join() # wait for all download/parse threads to finish
     download_total = 0 # done
-
-def get_download_progress():
-    return None if download_total == 0 else round(download_progress / download_total, 2)
 
 # Obtains data for interval !! Presumes all files are already downloaded !!
 # @params: date period to get data for (should be 6h aligned!)

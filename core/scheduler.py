@@ -5,7 +5,7 @@ class Task:
         self.name = name
         self.progress = progress
         if progress:
-            self.prog = [0, 0]
+            self.prog = [0, 0, '']
             args = (self.prog,) + args
         self.future = executor.submit(func, *args)
 
@@ -14,6 +14,9 @@ class Task:
 
     def done(self):
         return self.future.done()
+
+    def get_name(self):
+        return (self.progress and self.prog[2]) or self.name
 
     def get_progress(self):
         return self.prog[0] / (self.prog[1] or 1) if self.progress else None
@@ -37,11 +40,12 @@ class Query:
             self.prog = prog = dict()
             for task in self.tasks:
                 t_prog = 1 if task.done() else task.get_progress() or 0
-                if not prog.get(task.name):
-                    prog[task.name] = [t_prog, 1]
+                name = task.get_name()
+                if not prog.get(name):
+                    prog[name] = [t_prog, 1]
                 else:
-                    prog[task.name][0] += t_prog
-                    prog[task.name][1] += 1
+                    prog[name][0] += t_prog
+                    prog[name][1] += 1
             for name in prog:
                 prog[name] = round(prog[name][0] / prog[name][1], 2)
             self.done = True
@@ -62,16 +66,15 @@ class Scheduler:
         return self.queries.get(key)
 
     def status(self, key):
-        q = self.get(key)
-        return q.status() if q else (None, None)
-
-    def get_result(self, key):
         query = self.get(key)
-        if not query or not query.status()[0]:
-            return None
-        res = query.result()
-        del self.queries[key]
-        return res
+        done, info = query.status() if query else (None, None)
+        if done:
+            info = query.result()
+            del self.queries[key]
+        return done, info
+
+    def query_tasks(self, key, tasks):
+        return self.query(key, Query(self.executor, tasks))
 
     def query(self, key, q):
         if self.get(key) is not None:
