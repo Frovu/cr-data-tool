@@ -50,7 +50,7 @@ def get_prepare_tasks(station, period, fill_fn):
         )
         return [
             ('temp mass-avg', fill_fn, (*t_fn, True)),
-            ('raw data', fill_fn, *r_fn)
+            ('raw data', fill_fn, r_fn)
         ]
 
 def correct(t_from, t_to, station, period):

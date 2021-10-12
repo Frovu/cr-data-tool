@@ -1,4 +1,4 @@
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from core.scheduler import Scheduler, Query
 import traceback
 import logging
@@ -37,9 +37,9 @@ class SequenceFiller(Scheduler):
         q = self.query(key, IntervalQuery(self.executor, t_from, t_to))
         if not q: return
         intervals = [(t_from, t_to)]
-        for key in self.queries.keys():
-            if key[0] != token: continue
-            cq = self.get(key)
+        for kk in self.queries.keys():
+            if kk[0] != token or key == kk: continue
+            cq = self.get(kk)
             intervals, dep = cq.subtract_from(intervals, period)
             if dep:
                 q.append_tasks(cq.tasks)
@@ -48,25 +48,26 @@ class SequenceFiller(Scheduler):
         for task in tasks:
             for i in intervals:
                 fargs = (i[0], i[1], period) + (task[2] or ())
-                targs = (task[1], fargs, task[0])
+                targs = (task[1], fargs, task[0], True)
                 q.submit_tasks([targs])
 
-def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=False, page_size=4096):
+def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=False, workers=64, page_size=3600):
     try:
         missing = integrity_fn((t_from, t_to))
-        if multiproc and len(missing) > 1:
-            executor = ProcessPoolExecutor(max_workers=4)
+        exec = ThreadPoolExecutor(max_workers=workers) if multiproc else None
         for interval in missing:
             batch = period*page_size
+            prog[1] = interval[1] - interval[0]
             for i_start in range(interval[0], interval[1], batch):
                 i_end = i_start+batch if i_start+batch < interval[1] else interval[1]
-                ln = i_end - i_start
-                proc = lambda i: process_fn((i[0], i[1])); prog[0] += ln
-                if multiproc:
-                    executor.submit(proc, (i_start, i_end))
+                def proc(ist, ien):
+                    process_fn((ist, ien))
+                    prog[0] +=  i_end - i_start
+                if exec:
+                    exec.submit(proc, i_start, i_end)
                 else:
-                    proc((i_start, i_end))
-        if multiproc:
-            executor.shutdown()
+                    proc(i_start, i_end)
+        if exec:
+            exec.shutdown(wait=True)
     except Exception:
             logging.error(f'Failed seq fill_fn: {traceback.format_exc()}')
