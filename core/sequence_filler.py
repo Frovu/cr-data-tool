@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from core.scheduler import Scheduler, Query
 import traceback
 import logging
+from math import floor, ceil
 
 # TODO: dependency check is performed only by query edges
 # performing per-task check may improve performance.
@@ -57,6 +58,7 @@ class SequenceFiller(Scheduler):
 
 def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=False, workers=4, page_size=3600):
     try:
+        t_from, t_to = period * floor(t_from / period), period * ceil(t_to / period)
         missing = integrity_fn((t_from, t_to))
         exec = ThreadPoolExecutor(max_workers=workers) if multiproc else None
         for interval in missing:
@@ -65,7 +67,10 @@ def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=Fals
                 i_end = i_start+batch if i_start+batch < interval[1] else interval[1]
                 prog[1] += i_end - i_start
                 def proc(ist, ien):
-                    process_fn((ist, ien))
+                    try:
+                        process_fn((ist, ien))
+                    except Exception as e:
+                        logging.error(f'Failed seq process_fn: {traceback.format_exc()}')
                     prog[0] += ien - ist
                 if exec:
                     exec.submit(proc, i_start, i_end)

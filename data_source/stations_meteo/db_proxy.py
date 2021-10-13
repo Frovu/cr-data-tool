@@ -3,6 +3,7 @@ import data_source.temperature_model.proxy as model_proxy
 pg_conn = model_proxy.pg_conn
 import psycopg2.extras
 import numpy
+import logging as log
 
 FIELDS = ['t2', 't_indoors', 'pressure']
 
@@ -13,7 +14,7 @@ def _create_if_not_exists(table):
     with pg_conn.cursor() as cursor:
         query = f'''CREATE TABLE IF NOT EXISTS {table} (
         time TIMESTAMP NOT NULL PRIMARY KEY,
-        integrity INTEGER,
+        integrity SMALLINT,
         {", ".join([f"{f} REAL" for f in FIELDS])})'''
         cursor.execute(query)
         pg_conn.commit()
@@ -51,7 +52,7 @@ def select(station, t_from, t_to, with_model=False):
         rows = cursor.fetchall()
     return rows, fields
 
-def insert(data, columns, station):
+def insert(station, data, columns):
     if not len(data): return
     with pg_conn.cursor() as cursor:
         query = f'''INSERT INTO {_table_name(station)} (integrity,time,{", ".join(columns)}) VALUES %s
@@ -59,3 +60,12 @@ def insert(data, columns, station):
         psycopg2.extras.execute_values (cursor, query, data, template=f'(1,to_timestamp(%s),{",".join(["%s" for f in columns])})')
         pg_conn.commit()
         log.info(f'aws.rmp: {station} <- [{len(data)}] from {data[0][0]}')
+
+def fill_empty(station, t_from, t_to, period):
+    with pg_conn.cursor() as cursor:
+        q = f'''INSERT INTO {_table_name(station)} (time, integrity)
+(SELECT t, 1 FROM generate_series(to_timestamp({t_from}), to_timestamp({t_to}), interval \'{period} s\') t)
+ON CONFLICT (time) DO UPDATE SET integrity = 1'''
+        cursor.execute(q)
+        pg_conn.commit()
+        log.info(f'aws.rmp: {station} <- [hopeless] {t_from}:{t_to}')
