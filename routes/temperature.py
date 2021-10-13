@@ -20,7 +20,7 @@ def get():
     if only == 'model':
         status, data = t_model.get(lat, lon, dt_from, dt_to)
     else:
-        status, data = t_stations.get_with_model(lat, lon, dt_from, dt_to)
+        status, data = t_stations.get_with_model(lat, lon, t_from, t_to)
     body = { "status": status }
     if status != 'ok':
         if status == 'busy' and data:

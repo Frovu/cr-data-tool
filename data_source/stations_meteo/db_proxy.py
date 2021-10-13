@@ -9,10 +9,11 @@ FIELDS = ['t2', 't_indoors', 'pressure']
 def _table_name(station_name):
     return f'local_{station_name}'
 
-def _create_if_not_exists(station_name):
+def _create_if_not_exists(table):
     with pg_conn.cursor() as cursor:
-        query = f'''CREATE TABLE IF NOT EXISTS {_table_name(station_name)} (
+        query = f'''CREATE TABLE IF NOT EXISTS {table} (
         time TIMESTAMP NOT NULL PRIMARY KEY,
+        integrity INTEGER,
         {", ".join([f"{f} REAL" for f in FIELDS])})'''
         cursor.execute(query)
         pg_conn.commit()
@@ -23,17 +24,15 @@ def select_station(lat, lon):
         result = cursor.fetchall()
         return result[0][0] if result else None
 
-# TODO: use complex sql query to return pairs of edges of missing intervals
-def analyze_integrity(station, dt_from, dt_to, period=3600):
-    delta = dt_to - dt_from
-    required_count = delta.days*(86400//period) + delta.seconds//period
-    _create_if_not_exists(station)
+def analyze_integrity(station, t_from, t_to, period=3600):
+    table = _table_name(station)
+    _create_if_not_exists(table)
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT count(*) FROM {_table_name(station)} WHERE time >= %s AND time <= %s', [dt_from, dt_to])
-        count = cursor.fetchall()[0][0]
-        return count >= required_count
+        q = integrity_query(t_from, t_to, period, table, 'integrity')
+        cursor.execute(q)
+        return cursor.fetchall()
 
-def select(station, dt_from, dt_to, with_model=False):
+def select(station, t_from, t_to, with_model=False):
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT lat, lon FROM stations WHERE name = %s', [station])
         lat, lon = cursor.fetchall()[0]
@@ -42,23 +41,21 @@ def select(station, dt_from, dt_to, with_model=False):
         query = f'''SELECT EXTRACT(EPOCH FROM m.time) AS time, l.pressure as p_station, l.t2 as t2,
         {", ".join([f'm.p_{int(l)} AS t_{int(l)}mb' for l in model_proxy.LEVELS])}
         FROM {model_proxy.table_name(lat, lon)} m FULL OUTER JOIN {_table_name(station)} l
-        ON (m.time = l.time) WHERE m.time >= %s AND m.time <= %s ORDER BY m.time'''
+        ON (m.time = l.time) WHERE m.time >= to_timestamp(%s) AND m.time <= to_timestamp(%s) ORDER BY m.time'''
     else:
         fields = ['time'] + FIELDS
         query =  f'''
-        SELECT EXTRACT(EPOCH FROM time), {", ".join(FIELDS)} FROM {_table_name(station)} WHERE time >= %s AND time <= %s ORDER BY time'''
+        SELECT EXTRACT(EPOCH FROM time), {", ".join(FIELDS)} FROM {_table_name(station)} WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY time'''
     with pg_conn.cursor() as cursor:
-        cursor.execute(query, [dt_from, dt_to])
+        cursor.execute(query, [t_from, t_to])
         rows = cursor.fetchall()
-    # for i in range(len(rows)):
-    #     rows[i][0] = rows[i][0].timestamp()
     return rows, fields
 
 def insert(data, columns, station):
     if not len(data): return
-    # _create_if_not_exists(station) # technically useless here since analyze_integrity() is always called beforehand
     with pg_conn.cursor() as cursor:
-        query = f'''INSERT INTO {_table_name(station)} (time, {", ".join(columns)}) VALUES %s
-        ON CONFLICT (time) DO UPDATE SET ({", ".join(FIELDS)}) = ({", ".join([f"EXCLUDED.{f}" for f in FIELDS])})'''
-        psycopg2.extras.execute_values (cursor, query, data, template=None, page_size=100)
+        query = f'''INSERT INTO {_table_name(station)} (integrity,time,{", ".join(columns)}) VALUES %s
+        ON CONFLICT (time) DO UPDATE SET (integrity,{", ".join(columns)}) = (1,{", ".join([f"EXCLUDED.{f}" for f in columns])})'''
+        psycopg2.extras.execute_values (cursor, query, data, template=f'(1,to_timestamp(%s),{",".join(["%s" for f in columns])})')
         pg_conn.commit()
+        log.info(f'aws.rmp: {station} <- [{len(data)}] from {data[0][0]}')

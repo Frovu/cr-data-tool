@@ -1,48 +1,31 @@
 import data_source.temperature_model.temperature as temperature
 import data_source.stations_meteo.db_proxy as proxy
 import data_source.stations_meteo.parser as parser
-from threading import Thread
+from core.sequence_filler import SequenceFiller, fill_fn
 from datetime import datetime, timedelta
 
-_lock = False
+scheduler = SequenceFiller()
 completed_query_chache = dict()
+PERIOD = 3600
 
-# TODO: implement Thread spawn mechanism if needed
-# def get(station, dt_from, dt_to):
-#     pass
-# def get_with_coords(lat, lon, dt_from, dt_to):
-#     station = proxy.select_station(lat, lon)
-#     return None if station is None else get(station, dt_from, dt_to)
-
-def is_hopeless(station, dt_from, dt_to):
-    return completed_query_chache.get((station, dt_from, dt_to))
-
-def fill_worker(station, dt_from, dt_to):
-    ok = parser.fill_interval(station, [dt_from, dt_to], ['t2', 'pressure'])
-    if ok and dt_to < datetime.now() - timedelta(hours=1):
-        completed_query_chache[(station, dt_from, dt_to)] = True
-    global _lock
-    _lock = False
-
-def get_with_model(lat, lon, dt_from, dt_to):
+def get_with_model(lat, lon, t_from, t_to):
+    lat = round(float(lat), 2)
+    lon = round(float(lon), 2)
+    token = (lat, lon)
+    is_done, info = scheduler.status((token, t_from, t_to))
+    if is_done == False:
+        return 'busy', info
+    dt_from = datetime.utcfromtimestamp(t_from)
+    dt_to = datetime.utcfromtimestamp(t_to)
+    station = proxy.select_station(lat, lon)
+    if not parser.supported(station):
+        return temperature.get(lat, lon, dt_from, dt_to)
     model_status, model_p = temperature.get(lat, lon, dt_from, dt_to, True)
     if model_status ==  'unknown':
-        return model_status, model_p
-    station = proxy.select_station(lat, lon)
-    local_ready = not parser.supported(station) or proxy.analyze_integrity(station, dt_from, dt_to)
-    if local_ready or is_hopeless(station, dt_from, dt_to):
-        if model_status != 'ok':
-            return model_status, model_p
-        elif not parser.supported(station):
-            return temperature.get(lat, lon, dt_from, dt_to)
-        return 'ok', proxy.select(station, dt_from, dt_to, True)
-    else:
-        global _lock
-        if _lock: return 'busy', parser.get_progress()
-        thread = Thread(target=fill_worker, args=(station, dt_from, dt_to))
-        _lock = True
-        thread.start()
-        if model_status == 'ok':
-            return 'accepted', None
-        else:
-            return model_status, model_p
+        return model_status, model_r
+    if model_status == 'ok' and not proxy.analyze_integrity(station, t_from, t_to):
+        return 'ok', proxy.select(station, t_from, t_to, True)
+    scheduler.do_fill(token, t_from, t_to, PERIOD, parser.get_tasks(station, PERIOD, fill_fn))
+    if model_status == 'accepted':
+        scheduler.merge_query(token, t_from, t_to, model_r)
+    return 'accepted', None
