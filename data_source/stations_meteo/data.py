@@ -5,7 +5,7 @@ from core.sequence_filler import SequenceFiller, fill_fn
 from datetime import datetime
 from math import floor, ceil
 
-scheduler = SequenceFiller()
+scheduler = SequenceFiller(ttl=15)
 completed_query_chache = dict()
 PERIOD = 3600
 
@@ -16,7 +16,7 @@ def get_with_model(lat, lon, t_from, t_to, period=PERIOD):
     t_from, t_to = period * floor(t_from / period), period * ceil(t_to / period)
     is_done, info = scheduler.status((token, t_from, t_to))
     if is_done == False:
-        return 'busy', info
+        return 'failed' if info.get('failed') else 'busy', info
     dt_from = datetime.utcfromtimestamp(t_from)
     dt_to = datetime.utcfromtimestamp(t_to)
     station = proxy.select_station(lat, lon)

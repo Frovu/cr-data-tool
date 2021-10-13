@@ -6,7 +6,7 @@ import data_source.temperature_model.parser as parser
 import data_source.temperature_model.proxy as proxy
 log = proxy.log
 
-scheduler = Scheduler()
+scheduler = Scheduler(ttl=300)
 START_TRIM = datetime(1948, 1, 1)
 
 # transform geographical coords to index coords
@@ -111,7 +111,7 @@ def get(lat, lon, start_time, end_time, no_response=False):
         return 'unknown', None
     done, info = scheduler.status((lat, lon))
     if done == False:
-        return 'busy', info
+        return 'failed' if info.get('failed') else 'busy', info
     if start_time < START_TRIM:
         start_time = START_TRIM
     end_trim = datetime.combine(datetime.now(), time()) - timedelta(days=1, hours=12)

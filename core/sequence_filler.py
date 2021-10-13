@@ -29,8 +29,8 @@ class IntervalQuery(Query):
         return res, int != res
 
 class SequenceFiller(Scheduler):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, ttl=60):
+        super().__init__(ttl=ttl)
 
     def merge_query(self, token, t_from, t_to, q):
         sq = self.get((token, t_from, t_to))
@@ -71,9 +71,9 @@ def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=Fals
                         if not abort:
                             process_fn((ist, ien))
                     except Exception as e:
-                        if e.args and e.args[0].startswith('abort'):
-                            abort = True
-                        else:
+                        abort = True
+                        prog[3] = str(e)
+                        if not e.args or not e.args[0].startswith('abort'):
                             logging.error(f'Failed seq process_fn: {traceback.format_exc()}')
                     prog[0] += ien - ist
                 if exec:

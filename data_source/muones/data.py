@@ -20,7 +20,7 @@ def get_correlation(station, t_from, t_to, period=3600):
     t_to = ceil(t_to / period) * period
     is_done, info = scheduler.status((token, t_from, t_to))
     if is_done == False:
-        return 'busy', info
+        return 'failed' if info.get('failed') else 'busy', info
     if is_done or not proxy.analyze_integrity(station, t_from, t_to, period, ['T_m', 'raw_acc_cnt']):
         return 'ok', proxy.select(station, t_from, t_to, period, ['T_m', 'n_v_raw'])
     mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
