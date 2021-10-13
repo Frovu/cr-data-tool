@@ -26,9 +26,7 @@ def _query_aws_rmp(index, t_from, t_to):
     return json.loads(r.text.encode().decode('utf-8-sig'))
 
 # TODO: introduce spline interpolation for proper alignment if accuracy required
-def _align_to_period(datasets, period):
-    t_from = datasets[next(iter(datasets))][0][0]
-    t_to = 0
+def _align_to_period(datasets, t_from, t_to, period):
     for ser in datasets:
         if datasets[ser][0][0] < t_from:
             t_from = datasets[ser][0][0]
@@ -87,7 +85,7 @@ def _obtain_rmp_interval(station, t_from, t_to, query, period, hopeless=True):
             elif 'pressure' in query and 'BARO-1/MD-20Д' == sensor:
                 data['pressure'] = (entry.get('time', []), value)
         if len(data.keys()) > 0:
-            aligned = _align_to_period(data, period)
+            aligned = _align_to_period(data, t_from, t_to, period)
             proxy.insert(station, aligned, list(data.keys()))
         elif hopeless:
             proxy.fill_empty(station, t_from, t_to, period)
