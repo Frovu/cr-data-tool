@@ -67,7 +67,7 @@ def select(station, t_from, t_to, period, columns=FIELDS, include_time=True):
         q = f'''SELECT {"EXTRACT(EPOCH FROM time)," if include_time else ""}{",".join(columns)}
             FROM {_table_name(station, period)} WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s)'''
         cursor.execute(q, [t_from, t_to])
-        return cursor.fetchall()
+        return cursor.fetchall(), ['time']+columns
 
 def upsert(station, period, data, columns, epoch=False):
     if not len(data): return

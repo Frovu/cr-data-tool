@@ -57,6 +57,7 @@ class SequenceFiller(Scheduler):
 
 def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=False, workers=4, page_size=3600):
     try:
+        abort = False
         missing = integrity_fn((t_from, t_to))
         exec = ThreadPoolExecutor(max_workers=workers) if multiproc else None
         for interval in missing:
@@ -65,10 +66,15 @@ def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=Fals
                 i_end = i_start+batch if i_start+batch < interval[1] else interval[1]
                 prog[1] += i_end - i_start
                 def proc(ist, ien):
+                    nonlocal abort
                     try:
-                        process_fn((ist, ien))
+                        if not abort:
+                            process_fn((ist, ien))
                     except Exception as e:
-                        logging.error(f'Failed seq process_fn: {traceback.format_exc()}')
+                        if e.args and e.args[0].startswith('abort'):
+                            abort = True
+                        else:
+                            logging.error(f'Failed seq process_fn: {traceback.format_exc()}')
                     prog[0] += ien - ist
                 if exec:
                     exec.submit(proc, i_start, i_end)

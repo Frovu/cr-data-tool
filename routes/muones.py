@@ -6,18 +6,12 @@ import traceback
 
 bp = Blueprint('muones', __name__, url_prefix='/api/muones')
 
-@bp.route('/')
+@bp.route('/raw')
 def get():
     try:
         t_from = int(request.args.get('from', ''))
         t_to = int(request.args.get('to', ''))
         station = request.args.get('station', '')
-        if not station:
-            lat = float(request.args.get('lat', ''))
-            lon = float(request.args.get('lon', ''))
-            station = muones.station(lat, lon)
-            if not station:
-                return {}, 404
     except ValueError:
         return {}, 400
     try:

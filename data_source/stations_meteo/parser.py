@@ -15,11 +15,11 @@ AWS_RMP_IDX = {
 
 def _query_aws_rmp(index, t_from, t_to):
     try:
-        r = requests.post('http://213.171.38.44:27416/aws.rmp/users/php/getSOAPMeteo.php', data = {
+        r = requests.post('http://213.171.38.44:27416/aws.rmp/users/php/getSOAPMeteo.php', data={
             'index': index,
             'dtFrom': t_from,
             'dtTo': t_to
-        })
+        }, timeout=30)
     except:
         return None
     if r.status_code != 200: return None
@@ -69,7 +69,7 @@ def _obtain_rmp_interval(station, t_from, t_to, query, period, hopeless=True):
         raw_data = _query_aws_rmp(AWS_RMP_IDX[station], t_from, t_to)
         if raw_data is None:
             log.error(f'Failed to obtain, aborting aws.rmp: {station} {t_from}:{t_to}');
-            return None
+            raise Exception('abort aws.rmp')
         data = dict()
         for entry in raw_data:
             if not (type(entry) is dict):
@@ -96,7 +96,7 @@ def get_tasks(station, period, fill_fn, query=['t2', 'pressure']):
         def proc_fn(i):
             _obtain_rmp_interval(station, *i, query, period)
     assert proc_fn
-    return [('local meteo', fill_fn, (intg_fn, proc_fn, True, 2, AWS_RMP_THRESHOLD//period))]
+    return [('local meteo', fill_fn, (intg_fn, proc_fn, True, 4, AWS_RMP_THRESHOLD//period))]
 
 def supported(station):
     return station in ['Moscow']
