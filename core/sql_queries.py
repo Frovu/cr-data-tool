@@ -2,7 +2,7 @@
 def integrity_query(t_from, t_to, period, table, test_column, time_column='time', return_epoch=True):
     return f'''WITH RECURSIVE
 input (t_from, t_to, t_interval) AS (
-    VALUES (to_timestamp({t_from}), to_timestamp({t_to}), interval \'{period} seconds\')
+    VALUES (to_timestamp({t_from}), to_timestamp({t_to}), interval \'{period} s\')
 ), filled AS (
     SELECT
         ser.tm as time, {test_column}
@@ -27,4 +27,4 @@ input (t_from, t_to, t_interval) AS (
         WHERE gap_end < t_to
     ) r, input )
 SELECT {", ".join([f"EXTRACT(EPOCH FROM {f})::integer" if return_epoch else f for f in ["gap_start", "gap_end"]])}
-FROM rec WHERE gap_end >= gap_start;'''
+FROM rec WHERE gap_end - gap_start > interval \'{period} s\' OR (gap_end = gap_start AND EXTRACT(EPOCH FROM gap_end)::integer%{period}=0);'''
