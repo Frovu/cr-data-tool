@@ -28,7 +28,7 @@ def get_correlation(station, t_from, t_to, period=3600):
     scheduler.do_fill(token, t_from, t_to, period, corrections.get_prepare_tasks(station, period, fill_fn, mq_fn))
     return 'accepted', None
 
-def get_raw(station, t_from, t_to):
+def get_raw(station, t_from, t_to, period=3600):
     if station not in ['Moscow']:
         return 'unknown', None
-    return 'ok', parser.obtain_raw(station, t_from, t_to)
+    return 'ok', parser.obtain_raw(station, t_from, t_to, period)

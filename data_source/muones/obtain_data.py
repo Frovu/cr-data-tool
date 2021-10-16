@@ -7,11 +7,11 @@ FIELDS = {
     'Moscow': ['date_reg', 'c1', 'c2', 'n_v', 'pressure', 'temperature', 'temperature_ext', 'voltage']
 }
 
-def _psql_query(table, period, t_from, t_to, fields):
+def _psql_query(table, period, t_from, t_to, fields, epoch=False, count=True):
     interval = f'interval \'{period} seconds\''
     return f'''WITH periods AS
 (SELECT generate_series(to_timestamp({t_from}), to_timestamp({t_to}), {interval}) period)
-SELECT period AS time, COUNT(*), {', '.join([f'ROUND(AVG({f})::numeric, 2)' for f in fields[1:]])}
+SELECT {'EXTRACT(EPOCH FROM period)::integer' if epoch else 'period'} AS time,{'COUNT(*),'if count else ''}{', '.join([f'ROUND(AVG({f})::numeric, 2)::real as {f}' for f in fields[1:]])}
 FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < period + {interval} AND dev=0)
 GROUP BY period ORDER BY period
 '''
@@ -29,13 +29,15 @@ def obtain(station, period, t_from, t_to):
                 resp = cursor.fetchall()
                 return resp
 
-def obtain_raw(station, t_from, t_to):
+def obtain_raw(station, t_from, t_to, period):
     if station == 'Moscow':
         with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
             user = os.environ.get('MUON_MSK_USER'),
             password = os.environ.get('MUON_MSK_PASS'),
             host = os.environ.get('MUON_MSK_HOST')) as conn:
             with conn.cursor() as cursor:
-                q = f'SELECT EXTRACT(EPOCH FROM {FIELDS["Moscow"][0]}) as time,{",".join(FIELDS["Moscow"][1:])} FROM data WHERE date_reg >= to_timestamp(%s) AND date_reg < to_timestamp(%s) ORDER BY date_reg'
+                q = _psql_query('data', period, t_from, t_to, FIELDS["Moscow"], epoch=True, count=False)
+                print(123)
                 cursor.execute(q, [t_from, t_to])
+                print(321)
                 return cursor.fetchall(), [desc[0] for desc in cursor.description]

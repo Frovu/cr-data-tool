@@ -11,8 +11,11 @@ def raw():
     try:
         t_from = int(request.args.get('from', ''))
         t_to = int(request.args.get('to', ''))
+        period = int(request.args.get('period')) if request.args.get('period') else 3600
         station = request.args.get('station', '')
-        status, data = muones.get_raw(station, t_from, t_to)
+        if period not in [60, 3600]:
+            raise ValueError()
+        status, data = muones.get_raw(station, t_from, t_to, period)
         body = { "status": status }
         if status == 'ok':
             body["fields"] = data[1]

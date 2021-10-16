@@ -54,7 +54,8 @@ const URL = 'api/muones/raw';
 const params = util.storage.getObject('muonesRaw-params') || {
 	from: Math.floor(Date.now()/1000) - 86400*10 - 86400*7,
 	to: Math.floor(Date.now()/1000) - 86400*10,
-	station: 'Moscow'
+	station: 'Moscow',
+	period: 60
 };
 let data;
 
@@ -100,7 +101,12 @@ export function initTabs() {
 Get raw data of local muones telescope.<br>
 Only supported for: ${SUPPORTED}`)
 	]);
+	const periods = ['1 hour', '1 minute'];
 	tabs.fill('query', [
+		tabs.input('switch', per => {
+			params.period = per.includes('minute') ? 60 : 3600;
+			query.params(params);
+		}, { options: params.period===60?periods.reverse():periods, text: 'period: ' }),
 		tabs.input('station-only', (station) => {
 			params.station = station;
 			plotInit();

@@ -2,6 +2,8 @@
 export function fill(tab, items) {
 	const el = document.getElementById(`${tab}-tab`);
 	el.append(...items);
+	const button = document.getElementById(`${tab}-btn`);
+	button.disabled = false;
 }
 
 export function text(html) {

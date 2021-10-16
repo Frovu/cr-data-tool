@@ -75,9 +75,13 @@ button.submit.ongoing {
 
 .switch-input {
 	margin-top: 2px;
+	margin-bottom: 2px;
 	padding: 1px !important;
 	width: 50%;
 	max-height: 48px;
+}
+.switch-input:hover {
+	background-color: cyan;
 }
 
 .time-input {
