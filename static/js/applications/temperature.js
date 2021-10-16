@@ -1,6 +1,8 @@
-import * as plot from '../plot.js';
 import * as tabs from '../tabsUtil.js';
+import * as util from '../util.js';
+import * as plot from '../plot.js';
 
+const URL = 'api/temperature';
 const LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10];
 const COLUMNS = ['t2'].concat(LEVELS.map(l => `t_${l.toFixed(0)}mb`));
 const DEFAULT_DELTA = 86400*60; // 86400*365
@@ -12,76 +14,8 @@ const params = {
 };
 let data;
 let activeSeries = [0, 1, 2];
-// activeSeries = LEVELS.map((a,i)=>i)
-let fetchOngoing = false;
-let dataFetch;
-let queryBtn;
 const unitOptions = ['K', '°C'];
 let temperatureUnit = 'K';
-let settingsChangedDuringFetch;
-// let progress;
-
-export function encodeParams(obj) {
-	const keys = Object.keys(obj);
-	return keys.length ? '?' + keys.map(k => `${k}=${obj[k]}`).join('&') : '';
-}
-
-async function tryFetch(param, status) {
-	const resp = await fetch(`api/temperature/${encodeParams(param)}`).catch(()=>{});
-	if (resp && resp.status === 200) {
-		const body = await resp.json().catch(()=>{});
-		console.log('resp:', body);
-		if (body.status === 'ok') {
-			status.innerHTML = 'Done!';
-			return body;
-		} else if (body.status === 'busy') {
-			status.innerHTML = body.download ? `Downloading: ${(100*body.download).toFixed(0)} %` : 'Calculating...';
-		// } else if (body.status === 'unknown') {
-		} else if (body.status === 'accepted') {
-			status.innerHTML = 'Accepted';
-		} else {
-			status.innerHTML = 'Error..';
-		}
-	} else {
-		console.log('request failed', resp && resp.status);
-	}
-}
-
-function startFetch(param, status) {
-	return new Promise(resolve => {
-		tryFetch(param, status).then(ok => {
-			if (!ok) {
-				dataFetch = setInterval(() => {
-					tryFetch(param, status).then(okk => {
-						if (okk) {
-							resolve(okk);
-							clearInterval(dataFetch);
-							dataFetch = null;
-						}
-					});
-				}, 2000);
-			} else {
-				resolve(ok);
-			}
-		});
-	});
-}
-
-export function stopFetch() {
-	if (dataFetch) {
-		clearInterval(dataFetch);
-		dataFetch = null;
-	}
-}
-
-export function settingsChanged(status=queryBtn) {
-	if (!fetchOngoing) {
-		status.classList.add('active');
-		status.innerHTML = 'Query data';
-	} else {
-		settingsChangedDuringFetch = true;
-	}
-}
 
 function receiveData(resp) {
 	const rows = resp.data, len = resp.data.length;
@@ -133,26 +67,6 @@ function plotData(resetScales=true) {
 	}
 }
 
-export async function fetchData(param=params, receiver=receiveData, status=queryBtn) {
-	if (!fetchOngoing) {
-		status.classList.add('ongoing');
-		status.innerHTML = 'Query...';
-		status.classList.remove('active');
-		fetchOngoing = true;
-		settingsChangedDuringFetch = false;
-		const data = await startFetch(param, status);
-		if (data) receiver(data);
-		fetchOngoing = false;
-		status.classList.remove('ongoing');
-		if (settingsChangedDuringFetch) {
-			setInterval(() => {
-				status.classList.add('active');
-				status.innerHTML = 'Query data';
-			}, 300);
-		}
-	}
-}
-
 function viewSeries(idx, show) {
 	if (show) {
 		if (activeSeries.includes(idx)) return;
@@ -165,13 +79,16 @@ function viewSeries(idx, show) {
 }
 
 export async function fetchStations() {
-	const resp = await fetch('api/temperature/stations').catch(()=>{});
+	const resp = await fetch(`${URL}/stations`).catch(()=>{});
 	if (!resp || resp.status !== 200) return null;
 	return (await resp.json()).list;
 }
 
+const query = util.constructQueryManager(URL, {
+	data: receiveData
+});
+
 export function initTabs() {
-	queryBtn = tabs.input('query', ()=>fetchData());
 	const fillSpaces = s => s + Array(11).fill('&nbsp;').slice(s.length).join('');
 	const viewSelectors = COLUMNS.map((col, i) => {
 		const div = document.createElement('div');
@@ -208,17 +125,14 @@ When query parameters are changed, the button becomes highlighted.`)
 				tabs.input('station', (lat, lon) => {
 					params.lat = lat;
 					params.lon = lon;
-					settingsChanged();
+					query.params(params);
 				}, { text: 'in', list: ss, lat: params.lat, lon: params.lon }),
 			tabs.input('time', (from, to, force) => {
 				params.from = from;
 				params.to = to;
-				if (force)
-					fetchData();
-				else
-					settingsChanged();
+				query.params(params, force);
 			}, { from: params.from, to: params.to }),
-			queryBtn
+			query.buttonEl
 		]);
 	});
 	tabs.fill('view', viewSelectors);
@@ -228,9 +142,10 @@ When query parameters are changed, the button becomes highlighted.`)
 
 export function load() {
 	plotInit();
-	fetchData();
+	query.fetch(params);
 }
 
 export function unload() {
-	stopFetch();
+	if (query)
+		query.stop();
 }

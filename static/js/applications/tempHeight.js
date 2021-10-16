@@ -1,19 +1,23 @@
-import * as plot from '../plot.js';
 import * as tabs from '../tabsUtil.js';
+import * as util from '../util.js';
+import * as plot from '../plot.js';
 import * as temp from './temperature.js';
 
+const URL = 'api/temperature';
 const LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10].reverse();
-const params = {
-	date: Math.floor(Date.now()/1000) - 86400*10,
+const params = util.storage.getObject('tempHeight-params') || {
+	only: 'model',
 	lat: 55.47,
-	lon: 37.32
+	lon: 37.32,
+	from: Math.floor(Date.now()/1000) - 86400*10
 };
+params.to = params.from + 3600;
 let temperatureUnit = 'K';
 let data;
-let queryBtn;
 
 function receiveData(resp) {
 	const row = resp.data[0];
+	if (!row) return console.error('empty response');
 	data = [];
 	LEVELS.forEach(lvl => {
 		data.push(row[resp.fields.indexOf(`t_${lvl.toFixed(0)}mb`)]);
@@ -55,14 +59,12 @@ function plotInit() {
 	if (data) plot.data([LEVELS, data]);
 }
 
-function fetchData() {
-	params.from = params.date;
-	params.to = params.from + 3600;
-	temp.fetchData(params, receiveData, queryBtn);
-}
+const query = util.constructQueryManager(URL, {
+	data: receiveData,
+	params: p => util.storage.setObject('tempHeight-params', p)
+});
 
 export function initTabs() {
-	queryBtn = tabs.input('query', ()=>fetchData());
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
 Build atmospheric temperature lapse curve using <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> data.<br>
@@ -74,16 +76,14 @@ Refer to "Temperature" app for more details`)
 				tabs.input('station', (lat, lon) => {
 					params.lat = lat;
 					params.lon = lon;
-					temp.settingsChanged(queryBtn);
+					query.params(params);
 				}, { text: 'in', list: ss, lat: params.lat, lon: params.lon }),
 			tabs.input('timestamp', (date, force) => {
-				params.date = Math.floor(date.getTime() / 1000);
-				if (force)
-					fetchData(params, receiveData, queryBtn);
-				else
-					temp.settingsChanged(queryBtn);
-			}, { value: new Date(params.date*1000) }),
-			queryBtn
+				params.from = date;
+				params.to = params.from + 3600;
+				query.params(params, force);
+			}, { value: params.from }),
+			query.buttonEl
 		]);
 	});
 	tabs.fill('view', [
@@ -98,9 +98,10 @@ Refer to "Temperature" app for more details`)
 
 export function load() {
 	plotInit();
-	fetchData();
+	query.fetch(params);
 }
 
 export function unload() {
-	temp.stopFetch();
+	if (query)
+		query.stop();
 }

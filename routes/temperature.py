@@ -5,7 +5,7 @@ from datetime import datetime
 
 bp = Blueprint('temperature', __name__, url_prefix='/api/temperature')
 
-@bp.route('/')
+@bp.route('')
 def get():
     try:
         t_from = int(request.args.get('from', ''))

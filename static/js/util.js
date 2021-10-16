@@ -48,11 +48,13 @@ export function constructQueryManager(url, callbacks) {
 			}
 		} else {
 			console.log('request failed', resp && resp.status);
+			el.innerHTML = 'Failed';
+			return null;
 		}
 	};
 	const initFetch = async (p) => {
 		if (p) params = p;
-		if (!fetchOngoing && p) {
+		if (!fetchOngoing && params) {
 			el.classList.add('ongoing');
 			el.innerHTML = 'Query...';
 			el.classList.remove('active');
@@ -61,7 +63,7 @@ export function constructQueryManager(url, callbacks) {
 			const data = await fetchOnce() || await new Promise(resolve => {
 				fetchInterval = setInterval(() => {
 					fetchOnce().then(ok => {
-						if (!ok) return;
+						if (typeof ok === 'undefined') return;
 						resolve(ok);
 						clearInterval(fetchInterval);
 						fetchInterval = null;
@@ -79,9 +81,13 @@ export function constructQueryManager(url, callbacks) {
 			}
 		}
 	};
-	el.addEventListener('click', initFetch);
+	el.addEventListener('click', () => initFetch());
 	return {
-		params: p => {
+		params: (p, force) => {
+			if (force) {
+				params = p;
+				return initFetch(p);
+			}
 			if (params && Object.keys(p).every(k => params[k] === p[k])) {
 				params = p;
 				if (!fetchOngoing) {
