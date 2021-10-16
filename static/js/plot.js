@@ -21,7 +21,7 @@ function prepareSeries(series) {
 		return Object.assign(s, {
 			stroke: s.color,
 			paths: s.paths && uPlot.paths[s.paths](),
-			value: (u, v) => v == null ? '-' : (s.transform?s.transform(v):v).toFixed(s.precision||0) + ' ' + s.scale,
+			value: (u, v) => v == null ? '-' : (s.transform?s.transform(v):v).toFixed(s.precision||0) + (s.nounit ? '' : ' '+s.scale),
 		});
 	});
 }
@@ -29,7 +29,7 @@ function prepareSeries(series) {
 function prepareAxes(axes) {
 	return axes.map(a => {
 		return Object.assign(a, {
-			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + ' ' + a.scale)
+			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + (a.nounit ? '' : ' '+a.scale))
 		});
 	});
 }
@@ -49,35 +49,6 @@ export function init(axes, time=true, scales, series) {
 			points: { size: 6, fill: (self, i) => self.series[i]._stroke }
 		}
 	}, null, parentEl);
-	// uplot = new uPlot({
-	// 	...getPlotSize(),
-	// 	// tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
-	// 	// series: [{label: 'x', sorted: 1}, {label: 'y', stroke: 'red'}],
-	// 	series: prepareSeries(series),
-	// 	axes: [
-	// 		{ scale: 'mb', side: 3},
-	// 		{ scale: 'K', side: 2}
-	// 	],
-	// 	scales: {
-	// 		mb: {
-	// 			time: false,
-	// 			dir: -1,
-	// 			ori: 1
-	// 		},
-	// 		K: {
-	// 			dir: 1,
-	// 			ori: 0
-	// 		}
-	// 	},
-	// 	// scales: {x: {time: false, ori: 1}},
-	// 	cursor: {
-	// 		drag: { dist: 12 },
-	// 		points: { size: 6, fill: (self, i) => self.series[i]._stroke }
-	// 	}
-	// }, [
-	// 	[1,2,3,4,5,6,7,8],
-	// 	[4,2,3,5,6,7,10,9]
-	// ], parentEl);
 }
 
 export function data(data, reset=true) {

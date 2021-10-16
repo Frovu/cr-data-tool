@@ -2,40 +2,96 @@ import * as tabs from '../tabsUtil.js';
 import * as util from '../util.js';
 import * as plot from '../plot.js';
 
-const SUPPORTED = [ 'Moscow' ];
-const URL_BASE = 'api/muones/';
-const params = util.getObject('muonesRaw-params') || {
-	from: Math.floor(Date.now()/1000) - 86400*10 - 86400*60,
+const FIELDS = {
+	Moscow: {
+		time: 'time',
+		c1: {
+			label: 'c1',
+			scale: 'nd',
+			color: 'rgba(255,200,100,1)',
+			nounit: true
+		},
+		c2: {
+			label: 'c1',
+			scale: 'nd',
+			color: 'rgba(255,150,100,1)',
+			nounit: true
+		},
+		n_v: {
+			label: 'n_v',
+			scale: 'n',
+			color: 'rgba(255,0,0,1)',
+			nounit: true
+		},
+		pressure: {
+			label: 'p',
+			scale: 'mb',
+			color: 'rgba(200,0,255,1)',
+			precision: 1
+		},
+		temperature: {
+			label: 't',
+			scale: '°C',
+			color: 'rgba(100,255,100,1)',
+			precision: 1
+		},
+		temperature_ext: {
+			label: 't_ext',
+			scale: '°C',
+			color: 'rgba(150,255,150,1)',
+			precision: 1
+		},
+		voltage: {
+			label: 'v',
+			scale: 'v',
+			color: 'rgba(50,0,50,1)',
+			precision: 2
+		},
+	}
+};
+const SUPPORTED = Object.keys(FIELDS);
+const URL = 'api/muones/raw';
+const params = util.storage.getObject('muonesRaw-params') || {
+	from: Math.floor(Date.now()/1000) - 86400*10 - 86400*7,
 	to: Math.floor(Date.now()/1000) - 86400*10,
 	station: 'Moscow'
 };
 let data;
 
 function receiveData(resp) {
-	const row = resp.data[0];
-	data = [];
-	LEVELS.forEach(lvl => {
-		data.push(row[resp.fields.indexOf(`t_${lvl.toFixed(0)}mb`)]);
+	const rows = resp.data, len = resp.data.length;
+	const fields = Object.keys(FIELDS[params.station]);
+	const idx = Array(fields.length);
+	resp.fields.forEach((field, i) => {
+		const index = fields.indexOf(field);
+		if (index >= 0)
+			idx[index] = i;
 	});
-	plot.data([LEVELS, data]);
+	data = fields.map(() => Array(len));
+	for (let i = 0; i < len; ++i) {
+		for (let j = 0; j < fields.length; ++j) {
+			data[j][i] = rows[i][idx[j]];
+		}
+	}
+	plot.data(data);
 }
 
 function plotInit() {
-	const series = activeSeries.map(col => {return {
-		scale: temperatureUnit,
-		label: COLUMNS[col],
-		color: color(col),
-		precision: 1,
-		transform
-	};});
-	if (full) {
-		const axes = [{ scale: temperatureUnit, transform }];
-		plot.init(axes);
-	}
-	if (data) plot.data([LEVELS, data]);
+	const series = Object.values(FIELDS[params.station]).filter(f => f !== 'time');
+	const axes = [
+		{ scale: 'n' , nounit: true },
+		{ scale: 'mb', side: 1, size: 70 },
+		{ scale: 'nd', nounit: true, show: false },
+		{ scale: '°C', show: false },
+		{ scale: 'v', show: false  }
+	];
+	plot.init(axes);
+	plot.series(series);
+	if (data) plot.data(data);
 }
-const query = util.constructQueryManager(URL_BASE, {
-	dataCallback: receive
+const query = util.constructQueryManager(URL, {
+	data: receiveData,
+	params: p => util.storage.setObject('muonesRaw-params', p)
 });
 
 export function initTabs() {
@@ -47,8 +103,9 @@ Only supported for: ${SUPPORTED}`)
 	tabs.fill('query', [
 		tabs.input('station-only', (station) => {
 			params.station = station;
+			plotInit();
 			query.params(params);
-		}, { text: 'station: ', list: SUPPORTED }),
+		}, { text: 'station:', list: SUPPORTED }),
 		tabs.input('time', (from, to, force) => {
 			params.from = from;
 			params.to = to;
@@ -70,5 +127,5 @@ export function load() {
 
 export function unload() {
 	if (query)
-		query.stopFetch();
+		query.stop();
 }
