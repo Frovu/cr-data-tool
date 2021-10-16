@@ -37,7 +37,5 @@ def obtain_raw(station, t_from, t_to, period):
             host = os.environ.get('MUON_MSK_HOST')) as conn:
             with conn.cursor() as cursor:
                 q = _psql_query('data', period, t_from, t_to, FIELDS["Moscow"], epoch=True, count=False)
-                print(123)
                 cursor.execute(q, [t_from, t_to])
-                print(321)
                 return cursor.fetchall(), [desc[0] for desc in cursor.description]
