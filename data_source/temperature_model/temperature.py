@@ -6,7 +6,7 @@ import data_source.temperature_model.parser as parser
 import data_source.temperature_model.proxy as proxy
 log = proxy.log
 
-scheduler = Scheduler(ttl=300)
+scheduler = Scheduler(ttl=0)
 START_TRIM = datetime(1948, 1, 1)
 
 # transform geographical coords to index coords
