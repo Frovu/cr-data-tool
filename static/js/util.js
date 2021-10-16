@@ -24,7 +24,7 @@ function encodeParams(obj) {
 }
 
 export function constructQueryManager(url, callbacks) {
-	let params, fetchInterval, fetchOngoing, paramsChanged;
+	let params, fetchParams, fetchInterval, fetchOngoing, paramsChanged;
 	const el = document.createElement('button');
 	el.classList.add('submit');
 	el.innerHTML = 'Query data';
@@ -52,8 +52,11 @@ export function constructQueryManager(url, callbacks) {
 		}
 	};
 	const initFetch = async (p) => {
-		if (p) params = Object.assign({}, p);
+		if (p)
+			params = p;
 		if (!fetchOngoing && params) {
+			fetchParams = Object.assign({}, params);
+			if (callbacks.params) callbacks.params(params);
 			el.classList.add('ongoing');
 			el.innerHTML = 'Query...';
 			el.classList.remove('active');
@@ -83,17 +86,19 @@ export function constructQueryManager(url, callbacks) {
 	el.addEventListener('click', () => initFetch());
 	return {
 		params: (p, force) => {
-			if (params && !Object.keys(p).every(k => params[k] === p[k])) {
-				Object.assign(params, p);
-				if (callbacks.params) callbacks.params(p);
+			params = p;
+			if (!fetchParams || !Object.keys(p).every(k => fetchParams[k] === p[k])) {
 				if (force)
-					return initFetch();
+					return initFetch(p);
 				if (!fetchOngoing) {
 					el.classList.add('active');
 					el.innerHTML = 'Query data';
 				} else {
 					paramsChanged = true;
 				}
+			} else {
+				el.classList.remove('active');
+				el.innerHTML = 're-query';
 			}
 		},
 		fetch: initFetch,
