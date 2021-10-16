@@ -6,7 +6,7 @@ const URL = 'api/temperature';
 const LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10];
 const COLUMNS = ['t2'].concat(LEVELS.map(l => `t_${l.toFixed(0)}mb`));
 const DEFAULT_DELTA = 86400*60; // 86400*365
-const params = {
+const params = util.storage.getObject('temperature-params') || {
 	from: Math.floor(Date.now()/1000) - 86400*10 - DEFAULT_DELTA,
 	to: Math.floor(Date.now()/1000) - 86400*10,
 	lat: 55.47,
@@ -85,7 +85,8 @@ export async function fetchStations() {
 }
 
 const query = util.constructQueryManager(URL, {
-	data: receiveData
+	data: receiveData,
+	params: p => util.storage.setObject('temperature-params', p)
 });
 
 export function initTabs() {

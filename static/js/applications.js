@@ -1,9 +1,11 @@
 import * as temperature from './applications/temperature.js';
 import * as tempHeight from './applications/tempHeight.js';
+import * as muonesRaw from './applications/muonesRaw.js';
 
 const applications = {
 	temperature,
-	tempHeight
+	tempHeight,
+	muonesRaw
 };
 
 const tabsCache = {};

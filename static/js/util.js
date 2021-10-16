@@ -43,6 +43,7 @@ export function constructQueryManager(url, callbacks) {
 				el.innerHTML = 'Accepted';
 			} else {
 				el.innerHTML = 'Error..';
+				return null;
 			}
 		} else {
 			console.log('request failed', resp && resp.status);
