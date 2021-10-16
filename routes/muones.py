@@ -7,23 +7,19 @@ import traceback
 bp = Blueprint('muones', __name__, url_prefix='/api/muones')
 
 @bp.route('/raw')
-def get():
+def raw():
     try:
         t_from = int(request.args.get('from', ''))
         t_to = int(request.args.get('to', ''))
         station = request.args.get('station', '')
+        status, data = muones.get_raw(station, t_from, t_to)
+        body = { "status": status }
+        if status == 'ok':
+            body["fields"] = data[1]
+            body["data"] = data[0]
+        return body
     except ValueError:
         return {}, 400
-    try:
-        status, data = muones.get_everything(station, t_from, t_to)
     except Exception:
-        logging.error(f'Exception in muones.get: {traceback.format_exc()}')
+        logging.error(f'exc in muones/raw: {traceback.format_exc()}')
         return {}, 500
-    body = { "status": status }
-    if status == 'ok':
-        body["fields"] = data[1]
-        body["data"] = data[0]
-    # else:
-    #     if status == 'busy' and data:
-    #         body["download"] = data
-    return body
