@@ -51,7 +51,7 @@ export function input(type, callback, options) {
 		const submitChange = force => {
 			const date = new Date(inp.value);
 			if (!isNaN(date))
-				callback(Math.floor(date.getTime() / 1000, force));
+				callback(Math.floor(date.getTime() / 1000), force);
 		};
 		inp.onkeypress = e => { if (e.keyCode === 13) submitChange(true); };
 		inp.onchange = () => {

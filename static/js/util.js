@@ -1,18 +1,16 @@
 // import * as tabsUtil from '../tabsUtil.js';
 // export const tabs = tabsUtil;
 
-const storageInterface = {
-	get: window.localStorage.getItem,
-	set: window.localStorage.setItem
-};
+const storageObject = window.localStorage;
 
 export const storage = {
-	...storageInterface,
-	setObject: (key, obj) => storageInterface.set(key, JSON.stringify(obj)),
+	set: (key, val) => storageObject.setItem(key, val),
+	get: (key) => storageObject.getItem(key),
+	setObject: (key, obj) => storageObject.setItem(key, JSON.stringify(obj)),
 	getObject: (key) => {
 		try {
-			const item = storageInterface.get(key);
-			return JSON.parse(item);
+			const item = storageObject.getItem(key);
+			return item && JSON.parse(item);
 		} catch(e) {
 			console.error('failed to parse from storage: '+key);
 			return null;
@@ -53,7 +51,7 @@ export function constructQueryManager(url, callbacks) {
 		}
 	};
 	const initFetch = async (p) => {
-		if (p) params = p;
+		if (p) params = Object.assign({}, p);
 		if (!fetchOngoing && params) {
 			el.classList.add('ongoing');
 			el.innerHTML = 'Query...';
@@ -84,12 +82,11 @@ export function constructQueryManager(url, callbacks) {
 	el.addEventListener('click', () => initFetch());
 	return {
 		params: (p, force) => {
-			if (force) {
-				params = p;
-				return initFetch(p);
-			}
-			if (params && Object.keys(p).every(k => params[k] === p[k])) {
-				params = p;
+			if (params && !Object.keys(p).every(k => params[k] === p[k])) {
+				Object.assign(params, p);
+				if (callbacks.params) callbacks.params(p);
+				if (force)
+					return initFetch();
 				if (!fetchOngoing) {
 					el.classList.add('active');
 					el.innerHTML = 'Query data';
