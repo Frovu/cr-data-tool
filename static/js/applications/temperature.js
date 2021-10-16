@@ -211,13 +211,13 @@ When query parameters are changed, the button becomes highlighted.`)
 					settingsChanged();
 				}, { text: 'in', list: ss, lat: params.lat, lon: params.lon }),
 			tabs.input('time', (from, to, force) => {
-				params.from = Math.floor(from.getTime() / 1000);
-				params.to = Math.floor(to.getTime() / 1000);
+				params.from = from;
+				params.to = to;
 				if (force)
 					fetchData();
 				else
 					settingsChanged();
-			}, { from: new Date(params.from*1000), to: new Date(params.to*1000) }),
+			}, { from: params.from, to: params.to }),
 			queryBtn
 		]);
 	});

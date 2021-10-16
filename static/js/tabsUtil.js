@@ -33,15 +33,25 @@ export function input(type, callback, options) {
 			callback(st.lat, st.lon);
 		};
 		elem.append(sel, 'lat=', lat, 'lon=', lon);
+	} else if (type === 'station-only') {
+		elem = document.createElement('div');
+		elem.classList.add('station-input');
+		if (options.text) elem.append(options.text);
+		const sel = document.createElement('select');
+		options.list.forEach(s => {
+			sel.innerHTML += `<option value="${s}">${s}</option>`;
+		});
+		sel.onchange = () => callback(sel.value);
+		elem.append(sel);
 	} else if (type === 'timestamp') {
 		elem = document.createElement('div');
 		elem.classList.add('time-input');
 		const inp = document.createElement('input');
-		inp.value = options.value.toISOString().replace(/T.*/, '') || '';
+		inp.value = new Date(options.value*1000).toISOString().replace(/T.*/, '') || '';
 		const submitChange = force => {
 			const date = new Date(inp.value);
 			if (!isNaN(date))
-				callback(date, force);
+				callback(Math.floor(date.getTime() / 1000, force));
 		};
 		inp.onkeypress = e => { if (e.keyCode === 13) submitChange(true); };
 		inp.onchange = () => {
@@ -59,13 +69,14 @@ export function input(type, callback, options) {
 		elem.classList.add('time-input');
 		const from = document.createElement('input');
 		const to = document.createElement('input');
-		from.value = options.from.toISOString().replace(/T.*/, '') || '';
-		to.value = options.to.toISOString().replace(/T.*/, '') || '';
+		from.value = new Date(options.from*1000).toISOString().replace(/T.*/, '') || '';
+		to.value = new Date(options.to*1000).toISOString().replace(/T.*/, '') || '';
 		const submitChange = force => {
 			const dateFrom = new Date(from.value);
 			const dateTo = new Date(to.value);
 			if (!isNaN(dateFrom) && !isNaN(dateTo))
-				callback(dateFrom, dateTo, force);
+				callback(Math.floor(dateFrom.getTime() / 1000),
+					Math.floor(dateTo.getTime() / 1000), force);
 		};
 		[ from, to ].forEach(box => {
 			box.onkeypress = e => { if (e.keyCode === 13) submitChange(true); };
