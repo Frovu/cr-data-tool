@@ -31,4 +31,5 @@ def get_correlation(station, t_from, t_to, period=3600):
 def get_raw(station, t_from, t_to, period=3600):
     if station not in ['Moscow']:
         return 'unknown', None
+    t_from, t_to = period * floor(t_from / period), period * ceil(t_to / period)
     return 'ok', parser.obtain_raw(station, t_from, t_to, period)
