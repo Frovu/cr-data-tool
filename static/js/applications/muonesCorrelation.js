@@ -21,10 +21,15 @@ function receiveData(resp) {
 	const nidx = resp.fields.findIndex(f => f !== params.against);
 	const aidx = resp.fields.indexOf(params.against);
 	data = [Array(len), Array(len)];
-	let sum = 0;
-	for (let i = 0; i < len; ++i)
-		sum += rows[i][nidx];
-	const avg = sum/len;
+	let sum = 0, count=0;
+	for (let i = 0; i < len; ++i) {
+		const n = rows[i][nidx];
+		if (n) {
+			++count;
+			sum += n;
+		}
+	}
+	const avg = sum / count;
 	const filter = Math.floor(avg - avg/4);
 	let filtered = 0;
 	for (let i = 0; i < len; ++i) {
@@ -37,13 +42,13 @@ function receiveData(resp) {
 		data[1][i] = n;
 	}
 	data = [null, data];
-	console.warn(`filtered = ${filtered}`);
+	console.warn(`avg=${avg.toFixed()} filtered (<${filter}) = ${filtered}`);
 	plotInit(data);
 }
 
 function plotInit(data) {
 	if (!data) return;
-	plot.initCorr(`N(${params.against})`, data);
+	plot.initCorr(`N(${params.against})`, params.period===60?2:4, data);
 }
 
 async function fetchStations() {

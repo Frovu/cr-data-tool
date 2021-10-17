@@ -34,33 +34,32 @@ function prepareAxes(axes) {
 	});
 }
 
-function drawPoints(u, seriesIdx) {
-	const size = 2 * devicePixelRatio;
-	uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
-		let d = u.data[seriesIdx];
-		u.ctx.fillStyle = series.stroke();
-		let deg360 = 2 * Math.PI;
-		console.time('points');
-		let p = new Path2D();
-		for (let i = 0; i < d[0].length; i++) {
-			let xVal = d[0][i];
-			let yVal = d[1][i];
-			if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
-				let cx = valToPosX(xVal, scaleX, xDim, xOff);
-				let cy = valToPosY(yVal, scaleY, yDim, yOff);
-				p.moveTo(cx + size/2, cy);
-				arc(p, cx, cy, size/2, 0, deg360);
-			}
-		}
-		console.timeEnd('points');
-		u.ctx.fill(p);
-	});
-	return null;
-}
-
 // ref: https://leeoniya.github.io/uPlot/demos/scatter.html
-export function initCorr(label, data) {
+export function initCorr(label, pointPx, data) {
 	if (uplot) uplot.destroy();
+	function drawPoints(u, seriesIdx) {
+		const size = pointPx * devicePixelRatio;
+		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+			let d = u.data[seriesIdx];
+			u.ctx.fillStyle = series.stroke();
+			let deg360 = 2 * Math.PI;
+			console.time('points');
+			let p = new Path2D();
+			for (let i = 0; i < d[0].length; i++) {
+				let xVal = d[0][i];
+				let yVal = d[1][i];
+				if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
+					let cx = valToPosX(xVal, scaleX, xDim, xOff);
+					let cy = valToPosY(yVal, scaleY, yDim, yOff);
+					p.moveTo(cx + size/2, cy);
+					arc(p, cx, cy, size/2, 0, deg360);
+				}
+			}
+			console.timeEnd('points');
+			u.ctx.fill(p);
+		});
+		return null;
+	}
 	uplot = new uPlot({
 		...getPlotSize(),
 		mode: 2,
