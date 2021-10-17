@@ -11,17 +11,18 @@ const params = util.storage.getObject('muonesCorr-params') || {
 	against: 'pressure'
 };
 let data;
+let r;
 
 function receiveData(resp) {
 	const dt = resp.data;
 	data = [null, [dt.x, dt.y], [dt.rx, dt.ry]];
-	console.log(data)
+	r = dt.r;
 	plotInit(data);
 }
 
 function plotInit(data) {
 	if (!data) return;
-	plot.initCorr(data, `N(${params.against})`, params.period===60?2:4, true);
+	plot.initCorr(data, `N(${params.against})`, params.period===60?2:4, `r=${r.toFixed(4)}`);
 }
 
 async function fetchStations() {

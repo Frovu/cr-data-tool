@@ -119,8 +119,8 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 				paths: drawPoints
 			}
 		].concat(!corrLine ? [] : [{
-			label: 'r',
-			stroke: 'rgba(155,0,255,0.8)',
+			label: corrLine,
+			stroke: 'rgba(100,0,200,1)',
 			paths: linePaths()
 		}])
 	}, data, parentEl);
@@ -148,7 +148,6 @@ export function data(data, reset=true) {
 		return console.error('plot does not exist');
 	uplot.setData(data, reset);
 	if (!reset) uplot.redraw();
-	console.log(uplot.data, uplot.series);
 }
 
 export function series(series) {
