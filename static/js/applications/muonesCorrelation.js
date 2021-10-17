@@ -74,11 +74,11 @@ async function fetchStations() {
 
 const query = util.constructQueryManager(URL, {
 	data: receiveData,
-	params: p => util.storage.setObject('muonesRaw-params', p)
+	params: p => util.storage.setObject('muonesCorr-params', p)
 });
 
 export async function initTabs() {
-	const stations = await fetchStations();
+	const stations = (await fetchStations() || []).map(s => s.name);
 	const sText = stations ? stations.join() : 'Stations failed to load, refresh tab please.';
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>

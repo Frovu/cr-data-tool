@@ -17,12 +17,10 @@ def get_with_model(lat, lon, t_from, t_to, period=PERIOD):
     is_done, info = scheduler.status((token, t_from, t_to))
     if is_done == False:
         return 'failed' if info.get('failed') else 'busy', info
-    dt_from = datetime.utcfromtimestamp(t_from)
-    dt_to = datetime.utcfromtimestamp(t_to)
     station = proxy.select_station(lat, lon)
     if not parser.supported(station):
-        return temperature.get(lat, lon, dt_from, dt_to)
-    model_status, model_r = temperature.get(lat, lon, dt_from, dt_to, True)
+        return temperature.get_by_epoch(lat, lon, t_from, t_to)
+    model_status, model_r = temperature.get_by_epoch(lat, lon, t_from, t_to, True)
     if model_status ==  'unknown':
         return model_status, model_r
     if model_status == 'ok' and not proxy.analyze_integrity(station, t_from, t_to):

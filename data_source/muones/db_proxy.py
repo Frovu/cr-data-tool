@@ -35,6 +35,14 @@ def _create_if_not_exists(table_name):
         cursor.execute(query)
         pg_conn.commit()
 
+def stations():
+    with pg_conn.cursor() as cursor:
+        cursor.execute(f'SELECT name, lat, lon FROM stations')
+        result = []
+        for s in cursor.fetchall():
+            result.append({'name': s[0], 'lat': float(s[1]), 'lon': float(s[2])})
+        return result
+
 def station(lat, lon):
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT name FROM stations WHERE round(lat::numeric,2) = %s AND round(lon::numeric,2) = %s', [round(lat, 2), round(lon, 2)])
@@ -62,12 +70,12 @@ def analyze_integrity(station, t_from, t_to, period, columns='n_v'):
         cursor.execute(q)
         return cursor.fetchall()
 
-def select(station, t_from, t_to, period, columns=FIELDS, include_time=True):
+def select(station, t_from, t_to, period, columns=FIELDS, include_time=True, order='time'):
     with pg_conn.cursor() as cursor:
         q = f'''SELECT {"EXTRACT(EPOCH FROM time)," if include_time else ""}{",".join(columns)}
-            FROM {_table_name(station, period)} WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s)'''
+FROM {_table_name(station, period)} WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY {order}'''
         cursor.execute(q, [t_from, t_to])
-        return cursor.fetchall(), ['time']+columns
+        return cursor.fetchall(), (['time']+columns) if include_time else columns
 
 def upsert(station, period, data, columns, epoch=False):
     if not len(data): return
