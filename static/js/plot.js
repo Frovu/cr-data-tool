@@ -1,4 +1,4 @@
-import uPlot from './uPlot.iife.min.js';
+import uPlot from './uPlot.esm.js';
 
 const MIN_HEIGHT = 360;
 let uplot;
@@ -34,6 +34,74 @@ function prepareAxes(axes) {
 	});
 }
 
+function drawPoints(u, seriesIdx) {
+	const size = 2 * devicePixelRatio;
+	uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+		let d = u.data[seriesIdx];
+		u.ctx.fillStyle = series.stroke();
+		let deg360 = 2 * Math.PI;
+		console.time('points');
+		let p = new Path2D();
+		for (let i = 0; i < d[0].length; i++) {
+			let xVal = d[0][i];
+			let yVal = d[1][i];
+			if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
+				let cx = valToPosX(xVal, scaleX, xDim, xOff);
+				let cy = valToPosY(yVal, scaleY, yDim, yOff);
+				p.moveTo(cx + size/2, cy);
+				arc(p, cx, cy, size/2, 0, deg360);
+			}
+		}
+		console.timeEnd('points');
+		u.ctx.fill(p);
+	});
+	return null;
+}
+
+// ref: https://leeoniya.github.io/uPlot/demos/scatter.html
+export function initCorr(label, data) {
+	if (uplot) uplot.destroy();
+	uplot = new uPlot({
+		...getPlotSize(),
+		mode: 2,
+		legend: {
+			live: false,
+		},
+		hooks: {
+			drawClear: [
+				u => {
+					u.series.forEach((s, i) => {
+						if (i > 0)
+							s._paths = null;
+					});
+				},
+			],
+		},
+		scales: {
+			x: {
+				time: false,
+				range: (u, min, max) => [min, max],
+			},
+			y: {
+				range: (u, min, max) => [min, max],
+			},
+		},
+		cursor: {
+			drag: { dist: 12 },
+			points: { size: 6, fill: (self, i) => self.series[i]._stroke }
+		},
+		series: [
+			{},
+			{
+				label: label,
+				stroke: 'red',
+				fill: 'rgba(255,0,0,0.1)',
+				paths: drawPoints
+			}
+		]
+	}, data, parentEl);
+}
+
 export function init(axes, time=true, scales, series) {
 	plotTime = time;
 	if (uplot) uplot.destroy();
@@ -56,6 +124,7 @@ export function data(data, reset=true) {
 		return console.error('plot does not exist');
 	uplot.setData(data, reset);
 	if (!reset) uplot.redraw();
+	console.log(uplot.data, uplot.series);
 }
 
 export function series(series) {

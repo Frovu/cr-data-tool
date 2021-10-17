@@ -17,53 +17,33 @@ const SCALE = {
 let data;
 
 function receiveData(resp) {
-	// const rows = resp.data, len = resp.data.length;
-	// const fields = Object.keys(FIELDS[params.station]);
-	// const idx = Array(fields.length);
-	// resp.fields.forEach((field, i) => {
-	// 	const index = fields.indexOf(field);
-	// 	if (index >= 0)
-	// 		idx[index] = i;
-	// });
-	// data = fields.map(() => Array(len));
-	// for (let i = 0; i < len; ++i) {
-	// 	for (let j = 0; j < fields.length; ++j) {
-	// 		data[j][i] = rows[i][idx[j]];
-	// 	}
-	// }
-	// plot.data(data);
+	const rows = resp.data, len = resp.data.length;
+	const nidx = resp.fields.findIndex(f => f !== params.against);
+	const aidx = resp.fields.indexOf(params.against);
+	data = [Array(len), Array(len)];
+	let sum = 0;
+	for (let i = 0; i < len; ++i)
+		sum += rows[i][nidx];
+	const avg = sum/len;
+	const filter = Math.floor(avg - avg/4);
+	let filtered = 0;
+	for (let i = 0; i < len; ++i) {
+		const n = rows[i][nidx];
+		if (n < filter) {
+			++filtered;
+			continue;
+		}
+		data[0][i] = rows[i][aidx];
+		data[1][i] = n;
+	}
+	data = [null, data];
+	console.warn(`filtered = ${filtered}`);
+	plotInit(data);
 }
 
-function plotInit() {
-	const agScale = SCALE[params.against];
-	plot.init([
-		{ scale: 'n', side: 3, size: 70, nounit: true },
-		{ scale: agScale, side: 2, space: 70 }
-	], false, {
-		// n: {
-		// 	range: [0, 1000],
-		// 	time: false,
-		// 	dir: -1,
-		// 	ori: 1
-		// },
-		// [temperatureUnit]: {
-		// 	dir: 1,
-		// 	ori: 0
-		// }
-	}, [
-		{
-			scale: 'mb',
-			label: 'Height',
-			color: null
-		}, {
-			scale: agScale,
-			label: params.against,
-			// color: 'red',
-			// width: 3,
-			// precision: 1,
-		}
-	]);
-	if (data) plot.data(data);
+function plotInit(data) {
+	if (!data) return;
+	plot.initCorr(`N(${params.against})`, data);
 }
 
 async function fetchStations() {
