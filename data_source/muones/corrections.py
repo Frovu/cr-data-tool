@@ -3,7 +3,7 @@ import data_source.muones.obtain_data as parser
 import data_source.temperature_model.temperature as temperature
 import logging
 import numpy as np
-from scipy import interpolate
+from scipy import interpolate, stats
 import time
 import re
 from math import floor, ceil
@@ -58,3 +58,21 @@ def get_prepare_tasks(station, period, fill_fn, subquery_fn, against):
 
 def correct(t_from, t_to, station, period):
     prepare_data(station, t_from, t_to, period)
+
+def calc_correlation(data, fields):
+    data = np.array(data, dtype=np.float)
+    yavg = np.nanmean(data[:,1])
+    filter = int(yavg - yavg/4)
+    was = data.shape
+    data = data[np.where(data[:,1] > filter)]
+    logging.debug(f'Muones: correlation to {fields[0]} filtered: {was[0]-data.shape[0]}/{was[0]}')
+    x, y = data[:,0], data[:,1]
+    lg = stats.linregress(x, y)
+    rrange = np.linspace(x[0], x[-1])
+    return {
+        'r': lg.rvalue,
+        'x': x.tolist(),
+        'y': y.tolist(),
+        'rx': rrange.tolist(),
+        'ry': (lg.intercept + lg.slope * rrange).tolist()
+    }

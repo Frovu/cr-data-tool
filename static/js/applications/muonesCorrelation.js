@@ -10,45 +10,18 @@ const params = util.storage.getObject('muonesCorr-params') || {
 	period: 60,
 	against: 'pressure'
 };
-const SCALE = {
-	pressure: 'mb',
-	Tm: 'K'
-};
 let data;
 
 function receiveData(resp) {
-	const rows = resp.data, len = resp.data.length;
-	const nidx = resp.fields.findIndex(f => f !== params.against);
-	const aidx = resp.fields.indexOf(params.against);
-	data = [Array(len), Array(len)];
-	let sum = 0, count=0;
-	for (let i = 0; i < len; ++i) {
-		const n = rows[i][nidx];
-		if (n) {
-			++count;
-			sum += n;
-		}
-	}
-	const avg = sum / count;
-	const filter = Math.floor(avg - avg/4);
-	let filtered = 0;
-	for (let i = 0; i < len; ++i) {
-		const n = rows[i][nidx];
-		if (n < filter) {
-			++filtered;
-			continue;
-		}
-		data[0][i] = rows[i][aidx];
-		data[1][i] = n;
-	}
-	data = [null, data];
-	console.warn(`avg=${avg.toFixed()} filtered (<${filter}) = ${filtered}`);
+	const dt = resp.data;
+	data = [null, [dt.x, dt.y], [dt.rx, dt.ry]];
+	console.log(data)
 	plotInit(data);
 }
 
 function plotInit(data) {
 	if (!data) return;
-	plot.initCorr(`N(${params.against})`, params.period===60?2:4, data);
+	plot.initCorr(data, `N(${params.against})`, params.period===60?2:4, true);
 }
 
 async function fetchStations() {

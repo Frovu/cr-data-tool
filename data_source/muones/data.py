@@ -15,9 +15,6 @@ def stations():
 def station(lat, lon):
     return proxy.station(lat, lon)
 
-# # TODO: include query arg to select only some values
-# def get_everything(station, t_from, t_to, period=60):
-
 def get_correlation(station, t_from, t_to, period=3600, against='pressure'):
     if against == 'Tm': against = 'T_m'
     if not proxy.coordinates(station) or against not in ['T_m', 'pressure']:
@@ -30,7 +27,8 @@ def get_correlation(station, t_from, t_to, period=3600, against='pressure'):
         return 'failed' if info.get('failed') else 'busy', info
     int_columns = 'raw_acc_cnt' if against=='pressure' else [against, 'raw_acc_cnt']
     if is_done or not proxy.analyze_integrity(station, t_from, t_to, period, int_columns):
-        return 'ok', proxy.select(station, t_from, t_to, period, [against, 'n_v_raw'], include_time=False, order=against)
+        data = proxy.select(station, t_from, t_to, period, [against, 'n_v_raw'], include_time=False, order=against)
+        return 'ok', corrections.calc_correlation(*data)
     mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
     scheduler.do_fill(token, t_from, t_to, period, corrections.get_prepare_tasks(station, period, fill_fn, mq_fn, against))
     return 'accepted', None

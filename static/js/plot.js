@@ -34,8 +34,30 @@ function prepareAxes(axes) {
 	});
 }
 
+function linePaths() {
+	return (u, seriesIdx) => {
+		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
+			let d = u.data[seriesIdx];
+			const ss = u.ctx.strokeStyle;
+			u.ctx.strokeStyle = series.stroke();
+			let p = new Path2D();
+			for (let i = 0; i < d[0].length; i++) {
+				let xVal = d[0][i];
+				let yVal = d[1][i];
+				if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
+					let cx = valToPosX(xVal, scaleX, xDim, xOff);
+					let cy = valToPosY(yVal, scaleY, yDim, yOff);
+					p.lineTo(cx, cy);
+				}
+			}
+			u.ctx.stroke(p);
+			u.ctx.strokeStyle = ss;
+		});
+	};
+}
+
 // ref: https://leeoniya.github.io/uPlot/demos/scatter.html
-export function initCorr(label, pointPx, data) {
+export function initCorr(data, label, pointPx, corrLine=false) {
 	if (uplot) uplot.destroy();
 	function drawPoints(u, seriesIdx) {
 		const size = pointPx * devicePixelRatio;
@@ -58,7 +80,6 @@ export function initCorr(label, pointPx, data) {
 			console.timeEnd('points');
 			u.ctx.fill(p);
 		});
-		return null;
 	}
 	uplot = new uPlot({
 		...getPlotSize(),
@@ -97,7 +118,11 @@ export function initCorr(label, pointPx, data) {
 				fill: 'rgba(255,0,0,0.1)',
 				paths: drawPoints
 			}
-		]
+		].concat(!corrLine ? [] : [{
+			label: 'r',
+			stroke: 'rgba(155,0,255,0.8)',
+			paths: linePaths()
+		}])
 	}, data, parentEl);
 }
 

@@ -44,8 +44,7 @@ def correlation():
         status, data = muones.get_correlation(station, t_from, t_to, period, against)
         body = { "status": status }
         if status == 'ok':
-            body["fields"] = data[1]
-            body["data"] = data[0]
+            body["data"] = data
         return body
     except ValueError:
         return {}, 400
