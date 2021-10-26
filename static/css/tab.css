@@ -74,6 +74,7 @@ button.submit.ongoing {
 }
 
 .switch-input {
+	display: block;
 	margin-top: 2px;
 	margin-bottom: 2px;
 	padding: 1px !important;
