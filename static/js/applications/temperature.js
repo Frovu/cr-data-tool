@@ -133,7 +133,7 @@ When query parameters are changed, the button becomes highlighted.`)
 				params.to = to;
 				query.params(params, force);
 			}, { from: params.from, to: params.to }),
-			query.buttonEl
+			query.el
 		]);
 	});
 	tabs.fill('view', viewSelectors);

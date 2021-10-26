@@ -23,8 +23,8 @@ def get():
         status, data = t_stations.get_with_model(lat, lon, t_from, t_to)
     body = { "status": status }
     if status != 'ok':
-        if status == 'busy' and data:
-            body["download"] = data
+        if status in ['busy', 'failed'] and data:
+            body["info"] = data
         return body
     body["fields"] = data[1]
     body["data"] = data[0]

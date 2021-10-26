@@ -45,6 +45,8 @@ def correlation():
         body = { "status": status }
         if status == 'ok':
             body["data"] = data
+        elif status in ['busy', 'failed'] and data:
+            body["info"] = data
         return body
     except ValueError:
         return {}, 400

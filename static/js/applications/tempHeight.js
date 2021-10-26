@@ -83,7 +83,7 @@ Refer to "Temperature" app for more details`)
 				params.to = params.from + 3600;
 				query.params(params, force);
 			}, { value: params.from }),
-			query.buttonEl
+			query.el
 		]);
 	});
 	tabs.fill('view', [

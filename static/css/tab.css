@@ -20,11 +20,24 @@
 	border-style: inset;
 }
 
-button.submit {
-	width: 128px;
+.query {
+	display: block;
 	position: absolute;
 	bottom: 1rem;
 	right: 1rem;
+}
+
+.query-progress {
+	font-size: 9pt;
+	color: gray;
+	margin-right: 4px;
+	display: inline-block;
+	text-align: right;
+}
+
+button.submit {
+	display: inline-block;
+	width: 128px;
 	transition: 500ms;
 }
 

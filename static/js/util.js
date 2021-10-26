@@ -1,6 +1,3 @@
-// import * as tabsUtil from '../tabsUtil.js';
-// export const tabs = tabsUtil;
-
 const storageObject = window.localStorage;
 
 export const storage = {
@@ -23,22 +20,34 @@ function encodeParams(obj) {
 	return keys.length ? '?' + keys.map(k => `${k}=${obj[k]}`).join('&') : '';
 }
 
-export function constructQueryManager(url, callbacks) {
+export function constructQueryManager(url, callbacks, progDetails=true) {
 	let params, fetchParams, fetchInterval, fetchOngoing, paramsChanged;
+	const div = document.createElement('div');
+	div.classList.add('query');
+	const progEl = progDetails && document.createElement('div');
+	if (progDetails) progEl.classList.add('query-progress');
 	const el = document.createElement('button');
 	el.classList.add('submit');
 	el.innerHTML = 'Query data';
 	const fetchOnce = async () => {
-		const resp = await fetch(`${url}${encodeParams(params)}`).catch(()=>{});
-		if (resp && resp.status === 200) {
-			const body = await resp.json().catch(()=>{});
-			console.log('resp:', body);
+		const resp = await fetch(`${url}${encodeParams(params)}`).catch(e=>{console.error(e);});
+		const body = resp && resp.status === 200 && await resp.json().catch(e=>{console.error(e);});
+		if (progEl) progEl.innerHTML = '';
+		console.log('resp:', resp.status, body);
+		if (body) {
 			if (body.status === 'ok') {
 				el.innerHTML = 'Done!';
 				return body;
 			} else if (body.status === 'busy') {
-				el.innerHTML = body.download ? `Downloading: ${(100*body.download).toFixed(0)} %` : 'Calculating...';
-			// } else if (body.status === 'unknown') {
+				const prog = body.info && body.info.progress;
+				const ic = prog && Object.values(prog).filter(v => v < 1);
+				el.innerHTML = `Proceessing..${ic?(ic.length?(100*ic.reduce((a,b)=>a+b)/ic.length):100).toFixed(0)+'%':''}`;
+				if (progEl && prog)
+					progEl.innerHTML = Object.keys(prog).map(k=>`${k}: ${(100*prog[k]).toFixed(0)}%`).join('<br>');
+			} else if (body.status === 'failed') {
+				const reason = body.info && body.info.failed;
+				el.innerHTML = 'Failed to proc';
+				if (progDetails) progEl.innerHTML = `Failed: ${reason}`;
 			} else if (body.status === 'accepted') {
 				el.innerHTML = 'Accepted';
 			} else {
@@ -84,6 +93,8 @@ export function constructQueryManager(url, callbacks) {
 		}
 	};
 	el.addEventListener('click', () => initFetch());
+	if (progEl) div.append(progEl);
+	div.append(el);
 	return {
 		params: (p, force) => {
 			params = p;
@@ -106,6 +117,6 @@ export function constructQueryManager(url, callbacks) {
 			clearInterval(fetchInterval);
 			fetchInterval = null;
 		},
-		buttonEl: el
+		el: div
 	};
 }

@@ -69,7 +69,7 @@ Supported only for ${sText}`)
 			if (force)
 				query.fetch(params);
 		}, { from: params.from, to: params.to }),
-		query.buttonEl
+		query.el
 	]);
 	tabs.disable('view');
 	tabs.disable('tools');
