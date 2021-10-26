@@ -98,6 +98,8 @@ class Scheduler:
 
     def query(self, key, q):
         if self.get(key) is not None:
-            return None
+            del self.queries[key]
+            if key in self.cache:
+                del self.cache[key]
         self.queries[key] = q
         return self.queries[key]
