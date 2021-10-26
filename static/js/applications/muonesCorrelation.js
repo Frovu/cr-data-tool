@@ -4,10 +4,10 @@ import * as plot from '../plot.js';
 
 const URL = 'api/muones/correlation';
 const params = util.storage.getObject('muonesCorr-params') || {
-	from: Math.floor(Date.now()/1000) - 86400*10 - 86400*90,
-	to: Math.floor(Date.now()/1000) - 86400*10,
+	from: Math.floor(Date.now()/1000) - 86400*5 - 86400*365,
+	to: Math.floor(Date.now()/1000) - 86400*5,
 	station: 'Moscow',
-	period: 60,
+	period: 3600,
 	against: 'pressure'
 };
 let data;
