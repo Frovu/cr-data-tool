@@ -37,8 +37,7 @@ def _align_to_period(datasets, t_from, t_to, period):
     keys = list(datasets.keys())
     pressure = keys.index('pressure') if 'pressure' in keys else -1
     res_len = ceil((t_to-t_from)/period)
-    dtype = [('time', datetime)] + [(f'd{i}', float) for i in range(len(keys))]
-    data = numpy.empty(res_len, dtype=dtype)
+    data = numpy.empty([res_len, len(keys)+1], dtype='O')
     times = [datasets[k][0] for k in keys]
     values = [datasets[k][1] for k in keys]
     si = [0 for k in keys]
@@ -63,7 +62,7 @@ def _align_to_period(datasets, t_from, t_to, period):
             # print("  "*i, datetime.utcfromtimestamp(period_start), cnt)
             data[res_i][i+1] = round(acc / cnt, 2) if cnt > 0 else None
         period_start += period
-    return data
+    return data.tolist()
 
 def _obtain_rmp_interval(station, t_from, t_to, query, period, hopeless=True):
         raw_data = _query_aws_rmp(AWS_RMP_IDX[station], t_from, t_to)
