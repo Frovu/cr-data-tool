@@ -18,14 +18,14 @@ pg_conn = psycopg2.connect(
 )
 
 _INSERT_CHUNK_SIZE = 100
-LEVELS = [1000.0, 925.0, 850.0, 700.0, 600.0, 500.0, 400.0, 300.0, 250.0, 200.0,
- 150.0, 100.0, 70.0, 50.0, 30.0, 20.0, 10.0]
+LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10]
+T_M_COLUMN = 'mass_average'
 
 stations = []
 def _fetch_existing():
     with pg_conn.cursor() as cursor:
         cursor.execute('SELECT lat, lon, name FROM stations')
-        log.info(f"Temperature model: starting with {cursor.rowcount} stations")
+        log.info(f"NCEP: Starting with {cursor.rowcount} stations")
         for row in cursor.fetchall():
             stations.append({'name': row[2], 'lat': row[0], 'lon': row[1]})
             _create_if_not_exists(row[0], row[1])
@@ -35,8 +35,9 @@ def table_name(lat, lon):
 def _create_if_not_exists(lat, lon):
     with pg_conn.cursor() as cursor:
         query = f'''CREATE TABLE IF NOT EXISTS {table_name(lat, lon)} (
-        time TIMESTAMP NOT NULL PRIMARY KEY,
-        {", ".join([f"p_{int(l)} REAL NOT NULL" for l in LEVELS])})'''
+time TIMESTAMP NOT NULL PRIMARY KEY,
+{T_M_COLUMN} REAL,
+{", ".join([f"p_{int(l)} REAL NOT NULL" for l in LEVELS])})'''
         cursor.execute(query)
         pg_conn.commit()
 _fetch_existing()
@@ -48,12 +49,10 @@ def get_stations():
     return stations
 
 # return list of time period turples for which data is missing
-def analyze_integrity(lat, lon, dt_from, dt_to):
+def analyze_integrity(lat, lon, t_from, t_to):
     station = get_station(lat, lon)
     if not station:
         return False
-    t_from = dt_from.replace(tzinfo=timezone.utc).timestamp()
-    t_to = dt_to.replace(tzinfo=timezone.utc).timestamp()
     q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), f'p_{int(LEVELS[0])}', return_epoch=False)
     with pg_conn.cursor() as cursor:
         cursor.execute(q)
@@ -61,16 +60,17 @@ def analyze_integrity(lat, lon, dt_from, dt_to):
 
 def select(lat, lon, start_time, end_time):
     result = []
-    fields = [f't_{int(l)}mb' for l in LEVELS]
+    fields = [T_M_COLUMN] + [f"p_{int(l)}" for l in LEVELS]
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, {",".join([f"p_{int(l)}" for l in LEVELS])} FROM {table_name(lat, lon)} ' +
+        cursor.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, {",".join(fields)} FROM {table_name(lat, lon)} ' +
             'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
-        return cursor.fetchall(), ['time'] + fields
+        return cursor.fetchall(), ['time', 't_mass_avg'] + [f't_{int(l)}mb' for l in LEVELS]
 
-def insert(data, lat, lon):
-    if not data: return
-    log.info(f'Insert: {table_name(lat, lon)} <-[{len(data)}] from {data[0][0]}')
+def insert(lat, lon, data):
+    if not len(data): return
+    log.info(f'NCEP: Insert: {table_name(lat, lon)} <-[{len(data)}] {data[0][0]}:{data[-1][0]}')
     with pg_conn.cursor() as cursor:
-        query = f'INSERT INTO {table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO NOTHING'
-        psycopg2.extras.execute_values (cursor, query, data, template=None, page_size=100)
+        query = f'INSERT INTO {table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO UPDATE SET {T_M_COLUMN} = EXCLUDED.{T_M_COLUMN}'
+        psycopg2.extras.execute_values (cursor, query, data,
+            template='to_timestamp(%s)'+''.join([',%s' for i in range(data.shape[1]-1)]))
         pg_conn.commit()
