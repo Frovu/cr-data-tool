@@ -25,7 +25,8 @@ def get_with_model(lat, lon, t_from, t_to, period=PERIOD):
         return model_status, model_r
     if model_status == 'ok' and not proxy.analyze_integrity(station, t_from, t_to):
         return 'ok', proxy.select(station, t_from, t_to, True)
-    scheduler.do_fill(token, t_from, t_to, period, parser.get_tasks(station, period, fill_fn))
+    q = scheduler.do_fill(token, t_from, t_to, period, parser.get_tasks(station, period, fill_fn))
     if model_status == 'accepted':
-        scheduler.merge_query(token, t_from, t_to, model_r)
+        model_r.append_tasks(q.tasks) # use temp_model query object
+        scheduler.query((token, t_from, t_to), model_r)
     return 'accepted', None

@@ -39,7 +39,6 @@ class SequenceFiller(Scheduler):
     def do_fill(self, token, t_from, t_to, period, tasks):
         key = (token, t_from, t_to)
         q = self.query(key, IntervalQuery(self.executor, t_from, t_to))
-        if not q: return
         intervals = [(t_from, t_to)]
         for kk in self.queries.keys():
             if kk[0] != token or key == kk: continue
@@ -48,7 +47,7 @@ class SequenceFiller(Scheduler):
             if dep:
                 q.append_tasks(cq.tasks)
             if not intervals:
-                return
+                return q
         for task in tasks:
             for i in intervals:
                 fargs = (i[0], i[1], period) + (task[2] or ())

@@ -87,7 +87,7 @@ def get(lat, lon, t_from, t_to, no_response=False):
         ('temperature-model', fill_fn, (
             lambda i: proxy.analyze_integrity(lat, lon, i[0], i[1]),
             lambda i: _fill_interval(i, lat, lon, mq_fn),
-            True
+            True, 16 # multithreading, workers=16
         ))
     ])
     return 'accepted', query
