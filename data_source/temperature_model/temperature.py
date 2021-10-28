@@ -10,7 +10,7 @@ HOUR = 3600
 MODEL_PERIOD = HOUR * 6
 MODEL_EPOCH = np.datetime64('1948-01-01').astype(int)
 SPLINE_INDENT = 2 # additional periods on edges for spline evaluation
-SPLINE_INDENT_H = MODEL_PERIOD / HOUR * SPLINE_INDENT
+SPLINE_INDENT_H = MODEL_PERIOD // HOUR * SPLINE_INDENT
 scheduler = SequenceFiller(ttl=0)
 
 # transform geographical coords to index coords
@@ -42,8 +42,8 @@ def _t_mass_average(data):
     return np.array([np.sum(diff * ((x[:-1] + x[1:]) / 2)) for x in data])
 
 def _fill_interval(interval, lat, lon, mq):
-    t_from = interval[0] - MODEL_PERIOD * SPLINE_INDENT
-    t_to   = interval[1] + MODEL_PERIOD * SPLINE_INDENT
+    t_from = MODEL_PERIOD * (floor(interval[0] / MODEL_PERIOD) - SPLINE_INDENT)
+    t_to   = MODEL_PERIOD * ( ceil(interval[1] / MODEL_PERIOD) + SPLINE_INDENT)
     log.info(f"NCEP: Obtaining ({lat},{lon}) {t_from}:{t_to}")
     times_6h, data = parser.obtain(t_from, t_to, mq)
     log.debug(f"NCEP: Retrieved [{data.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
@@ -54,7 +54,8 @@ def _fill_interval(interval, lat, lon, mq):
     t_m = _t_mass_average(result)
     log.debug(f"NCEP: T_m [{t_m.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
     result_m = np.column_stack((times_1h, t_m, result))
-    proxy.insert(lat, lon, result_m)
+    slice = SPLINE_INDENT_H # do not insert edges of spline
+    proxy.insert(lat, lon, result_m[slice:(-1*slice)])
 
 def _bound_query(t_from, t_to):
     t_from = MODEL_PERIOD * floor(t_from / MODEL_PERIOD)

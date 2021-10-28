@@ -54,6 +54,7 @@ class SequenceFiller(Scheduler):
                 fargs = (i[0], i[1], period) + (task[2] or ())
                 targs = (task[1], fargs, task[0], True)
                 q.submit_tasks([targs])
+        return q
 
 def fill_fn(prog, t_from, t_to, period, integrity_fn, process_fn, multiproc=False, workers=4, page_size=3600):
     try:

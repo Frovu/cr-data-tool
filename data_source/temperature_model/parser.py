@@ -28,9 +28,9 @@ def _obtain_year(dt_from, dt_to, merge_query):
         res = _extract_from_file(fname, dt_from, dt_to)
     except:
         log.debug(f'Failed to read {fname}, downloading..')
-        # query = downloader.download(year)
-        # merge_query(query)
-        # query.await_result()
+        query = downloader.download(year)
+        merge_query(query)
+        query.await_result()
         res = _extract_from_file(fname, dt_from, dt_to)
     return res
 
