@@ -10,15 +10,13 @@ def get():
     try:
         t_from = int(request.args.get('from', ''))
         t_to = int(request.args.get('to', ''))
-        dt_from = datetime.utcfromtimestamp(t_from)
-        dt_to = datetime.utcfromtimestamp(t_to)
         lat = float(request.args.get('lat', ''))
         lon = float(request.args.get('lon', ''))
     except ValueError:
         return {}, 400
     only = request.args.get('only', '')
     if only == 'model':
-        status, data = t_model.get(lat, lon, dt_from, dt_to)
+        status, data = t_model.get(lat, lon, t_from, t_to)
     else:
         status, data = t_stations.get_with_model(lat, lon, t_from, t_to)
     body = { "status": status }
