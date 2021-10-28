@@ -86,7 +86,8 @@ def get(lat, lon, t_from, t_to, no_response=False):
     query = scheduler.do_fill(token, t_from, t_to, HOUR, [
         ('temperature-model', fill_fn, (
             lambda i: proxy.analyze_integrity(lat, lon, i[0], i[1]),
-            lambda i: _fill_interval(i, lat, lon, mq_fn)
+            lambda i: _fill_interval(i, lat, lon, mq_fn),
+            True
         ))
     ])
     return 'accepted', query
