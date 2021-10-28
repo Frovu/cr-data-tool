@@ -12,7 +12,7 @@ const FIELDS = {
 			nounit: true
 		},
 		c2: {
-			label: 'c1',
+			label: 'c2',
 			scale: 'nd',
 			color: 'rgba(255,150,100,1)',
 			nounit: true

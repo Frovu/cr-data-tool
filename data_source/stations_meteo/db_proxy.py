@@ -38,8 +38,8 @@ def select(station, t_from, t_to, with_model=False):
         cursor.execute(f'SELECT lat, lon FROM stations WHERE name = %s', [station])
         lat, lon = cursor.fetchall()[0]
     if with_model:
-        fields = ['time', 'p_station', 't2'] + [f't_{int(l)}mb' for l in model_proxy.LEVELS]
-        query = f'''SELECT EXTRACT(EPOCH FROM m.time) AS time, l.pressure as p_station, l.t2 as t2,
+        fields = ['time', 'p_station', 't2', 't_mass_avg'] + [f't_{int(l)}mb' for l in model_proxy.LEVELS]
+        query = f'''SELECT EXTRACT(EPOCH FROM m.time) AS time, l.pressure as p_station, l.t2 as t2, m.{model_proxy.T_M_COLUMN} as t_mass_avg,
         {", ".join([f'm.p_{int(l)} AS t_{int(l)}mb' for l in model_proxy.LEVELS])}
         FROM {model_proxy.table_name(lat, lon)} m FULL OUTER JOIN {_table_name(station)} l
         ON (m.time = l.time) WHERE m.time >= to_timestamp(%s) AND m.time <= to_timestamp(%s) ORDER BY m.time'''

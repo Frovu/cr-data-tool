@@ -4,7 +4,7 @@ import * as plot from '../plot.js';
 
 const URL = 'api/temperature';
 const LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10];
-const COLUMNS = ['t2'].concat(LEVELS.map(l => `t_${l.toFixed(0)}mb`));
+const COLUMNS = ['t2', 't_mass_avg'].concat(LEVELS.map(l => `t_${l.toFixed(0)}mb`));
 const DEFAULT_DELTA = 86400*60; // 86400*365
 const params = util.storage.getObject('temperature-params') || {
 	from: Math.floor(Date.now()/1000) - 86400*10 - DEFAULT_DELTA,
@@ -38,9 +38,11 @@ function receiveData(resp) {
 function color(idx) {
 	if (idx === 0)
 		return 'rgba(155,0,200,1)';
+	if (idx === 1)
+		return 'rgba(200,50,0,1)';
 	const inc = 15*idx/3;
-	const base = [`${inc},255,${inc}`, `255,${inc+50},${inc+50}`, `${inc-100},${inc+255},255`][idx%3];
-	return `rgba(${base},1)`;
+	const base = [`${inc},255,${inc}`, `255,${inc+50},${inc+50}`, `${inc-100},${inc+255},255`][(idx-1)%3];
+	return `rgba(${base},0.8)`;
 }
 
 function plotInit(full=true) {
@@ -102,7 +104,8 @@ export function initTabs() {
 		box.setAttribute('id', id);
 		lbl.setAttribute('for', id);
 		lbl.setAttribute('style', `border-color: ${color(i)};`);
-		lbl.innerHTML = `${fillSpaces(col.replace('_', ', h=').replace('t2', 't2, station'))}<span class="color-box" style="background-color: ${color(i)};"></span>`;
+		const name = col.includes('mb') ? col.replace('_', ', h=') : col;
+		lbl.innerHTML = `${fillSpaces(name.replace('t2', 't2, station'))}<span class="color-box" style="background-color: ${color(i)};"></span>`;
 		div.append(box, lbl);
 		div.addEventListener('change', () => {
 			viewSeries(i, document.getElementById(id).checked);
