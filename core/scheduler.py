@@ -69,6 +69,9 @@ class Query:
     def result(self):
         return [t.result() for t in self.tasks] if self.done else None
 
+    def await_result(self):
+        return [t.result() for t in self.tasks]
+
 class Scheduler:
     def __init__(self, workers=4, ttl=10):
         self.ttl = ttl
@@ -89,8 +92,9 @@ class Scheduler:
         done, info = query.status() if query else (None, None)
         if (done or (query and query.is_failed())) and not chached:
             del self.queries[key]
-            self.cache[key] = query
-            self.executor.submit(self._dispose, key)
+            if self.ttl:
+                self.cache[key] = query
+                self.executor.submit(self._dispose, key)
         return done, query.result() if done else info
 
     def query_tasks(self, key, tasks):
