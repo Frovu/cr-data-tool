@@ -10,15 +10,12 @@ class Downloader(Scheduler):
     def download(self, year):
         if eq := self.get(year):
             return eq
-        return self.query_tasks(year, (_download_model, (), f'downloading {year}.nc', True))
-
-if not os.path.exists('tmp'):
-    os.makedirs('tmp')
+        return self.query_tasks(year, [(_download_model, (year,), f'downloading {year}.nc', True)])
 
 def filename(year):
     return f'air.{year}.nc'
 
-_download_model(progress, year):
+def _download_model(progress, year):
     fname = filename(year)
     ftp = FTP('ftp2.psl.noaa.gov')
     log.debug('FTP login: '+ftp.login())

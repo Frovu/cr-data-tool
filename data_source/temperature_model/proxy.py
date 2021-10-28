@@ -32,6 +32,7 @@ def _fetch_existing():
 
 def table_name(lat, lon):
     return f"ncep_proc_{int(lat*100)}_{'N' if lat>0 else 'S'}_{int(lon*100)}_{'E' if lat>0 else 'W'}"
+
 def _create_if_not_exists(lat, lon):
     with pg_conn.cursor() as cursor:
         query = f'''CREATE TABLE IF NOT EXISTS {table_name(lat, lon)} (
@@ -53,17 +54,17 @@ def analyze_integrity(lat, lon, t_from, t_to):
     station = get_station(lat, lon)
     if not station:
         return False
-    q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), f'p_{int(LEVELS[0])}', return_epoch=False)
+    q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), f'p_{int(LEVELS[0])}', return_epoch=True)
     with pg_conn.cursor() as cursor:
         cursor.execute(q)
         return cursor.fetchall()
 
-def select(lat, lon, start_time, end_time):
+def select(lat, lon, t_from, t_to):
     result = []
     fields = [T_M_COLUMN] + [f"p_{int(l)}" for l in LEVELS]
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, {",".join(fields)} FROM {table_name(lat, lon)} ' +
-            'WHERE time >= %s AND time <= %s ORDER BY time', [start_time, end_time])
+            'WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY time', [t_from, t_to])
         return cursor.fetchall(), ['time', 't_mass_avg'] + [f't_{int(l)}mb' for l in LEVELS]
 
 def insert(lat, lon, data):
@@ -72,5 +73,5 @@ def insert(lat, lon, data):
     with pg_conn.cursor() as cursor:
         query = f'INSERT INTO {table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO UPDATE SET {T_M_COLUMN} = EXCLUDED.{T_M_COLUMN}'
         psycopg2.extras.execute_values (cursor, query, data,
-            template='to_timestamp(%s)'+''.join([',%s' for i in range(data.shape[1]-1)]))
+            template='(to_timestamp(%s)'+''.join([',%s' for i in range(data.shape[1]-1)])+')')
         pg_conn.commit()

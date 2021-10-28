@@ -39,7 +39,7 @@ def _interpolate_time(times, data):
 
 def _t_mass_average(data):
     diff = np.abs(np.diff(proxy.LEVELS)) / np.max(proxy.LEVELS)
-    return [diff * ((x[:-1] + x[1:]) / 2) for x in data]
+    return np.array([np.sum(diff * ((x[:-1] + x[1:]) / 2)) for x in data])
 
 def _fill_interval(interval, lat, lon, mq):
     t_from = interval[0] - MODEL_PERIOD * SPLINE_INDENT
@@ -53,7 +53,8 @@ def _fill_interval(interval, lat, lon, mq):
     log.debug(f"NCEP: Interpolated [{result.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
     t_m = _t_mass_average(result)
     log.debug(f"NCEP: T_m [{t_m.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
-    proxy.insert(np.column_stack((times_1h, t_m, result)), lat, lon)
+    result_m = np.column_stack((times_1h, t_m, result))
+    proxy.insert(lat, lon, result_m)
 
 def _bound_query(t_from, t_to):
     t_from = MODEL_PERIOD * floor(t_from / MODEL_PERIOD)
@@ -83,7 +84,7 @@ def get(lat, lon, t_from, t_to, no_response=False):
     mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
     query = scheduler.do_fill(token, t_from, t_to, HOUR, [
         ('temperature-model', fill_fn, (
-            lambda i: proxy.analyze_integrity(lat, lon, i[0], i[1])
+            lambda i: proxy.analyze_integrity(lat, lon, i[0], i[1]),
             lambda i: _fill_interval(i, lat, lon, mq_fn)
         ))
     ])
