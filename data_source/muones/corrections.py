@@ -4,6 +4,7 @@ import data_source.temperature_model.temperature as temperature
 import logging
 import numpy as np
 from scipy import interpolate, stats
+from sklearn.linear_model import LinearRegression
 import time
 import re
 from math import floor, ceil
@@ -51,8 +52,25 @@ def get_prepare_tasks(station, period, fill_fn, subquery_fn, against):
             )))
         return tasks
 
-def correct(t_from, t_to, station, period):
-    prepare_data(station, t_from, t_to, period)
+# !!! Presumes that everything is prepared
+def correct(*args):
+    station, t_from, t_to, period = args
+    data = np.array(proxy.select(*args, ['n_v_raw', 'pressure', 'T_m'])[0])
+    data = data[data[:,1] != np.array(None)]
+    data = data[data[:,2] != np.array(None)]
+    reg = multiple_regression(data[:,1:])
+    pred = reg.predict(data[:,2:4])
+    proxy.upsert(station, period, np.column_stack((data[:,0], pred)), ['n_v'], epoch=True)
+
+def multiple_regression(data):
+    print('was', len(data))
+    data = data[data[:,0] > 0]
+    print('len', len(data))
+    reg = LinearRegression().fit(data[:,1:], data[:,0])
+    print(reg.score(data[:,1:], data[:,0]))
+    print(reg.coef_)
+    print(reg.intercept_)
+    return reg
 
 def linregress_corr(data, fields):
     data = np.array(data, dtype=np.float)

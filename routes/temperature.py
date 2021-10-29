@@ -17,6 +17,8 @@ def get():
     only = request.args.get('only', '')
     if only == 'model':
         status, data = t_model.get(lat, lon, t_from, t_to)
+    elif only == 'model_avg':
+        status, data = t_model.get(lat, lon, t_from, t_to, only=['mass_average'])
     else:
         status, data = t_stations.get_with_model(lat, lon, t_from, t_to)
     body = { "status": status }
