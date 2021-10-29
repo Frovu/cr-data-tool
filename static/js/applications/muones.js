@@ -7,25 +7,26 @@ const FIELDS = {
 	n_v_raw: {
 		label: 'n_v_raw',
 		scale: 'n',
-		color: 'rgba(255,150,100,1)',
+		color: 'rgba(0,0,255,0.5)',
 		nounit: true
 	},
 	n_v: {
 		label: 'n_v',
 		scale: 'n',
 		color: 'rgba(255,0,0,1)',
+		width: 2,
 		nounit: true
 	},
 	pressure: {
 		label: 'p',
 		scale: 'mb',
-		color: 'rgba(200,0,255,1)',
+		color: 'rgba(200,0,200,0.7)',
 		precision: 1
 	},
 	T_m: {
 		label: 't_mass_avg',
 		scale: 'K',
-		color: 'rgba(50,255,50,1)',
+		color: 'rgba(255,155,50,1)',
 		precision: 1
 	},
 };

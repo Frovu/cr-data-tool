@@ -70,10 +70,11 @@ def analyze_integrity(station, t_from, t_to, period, columns='n_v'):
         cursor.execute(q)
         return cursor.fetchall()
 
-def select(station, t_from, t_to, period, columns=FIELDS, include_time=True, order='time'):
+def select(station, t_from, t_to, period, columns=FIELDS, include_time=True, order='time', where=''):
     with pg_conn.cursor() as cursor:
         q = f'''SELECT {"EXTRACT(EPOCH FROM time)," if include_time else ""}{",".join(columns)}
-FROM {_table_name(station, period)} WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY {order}'''
+FROM {_table_name(station, period)} WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s)
+{"AND "+where if where else ""} ORDER BY {order}'''
         cursor.execute(q, [t_from, t_to])
         return cursor.fetchall(), (['time']+columns) if include_time else columns
 
