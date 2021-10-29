@@ -112,8 +112,3 @@ export function input(type, callback, options) {
 	}
 	return elem;
 }
-
-export function disable(tab) {
-	const button = document.getElementById(`${tab}-btn`);
-	button.disabled = true;
-}

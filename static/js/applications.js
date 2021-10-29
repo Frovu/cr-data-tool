@@ -24,6 +24,7 @@ export function swithApp(nextApp) {
 		if (!tabsCache[active]) tabsCache[active] = {};
 		if (app.unload) app.unload();
 		for (const tab of tabs) {
+			if (tab.id.startsWith('info')) continue;
 			tabsCache[active][tab.id] = tab;
 			const newTab = tab.cloneNode(true);
 			newTab.innerHTML = '';
@@ -32,7 +33,7 @@ export function swithApp(nextApp) {
 	}
 	if (tabsCache[nextApp]) { // restore app's tabs from cache
 		for (const tab of tabs) {
-			// console.log(tabsCache[nextApp][tab.id])
+			if (tab.id.startsWith('info')) continue;
 			document.body.replaceChild(tabsCache[nextApp][tab.id], tab);
 		}
 	} else {
@@ -53,6 +54,10 @@ export function swithApp(nextApp) {
 		selects.push(select);
 		apptab.append(select);
 		applications[nextApp].initTabs();
+	}
+	for (const tab of tabs) {
+		const button = document.getElementById(`${tab.id.split('-')[0]}-btn`);
+		button.disabled = !tab.innerHTML;
 	}
 	if (applications[nextApp].load) applications[nextApp].load();
 	active = nextApp;

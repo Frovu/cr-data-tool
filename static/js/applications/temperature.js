@@ -140,8 +140,6 @@ When query parameters are changed, the button becomes highlighted.`)
 		]);
 	});
 	tabs.fill('view', viewSelectors);
-	tabs.disable('tools');
-	tabs.disable('export');
 }
 
 export function load() {

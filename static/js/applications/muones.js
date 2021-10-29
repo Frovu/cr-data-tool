@@ -110,9 +110,6 @@ WIP<br>
 		}, { from: params.from, to: params.to }),
 		query.el
 	]);
-	tabs.disable('view');
-	tabs.disable('tools');
-	tabs.disable('export');
 }
 
 export function load() {

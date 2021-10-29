@@ -92,8 +92,6 @@ Refer to "Temperature" app for more details`)
 			plotInit();
 		}, { options: ['K', '°C'], text: 'Unit: ' })
 	]);
-	tabs.disable('tools');
-	tabs.disable('export');
 }
 
 export function load() {
