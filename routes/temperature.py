@@ -30,7 +30,6 @@ def get():
     body["data"] = data[0]
     return body
 
-
 @bp.route('/stations')
 def stations():
     return { 'list': t_model.get_stations() }

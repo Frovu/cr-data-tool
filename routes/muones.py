@@ -10,6 +10,27 @@ bp = Blueprint('muones', __name__, url_prefix='/api/muones')
 def stations():
     return { 'list': muones.stations() }
 
+@bp.route('/')
+def corrected():
+    try:
+        t_from = int(request.args.get('from', ''))
+        t_to = int(request.args.get('to', ''))
+        period = int(request.args.get('period')) if request.args.get('period') else 3600
+        station = request.args.get('station', '')
+        if period not in [60, 3600]:
+            raise ValueError()
+        status, data = muones.get_corrected(station, t_from, t_to, period)
+        body = { "status": status }
+        if status == 'ok':
+            body["fields"] = data[1]
+            body["data"] = data[0]
+        return body
+    except ValueError:
+        return {}, 400
+    except Exception:
+        logging.error(f'exc in muones/corrected: {traceback.format_exc()}')
+        return {}, 500
+
 @bp.route('/raw')
 def raw():
     try:
