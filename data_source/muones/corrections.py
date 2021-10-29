@@ -8,35 +8,30 @@ import time
 import re
 from math import floor, ceil
 
-BATCH_SIZE = 4096
 COLUMNS_TEMP = ['T_m']
 COLUMNS_RAW = ['raw_acc_cnt', 'n_v_raw', 'pressure']
 MODEL_PERIOD = 3600
-
-def _T_m(ts, levels):
-    diff = np.abs(np.diff(levels))
-    return np.sum([np.mean([ts[i],ts[i+1]])*diff[i]/1000 for i in range(diff.shape[0])])
 
 def _calculate_temperatures(lat, lon, t_from, t_to, period, add_query):
     pa_from, pa_to = floor(t_from/MODEL_PERIOD)*MODEL_PERIOD, ceil(t_to/MODEL_PERIOD)*MODEL_PERIOD
     logging.debug(f'Muones: querying model temp ({lat}, {lon}) {t_from}:{t_to}')
     delay = .1
     while True:
-        status, data = temperature.get_by_epoch(lat, lon, pa_from, pa_to)
+        status, data = temperature.get(lat, lon, pa_from, pa_to, only=['mass_average'])
         if status == 'accepted':
             add_query(data)
+        elif status == 'failed':
+            raise Exception('Muones: failed to obtain T_m')
         elif status == 'ok':
             logging.debug(f'Muones: got model response')
-            levels = [float(re.match(r't_(\d+)mb', f).group(1)) for f in data[1] if re.match(r't_(\d+)mb', f)]
             data = np.array(data[0])
             times = data[:,0]
-            values = data[:,1:]
+            t_avg = data[:,1]
             if period != MODEL_PERIOD:
-                interp = interpolate.interp1d(times, values, axis=0)
+                interp = interpolate.interp1d(times, t_avg, axis=0)
                 times = np.arange(t_from, t_to+1, period)
-                values = interp(times)
-            result = np.array([_T_m(temps, levels) for temps in values])
-            return np.array([times.astype(int), result]).T
+                t_avg = interp(times)
+            return np.column_stack((times, t_avg))
         delay += .1 if delay < 1 else 0
         time.sleep(delay)
 
@@ -59,7 +54,7 @@ def get_prepare_tasks(station, period, fill_fn, subquery_fn, against):
 def correct(t_from, t_to, station, period):
     prepare_data(station, t_from, t_to, period)
 
-def calc_correlation(data, fields):
+def linregress_corr(data, fields):
     data = np.array(data, dtype=np.float)
     yavg = np.nanmean(data[:,1])
     filter = int(yavg - yavg/4)

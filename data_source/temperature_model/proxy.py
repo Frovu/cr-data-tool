@@ -59,13 +59,14 @@ def analyze_integrity(lat, lon, t_from, t_to):
         cursor.execute(q)
         return cursor.fetchall()
 
-def select(lat, lon, t_from, t_to):
+def select(lat, lon, t_from, t_to, only=[]):
     result = []
-    fields = [T_M_COLUMN] + [f"p_{int(l)}" for l in LEVELS]
+    fields = only or ([T_M_COLUMN] + [f"p_{int(l)}" for l in LEVELS])
+    ret_fields = only or (['t_mass_avg'] + [f't_{int(l)}mb' for l in LEVELS])
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, {",".join(fields)} FROM {table_name(lat, lon)} ' +
             'WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY time', [t_from, t_to])
-        return cursor.fetchall(), ['time', 't_mass_avg'] + [f't_{int(l)}mb' for l in LEVELS]
+        return cursor.fetchall(), ['time'] + ret_fields
 
 def insert(lat, lon, data):
     if not len(data): return

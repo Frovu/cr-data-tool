@@ -69,7 +69,7 @@ def _bound_query(t_from, t_to):
 def get_stations():
     return proxy.get_stations()
 
-def get(lat, lon, t_from, t_to, no_response=False):
+def get(lat, lon, t_from, t_to, no_response=False, only=[]):
     lat = round(float(lat), 2)
     lon = round(float(lon), 2)
     if not proxy.get_station(lat, lon):
@@ -80,7 +80,7 @@ def get(lat, lon, t_from, t_to, no_response=False):
     if done == False:
         return 'failed' if info.get('failed') else 'busy', info
     if done or not proxy.analyze_integrity(lat, lon, t_from, t_to):
-        return 'ok', None if no_response else proxy.select(lat, lon, t_from, t_to)
+        return 'ok', None if no_response else proxy.select(lat, lon, t_from, t_to, only)
     log.info(f'NCEP: Filling ({lat}, {lon}) {t_from}:{t_to}')
     mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
     query = scheduler.do_fill(token, t_from, t_to, HOUR, [
