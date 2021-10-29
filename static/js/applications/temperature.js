@@ -19,6 +19,7 @@ let temperatureUnit = 'K';
 
 function receiveData(resp) {
 	const rows = resp.data, len = resp.data.length;
+	exprt.setData(resp.data, resp.fields);
 	const fields = ['time'].concat(COLUMNS);
 	const idx = Array(fields.length);
 	resp.fields.forEach((field, i) => {
@@ -86,9 +87,13 @@ export async function fetchStations() {
 	return (await resp.json()).list;
 }
 
+const exprt = tabs.exportTab(URL, params);
 const query = util.constructQueryManager(URL, {
 	data: receiveData,
-	params: p => util.storage.setObject('temperature-params', p)
+	params: p => {
+		util.storage.setObject('temperature-params', p);
+		exprt.setParams(p);
+	}
 });
 
 export function initTabs() {
@@ -140,6 +145,7 @@ When query parameters are changed, the button becomes highlighted.`)
 		]);
 	});
 	tabs.fill('view', viewSelectors);
+	tabs.fill('export', [exprt.el]);
 }
 
 export function load() {
