@@ -15,7 +15,6 @@ FIELDS = [
     'n_v_raw',
     'raw_acc_cnt',
     'n_v_pc',
-    'n_v_tc',
     'n_v',
     'pressure',
     'T_m'

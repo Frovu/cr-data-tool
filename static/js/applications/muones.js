@@ -14,7 +14,7 @@ const FIELDS = {
 		label: 'n_v',
 		scale: 'n',
 		color: 'rgba(255,0,0,1)',
-		width: 2,
+		// width: 2,
 		nounit: true
 	},
 	pressure: {
@@ -74,7 +74,7 @@ const query = util.constructQueryManager(URL, {
 });
 
 async function fetchStations() {
-	const resp = await fetch('api/muones/stations').catch(()=>{});
+	const resp = await fetch(URL + '/stations').catch(()=>{});
 	if (!resp || resp.status !== 200) return null;
 	return (await resp.json()).list;
 }

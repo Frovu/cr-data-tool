@@ -52,25 +52,23 @@ def get_prepare_tasks(station, period, fill_fn, subquery_fn, against):
             )))
         return tasks
 
-# !!! Presumes that everything is prepared
+# !!! Presumes that all needed data is prepared
 def correct(*args):
     station, t_from, t_to, period = args
-    data = np.array(proxy.select(*args, ['n_v_raw', 'pressure', 'T_m'])[0])
-    data = data[data[:,1] != np.array(None)]
-    data = data[data[:,2] != np.array(None)]
-    reg = multiple_regression(data[:,1:])
-    pred = reg.predict(data[:,2:4])
-    proxy.upsert(station, period, np.column_stack((data[:,0], pred)), ['n_v'], epoch=True)
+    data = np.array(proxy.select(*args, ['n_v_raw', 'pressure', 'T_m'])[0], dtype=np.float64)
+    data = data[~np.isnan(data[:,1])]
+    data = data[~np.isnan(data[:,2])]
+    n_u, p, t = data[:,1], data[:,2], data[:,3]
+    p = (1000 - p)
+    t = (np.mean(t) - t)
+    beta, alpha = multiple_regression(np.column_stack((n_u, p, t)))
+    n_c = n_u * np.exp(-1 * beta * p) * (1 - alpha * t)
+    proxy.upsert(station, period, np.column_stack((data[:,0], n_c)), ['n_v'], epoch=True)
 
 def multiple_regression(data):
-    print('was', len(data))
     data = data[data[:,0] > 0]
-    print('len', len(data))
-    reg = LinearRegression().fit(data[:,1:], data[:,0])
-    print(reg.score(data[:,1:], data[:,0]))
-    print(reg.coef_)
-    print(reg.intercept_)
-    return reg
+    reg = LinearRegression().fit(data[:,1:], np.log(data[:,0]))
+    return reg.coef_
 
 def linregress_corr(data, fields):
     data = np.array(data, dtype=np.float)

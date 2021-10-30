@@ -10,7 +10,7 @@ bp = Blueprint('muones', __name__, url_prefix='/api/muones')
 def stations():
     return { 'list': muones.stations() }
 
-@bp.route('/')
+@bp.route('')
 def corrected():
     try:
         t_from = int(request.args.get('from', ''))
