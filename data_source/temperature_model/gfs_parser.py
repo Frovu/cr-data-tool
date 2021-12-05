@@ -18,7 +18,7 @@ def _download(filename, latlon, fcst_date, fcst_hour, source='gfs'):
     query += f'file={source}.t{hh}z.pgrb2.0p25.f{fcst_hour:03}'
     query += f'&dir=%2F{source}.{yyyymmdd}%2F{hh}%2Fatmos'
     query += f'&subregion=&leftlon={latlon[1][0]}&rightlon={latlon[1][1]}&bottomlat={latlon[0][0]}&toplat={latlon[0][1]}'
-    logging.debug(f'Query GFS {source}.{yyyymmdd}+{fcst_hour:03}')
+    logging.warning(f'Query GFS {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
     res = requests.get(f'{_GFS_URL}{query}{_GFS_QUERY_VARS}', stream=True)
     if res.status_code == 200:
         with open(filename, 'wb') as f:
@@ -29,11 +29,15 @@ def _download(filename, latlon, fcst_date, fcst_hour, source='gfs'):
 
 def _tries_list(dtime, depth=8, PER_H=6):
     tries = []
-    age = datetime.now() - dtime
     fcst_date = dtime.replace(hour = dtime.hour // PER_H * PER_H)
     fcst_hour = dtime.hour % PER_H
-    if age.days or age.seconds > 4*3600: # gdas is late for 3:45 hours at peak
+    gdas_ready = datetime.now() - timedelta(hours=4)
+    gfs_ready = datetime.now()
+    if fcst_date + timedelta(hours=8) < datetime.now(): # gdas computes ~ 7 hours
         tries.append((fcst_date, fcst_hour, 'gdas'))
+    while fcst_date + timedelta(hours=4) > datetime.now(): # rewind to until gfs ready
+        fcst_date -= timedelta(hours=PER_H)
+        fcst_hour += PER_H
     for i in range(depth):
         tries.append((fcst_date, fcst_hour, 'gfs'))
         fcst_date -= timedelta(hours=PER_H)
@@ -69,12 +73,12 @@ def _calc_one_hour(timestamp, lat, lon, grid_margin=2):
 
 def obtain(lat, lon, t_from, t_to, PERIOD=3600):
     times = [t for t in range(t_from, t_to + 1, PERIOD)]
-    with ThreadPoolExecutor(max_workers=4) as e:
+    with ThreadPoolExecutor(max_workers=32) as e:
         result = list(e.map(lambda t: _calc_one_hour(t, lat, lon), times))
     print(result)
 
 lat = 55.47
 lon = 37.32
-fr = 1638662400 + 12*3600#- 3600 * 24 * 4
-to = fr + 20*3600
+fr = 1638662400#- 3600 * 24 * 4
+to = fr + 48*3600
 obtain(lat, lon, fr, to)
