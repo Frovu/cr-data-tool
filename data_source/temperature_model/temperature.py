@@ -14,9 +14,9 @@ SPLINE_INDENT_H = MODEL_PERIOD // HOUR * SPLINE_INDENT
 scheduler = SequenceFiller(ttl=0)
 
 # transform geographical coords to index coords
-def _get_coords(lat, lon):
-    lat_i = interpolate.interp1d([90, -90], [0, 72])
-    lon_i = interpolate.interp1d([0, 360], [0, 144]) # we will get out of range at lat > 175.5 but I hope its not critical
+def _get_coords(lat, lon, resolution=2.5):
+    lat_i = interpolate.interp1d([90, -90], [0, 180 // resolution])
+    lon_i = interpolate.interp1d([0,  360], [0, 360 // resolution])
     return [[lat_i(lat)], [lon_i((lon + 360) % 360)]] # lon: [-180;180]->[0;360]
 
 def _approximate_for_point(data, lat, lon):
@@ -24,7 +24,7 @@ def _approximate_for_point(data, lat, lon):
     approximated = np.empty(data.shape[:2])
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
-            approximated[i][j] = ndimage.map_coordinates(data[i][j], coords, order=3, mode='nearest')
+            approximated[i][j] = ndimage.map_coordinates(data[i][j], coords, mode='wrap')
     return approximated
 
 # 6h model resolution -> 1h resolution

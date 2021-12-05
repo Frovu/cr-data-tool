@@ -1,6 +1,6 @@
 ## Install
 
-- `pip install numpy scipy sklearn flask psycopg2 netCDF4 requests`
+- `pip install numpy scipy sklearn flask psycopg2 netCDF4 requests pygrib`
 
 ## Run
 
