@@ -1,5 +1,5 @@
 
-def integrity_query(t_from, t_to, period, table, test_column, time_column='time', return_epoch=True):
+def integrity_query(t_from, t_to, period, table, test_column, time_column='time', bad_condition=False, return_epoch=True):
     return f'''WITH RECURSIVE
 input (t_from, t_to, t_interval) AS (
     VALUES (to_timestamp({t_from}), to_timestamp({t_to}), interval \'{period} s\')
@@ -19,10 +19,12 @@ input (t_from, t_to, t_interval) AS (
     SELECT
         gap_start,
         COALESCE((SELECT time-t_interval FROM filled
-            WHERE {test_column} IS NOT NULL AND time > gap_start LIMIT 1),t_to) AS gap_end
+            WHERE ({f"NOT ({bad_condition}) AND" if bad_condition else ""} {test_column} IS NOT NULL)
+                AND time > gap_start LIMIT 1),t_to) AS gap_end
     FROM (
         SELECT
-            (SELECT time FROM filled WHERE {test_column} IS NULL AND time > gap_end LIMIT 1) AS gap_start
+            (SELECT time FROM filled WHERE ({f"({bad_condition}) OR" if bad_condition else ""} {test_column} IS NULL)
+                AND time > gap_end LIMIT 1) AS gap_start
         FROM rec, input
         WHERE gap_end < t_to
     ) r, input )

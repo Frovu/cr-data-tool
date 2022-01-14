@@ -44,8 +44,8 @@ def _tries_list(dtime, depth=8, PER_H=6):
     return tries
 
 # grid_margin determines size of queried subregion of coordinates (required for spline interp)
-def _calc_one_hour(timestamp, lat, lon, grid_margin=2):
-    result = np.empty(len(LEVELS))
+def _calc_one_hour(timestamp, lat, lon, progress, grid_margin=2):
+    result = np.empty(1 + len(LEVELS))
     latlon = ( (lat - grid_margin, lat + grid_margin),
                (lon - grid_margin, lon + grid_margin) )
     dtime = datetime.utcfromtimestamp(timestamp)
@@ -53,6 +53,7 @@ def _calc_one_hour(timestamp, lat, lon, grid_margin=2):
     try:
         for args in _tries_list(dtime):
             if _download(fname, latlon, *args):
+                result[0] = args[0] # forecast date
                 grbs = pygrib.open(fname)
                 lats, lons = grbs.message(1).latlons()
                 lats, lons = lats[:,1], lons[1]
@@ -61,22 +62,18 @@ def _calc_one_hour(timestamp, lat, lon, grid_margin=2):
                 grbs.rewind()
                 for grb in grbs:
                     lvl = ndimage.map_coordinates(grb.values, ([lat_i], [lon_i]), mode='nearest')
-                    result[LEVELS.index(grb.level)] = lvl
+                    result[1 + LEVELS.index(grb.level)] = lvl
                 break
     except:
         logging.error(f'Failed to get GFS data for {dtime}')
     if os.path.exists(fname): os.remove(fname)
+    progress[0] += 1
     return result
 
 # returns 17-levels temp for coordinates, time range with 1h period edge included
-def obtain(lat, lon, t_from, t_to, PERIOD=3600):
+def obtain(lat, lon, t_from, t_to, progress, PERIOD=3600):
     times = [t for t in range(t_from, t_to + 1, PERIOD)]
+    progress[0], progress[1] = 0, len(times)
     with ThreadPoolExecutor(max_workers=32) as e:
-        result = np.array(list(e.map(lambda t: _calc_one_hour(t, lat, lon), times)))
+        result = np.array(list(e.map(lambda t: _calc_one_hour(t, lat, lon, progress), times)))
     return result
-
-lat = 55.47
-lon = 37.32
-fr = 1638662400#- 3600 * 24 * 4
-to = fr + 2*3600
-print(obtain(lat, lon, fr, to))

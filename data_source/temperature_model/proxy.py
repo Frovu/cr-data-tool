@@ -25,7 +25,7 @@ stations = []
 def _fetch_existing():
     with pg_conn.cursor() as cursor:
         cursor.execute('SELECT lat, lon, name FROM stations')
-        log.info(f"NCEP: Starting with {cursor.rowcount} stations")
+        log.info(f"TEMPERATURE: Starting with {cursor.rowcount} stations")
         for row in cursor.fetchall():
             stations.append({'name': row[2], 'lat': row[0], 'lon': row[1]})
             _create_if_not_exists(row[0], row[1])
@@ -37,6 +37,7 @@ def _create_if_not_exists(lat, lon):
     with pg_conn.cursor() as cursor:
         query = f'''CREATE TABLE IF NOT EXISTS {table_name(lat, lon)} (
 time TIMESTAMP NOT NULL PRIMARY KEY,
+forecast TIMESTAMP,
 {T_M_COLUMN} REAL,
 {", ".join([f"p_{int(l)} REAL NOT NULL" for l in LEVELS])})'''
         cursor.execute(query)
@@ -50,29 +51,31 @@ def get_stations():
     return stations
 
 # return list of time period turples for which data is missing
-def analyze_integrity(lat, lon, t_from, t_to):
+def analyze_integrity(lat, lon, t_from, t_to, FORECAST_AGE='2 days'):
     station = get_station(lat, lon)
     if not station:
         return False
-    q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), f'p_{int(LEVELS[0])}', return_epoch=True)
+    q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), f'p_{int(LEVELS[0])}', return_epoch=True,
+        bad_condition=f'forecast IS NOT NULL AND \'now\'::timestamp - forecast > \'{FORECAST_AGE}\'::interval')
     with pg_conn.cursor() as cursor:
         cursor.execute(q)
         return cursor.fetchall()
 
 def select(lat, lon, t_from, t_to, only=[]):
     result = []
-    fields = only or ([T_M_COLUMN] + [f"p_{int(l)}" for l in LEVELS])
+    fields = only or ([T_M_COLUMN] + [f'p_{int(l)}' for l in LEVELS])
     ret_fields = only or (['t_mass_avg'] + [f't_{int(l)}mb' for l in LEVELS])
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, {",".join(fields)} FROM {table_name(lat, lon)} ' +
             'WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY time', [t_from, t_to])
         return cursor.fetchall(), ['time'] + ret_fields
 
-def insert(lat, lon, data):
+def insert(lat, lon, data, forecast=False):
     if not len(data): return
-    log.info(f'NCEP: Insert: {table_name(lat, lon)} <-[{len(data)}] {data[0][0]}:{data[-1][0]}')
+    log.info(f'TEMPERATURE: Insert: {table_name(lat, lon)} <-[{len(data)}] {data[0][0]}:{data[-1][0]}')
     with pg_conn.cursor() as cursor:
         query = f'INSERT INTO {table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO UPDATE SET {T_M_COLUMN} = EXCLUDED.{T_M_COLUMN}'
         psycopg2.extras.execute_values (cursor, query, data,
-            template='(to_timestamp(%s)'+''.join([',%s' for i in range(data.shape[1]-1)])+')')
+            template='(to_timestamp(%s)'+(',to_timestamp(%s)' if forecast else ',NULL')+
+            ''.join([',%s' for i in range(data.shape[1]-(2 if forecast else 1))])+')')
         pg_conn.commit()
