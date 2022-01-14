@@ -1,12 +1,13 @@
 import requests
 import logging
 import pygrib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import numpy as np
 import os
 from scipy import interpolate, ndimage
 from data_source.temperature_model.proxy import LEVELS
 from concurrent.futures import ThreadPoolExecutor
+import traceback
 
 _GFS_URL = 'https://nomads.ncep.noaa.gov'
 _GFS_QUERY_VARS = '&var_TMP=on' + ''.join([f'&lev_{str(lvl)}_mb=on' for lvl in LEVELS])
@@ -45,7 +46,7 @@ def _tries_list(dtime, depth=8, PER_H=6):
 
 # grid_margin determines size of queried subregion of coordinates (required for spline interp)
 def _calc_one_hour(timestamp, lat, lon, progress, grid_margin=2):
-    result = np.empty(1 + len(LEVELS))
+    result = np.empty(2 + len(LEVELS))
     latlon = ( (lat - grid_margin, lat + grid_margin),
                (lon - grid_margin, lon + grid_margin) )
     dtime = datetime.utcfromtimestamp(timestamp)
@@ -53,7 +54,8 @@ def _calc_one_hour(timestamp, lat, lon, progress, grid_margin=2):
     try:
         for args in _tries_list(dtime):
             if _download(fname, latlon, *args):
-                result[0] = args[0] # forecast date
+                result[0] = timestamp # date
+                result[1] = args[0].replace(tzinfo=timezone.utc).timestamp() # forecast date
                 grbs = pygrib.open(fname)
                 lats, lons = grbs.message(1).latlons()
                 lats, lons = lats[:,1], lons[1]
@@ -62,10 +64,11 @@ def _calc_one_hour(timestamp, lat, lon, progress, grid_margin=2):
                 grbs.rewind()
                 for grb in grbs:
                     lvl = ndimage.map_coordinates(grb.values, ([lat_i], [lon_i]), mode='nearest')
-                    result[1 + LEVELS.index(grb.level)] = lvl
+                    result[2 + LEVELS.index(grb.level)] = lvl
                 break
     except:
-        logging.error(f'Failed to get GFS data for {dtime}')
+        logging.error(f'Failed to get GFS data for {dtime}: {traceback.format_exc()}')
+        # TODO: handle error
     if os.path.exists(fname): os.remove(fname)
     progress[0] += 1
     return result

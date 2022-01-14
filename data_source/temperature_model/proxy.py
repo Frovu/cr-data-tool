@@ -19,7 +19,9 @@ pg_conn = psycopg2.connect(
 
 _INSERT_CHUNK_SIZE = 100
 LEVELS = [1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30, 20, 10]
+FC_COLUMN = 'forecast'
 T_M_COLUMN = 'mass_average'
+LEVELS_COLUMNS = [f'p_{int(l)}' for l in LEVELS]
 
 stations = []
 def _fetch_existing():
@@ -39,7 +41,7 @@ def _create_if_not_exists(lat, lon):
 time TIMESTAMP NOT NULL PRIMARY KEY,
 forecast TIMESTAMP,
 {T_M_COLUMN} REAL,
-{", ".join([f"p_{int(l)} REAL NOT NULL" for l in LEVELS])})'''
+{", ".join([f"{l} REAL NOT NULL" for l in LEVELS_COLUMNS])})'''
         cursor.execute(query)
         pg_conn.commit()
 _fetch_existing()
@@ -55,7 +57,7 @@ def analyze_integrity(lat, lon, t_from, t_to, FORECAST_AGE='2 days'):
     station = get_station(lat, lon)
     if not station:
         return False
-    q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), f'p_{int(LEVELS[0])}', return_epoch=True,
+    q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), LEVELS_COLUMNS[0], return_epoch=True,
         bad_condition=f'forecast IS NOT NULL AND \'now\'::timestamp - forecast > \'{FORECAST_AGE}\'::interval')
     with pg_conn.cursor() as cursor:
         cursor.execute(q)
@@ -63,7 +65,7 @@ def analyze_integrity(lat, lon, t_from, t_to, FORECAST_AGE='2 days'):
 
 def select(lat, lon, t_from, t_to, only=[]):
     result = []
-    fields = only or ([T_M_COLUMN] + [f'p_{int(l)}' for l in LEVELS])
+    fields = only or ([T_M_COLUMN] + LEVELS_COLUMNS)
     ret_fields = only or (['t_mass_avg'] + [f't_{int(l)}mb' for l in LEVELS])
     with pg_conn.cursor() as cursor:
         cursor.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, {",".join(fields)} FROM {table_name(lat, lon)} ' +
@@ -74,7 +76,7 @@ def insert(lat, lon, data, forecast=False):
     if not len(data): return
     log.info(f'TEMPERATURE: Insert: {table_name(lat, lon)} <-[{len(data)}] {data[0][0]}:{data[-1][0]}')
     with pg_conn.cursor() as cursor:
-        query = f'INSERT INTO {table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO UPDATE SET {T_M_COLUMN} = EXCLUDED.{T_M_COLUMN}'
+        query = f'INSERT INTO {table_name(lat, lon)} VALUES %s ON CONFLICT (time) DO UPDATE SET ' + ', '.join([f'{col} = EXCLUDED.{col}' for col in [FC_COLUMN, T_M_COLUMN] + LEVELS_COLUMNS])
         psycopg2.extras.execute_values (cursor, query, data,
             template='(to_timestamp(%s)'+(',to_timestamp(%s)' if forecast else ',NULL')+
             ''.join([',%s' for i in range(data.shape[1]-(2 if forecast else 1))])+')')

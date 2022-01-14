@@ -60,12 +60,12 @@ def _fill_interval(interval, lat, lon, mq):
     proxy.insert(lat, lon, result_m[slice:(-1*slice)])
 
 def _fill_with_forecast(progress, t_from, t_to, lat, lon):
-    data, forecast_date = gfs.obtain(lat, lon, t_from, t_to, progress)
+    data = gfs.obtain(lat, lon, t_from, t_to, progress)
     log.debug(f"GFS: Complete [{data.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
-    t_m = _t_mass_average(data)
+    t_m = _t_mass_average(data[:,2:])
     log.debug(f"GFS: T_m [{t_m.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
-    result = np.column_stack((data[:,0], forecast_date, t_m, data[:,1:]))
-    proxy.insert(lat, lon, result, forecast=True)
+    data = np.insert(data, 2, t_m, axis=1)
+    proxy.insert(lat, lon, data, forecast=True)
 
 def _bound_query(t_from, t_to):
     t_from = MODEL_PERIOD * floor(t_from / MODEL_PERIOD)
