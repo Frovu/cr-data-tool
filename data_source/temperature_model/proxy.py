@@ -53,7 +53,7 @@ def get_stations():
     return stations
 
 # return list of time period turples for which data is missing
-def analyze_integrity(lat, lon, t_from, t_to, FORECAST_AGE='2 days'):
+def analyze_integrity(lat, lon, t_from, t_to, FORECAST_AGE='3 days'):
     station = get_station(lat, lon)
     if not station:
         return False

@@ -75,7 +75,7 @@ def _bound_query(t_from, t_to):
     if t_from - MODEL_PERIOD * SPLINE_INDENT < MODEL_EPOCH: t_from = MODEL_EPOCH
     if t_to > end_trim: t_to = end_trim
     forecast_from = now - MODEL_LAG if now - MODEL_LAG < t_to else None
-    if forecast_from < t_from: forecast_from = t_from
+    if forecast_from and forecast_from < t_from: forecast_from = t_from
     return t_from, t_to, forecast_from
 
 def get_stations():
@@ -102,7 +102,7 @@ def get(lat, lon, t_from, t_to, no_response=False, only=[]):
             True, 16 # multithreading, workers=16
         ))
     ], key_overwrite=(token, t_from, t_to))
-    if forecast_from:
+    if forecast_from and proxy.analyze_integrity(lat, lon, forecast_from, t_to, FORECAST_AGE='2 day'):
         log.info(f'GFS: Filling ({lat}, {lon}) {forecast_from}:{t_to}')
         query.submit_tasks([
             (_fill_with_forecast, (forecast_from, t_to, lat, lon), 'temperature-forecast', True)
