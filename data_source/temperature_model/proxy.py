@@ -58,6 +58,7 @@ def analyze_integrity(lat, lon, t_from, t_to, FORECAST_AGE='2 days'):
     if not station:
         return False
     q = integrity_query(t_from, t_to, 3600, table_name(lat, lon), LEVELS_COLUMNS[0], return_epoch=True,
+        bad_cond_columns=['forecast'],
         bad_condition=f'forecast IS NOT NULL AND \'now\'::timestamp - forecast > \'{FORECAST_AGE}\'::interval')
     with pg_conn.cursor() as cursor:
         cursor.execute(q)

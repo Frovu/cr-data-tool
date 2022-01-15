@@ -23,10 +23,10 @@ def _download(filename, latlon, fcst_date, fcst_hour, source='gfs'):
     res = requests.get(f'{_GFS_URL}{query}{_GFS_QUERY_VARS}', stream=True)
     if res.status_code == 200:
         with open(filename, 'wb') as f:
-            for chunk in res.iter_content(1024):
+            for chunk in res.iter_content(chunk_size=None):
                 f.write(chunk)
         return filename
-    logging.warning(f'Failed GFS [{res.status_code}] {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
+    logging.debug(f'Failed GFS [{res.status_code}] {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
     return False
 
 def _tries_list(dtime, depth=8, PER_H=6):
@@ -66,8 +66,8 @@ def _calc_one_hour(timestamp, lat, lon, progress, grid_margin=2):
                     lvl = ndimage.map_coordinates(grb.values, ([lat_i], [lon_i]), mode='nearest')
                     result[2 + LEVELS.index(grb.level)] = lvl
                 break
-    except:
-        logging.error(f'Failed to get GFS data for {dtime}: {traceback.format_exc()}')
+    except Exception as e:
+        logging.error(f'Failed to get GFS data for {dtime}: {e}') # traceback.format_exc()
         # TODO: handle error
     if os.path.exists(fname): os.remove(fname)
     progress[0] += 1

@@ -1,11 +1,11 @@
 
-def integrity_query(t_from, t_to, period, table, test_column, time_column='time', bad_condition=False, return_epoch=True):
+def integrity_query(t_from, t_to, period, table, test_column, time_column='time', bad_condition=False, bad_cond_columns=[], return_epoch=True):
     return f'''WITH RECURSIVE
 input (t_from, t_to, t_interval) AS (
     VALUES (to_timestamp({t_from}), to_timestamp({t_to}), interval \'{period} s\')
 ), filled AS (
     SELECT
-        ser.tm as time, {test_column}
+        ser.tm as time, {test_column}{''.join([', '+col for col in bad_cond_columns])}
     FROM
         (SELECT generate_series(t_from, t_to, t_interval) tm FROM input) ser
     LEFT JOIN {table}

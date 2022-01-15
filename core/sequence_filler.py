@@ -36,8 +36,8 @@ class SequenceFiller(Scheduler):
         sq = self.get((token, t_from, t_to))
         return sq and sq.append_tasks(q.tasks)
 
-    def do_fill(self, token, t_from, t_to, period, tasks):
-        key = (token, t_from, t_to)
+    def do_fill(self, token, t_from, t_to, period, tasks, key_overwrite=False):
+        key = key_overwrite or (token, t_from, t_to)
         q = self.query(key, IntervalQuery(self.executor, t_from, t_to))
         intervals = [(t_from, t_to)]
         for kk in self.queries.keys():
