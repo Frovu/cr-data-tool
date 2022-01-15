@@ -26,6 +26,9 @@ def _obtain_year(dt_from, dt_to, merge_query):
         year = dt_from.year
         fname = filename(year)
         res = _extract_from_file(fname, dt_from, dt_to)
+        end = datetime.utcfromtimestamp(res[0][-1])
+        if end < dt_to:
+            log.warning(f'File end reached for {fname}: {end}, expected {dt_to}')
     except:
         log.debug(f'Failed to read {fname}, downloading..')
         query = downloader.download(year)
