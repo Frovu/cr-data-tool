@@ -73,6 +73,12 @@ export function constructQueryManager(url, callbacks, progDetails=true) {
 			paramsChanged = false;
 			const data = await fetchOnce() || await new Promise(resolve => {
 				fetchInterval = setInterval(() => {
+					if (!fetchOngoing) {
+						resolve(null);
+						clearInterval(fetchInterval);
+						fetchInterval = null;
+						return;
+					}
 					fetchOnce().then(ok => {
 						if (typeof ok === 'undefined') return;
 						resolve(ok);
@@ -82,14 +88,17 @@ export function constructQueryManager(url, callbacks, progDetails=true) {
 				}, 2000);
 			});
 			if (data && callbacks.data) callbacks.data(data);
-			fetchOngoing = false;
-			el.classList.remove('ongoing');
-			if (paramsChanged) {
-				setTimeout(() => {
-					el.classList.add('active');
-					el.innerHTML = 'Query data';
-				}, 500);
-			}
+		} else {
+			el.innerHTML = 'Cancelled';
+			if (progEl) progEl.innerHTML = '';
+		}
+		fetchOngoing = false;
+		el.classList.remove('ongoing');
+		if (paramsChanged) {
+			setTimeout(() => {
+				el.classList.add('active');
+				el.innerHTML = 'Query data';
+			}, 500);
 		}
 	};
 	el.addEventListener('click', () => initFetch());
