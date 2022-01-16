@@ -105,7 +105,8 @@ def get(lat, lon, t_from, t_to, no_response=False, only=[]):
             True, 16 # multithreading, workers=16
         ))
     ], key_overwrite=(token, t_from, t_to))
-    forecast_required = proxy.analyze_integrity(lat, lon, forecast_from, t_to, fc_age=f'{MODEL_LAG_H+FORECAST_OVERLAP_H} hours')
+    forecast_required = forecast_from and proxy.analyze_integrity(lat, lon,
+        forecast_from, t_to, fc_age=f'{MODEL_LAG_H+FORECAST_OVERLAP_H} hours')
     if forecast_from and forecast_required:
         log.info(f'GFS: Filling ({lat}, {lon}) {forecast_from}:{t_to}')
         query.submit_tasks([
