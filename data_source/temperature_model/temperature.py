@@ -11,6 +11,7 @@ HOUR = 3600
 MODEL_PERIOD = 6 * HOUR
 MODEL_LAG_H = 72 # assume NCEP/NCAR reanalysis data for that time back is always available
 FORECAST_OVERLAP_H = 12
+FORECAST_ALLOW_FUTURE = 4 * 24 * HOUR
 MODEL_LAG = (MODEL_LAG_H * HOUR) // MODEL_PERIOD * MODEL_PERIOD
 MODEL_EPOCH = np.datetime64('1948-01-01').astype(int)
 SPLINE_INDENT = 1 # additional periods on edges for spline evaluation
@@ -73,7 +74,7 @@ def _bound_query(t_from, t_to):
     t_from = MODEL_PERIOD * floor(t_from / MODEL_PERIOD)
     t_to   = MODEL_PERIOD *  ceil(t_to   / MODEL_PERIOD)
     now    = MODEL_PERIOD * floor(np.datetime64('now').astype(int) / MODEL_PERIOD)
-    end_trim = now + MODEL_PERIOD * 8 # Forecast goes 1-2 days forward so allow query 12h forward
+    end_trim = now + FORECAST_ALLOW_FUTURE
     if t_from - MODEL_PERIOD * SPLINE_INDENT < MODEL_EPOCH: t_from = MODEL_EPOCH
     if t_to > end_trim: t_to = end_trim
     forecast_from = now - MODEL_LAG if now - MODEL_LAG < t_to else None
@@ -105,7 +106,6 @@ def get(lat, lon, t_from, t_to, no_response=False, only=[]):
         ))
     ], key_overwrite=(token, t_from, t_to))
     forecast_required = proxy.analyze_integrity(lat, lon, forecast_from, t_to, fc_age=f'{MODEL_LAG_H+FORECAST_OVERLAP_H} hours')
-    print(forecast_required)
     if forecast_from and forecast_required:
         log.info(f'GFS: Filling ({lat}, {lon}) {forecast_from}:{t_to}')
         query.submit_tasks([

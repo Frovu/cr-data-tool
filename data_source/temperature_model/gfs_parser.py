@@ -64,11 +64,15 @@ def _calc_one_hour(timestamp, lat, lon, progress, grid_margin=2):
                 grbs.rewind()
                 for grb in grbs:
                     lvl = ndimage.map_coordinates(grb.values, ([lat_i], [lon_i]), mode='nearest')
-                    result[2 + LEVELS.index(grb.level)] = lvl
+                    try:
+                        idx = LEVELS.index(grb.level)
+                        result[2 + idx] = lvl
+                    except ValueError:
+                        logging.warning(f'Unexpected level in gfs.grb: {grb.level}')
                 break
     except Exception as e:
         logging.error(f'Failed to get GFS data for {dtime}: {e}') # traceback.format_exc()
-        # TODO: handle error
+        result[0] = 0
     if os.path.exists(fname): os.remove(fname)
     progress[0] += 1
     return result
@@ -79,4 +83,4 @@ def obtain(lat, lon, t_from, t_to, progress, PERIOD=3600):
     progress[0], progress[1] = 0, len(times)
     with ThreadPoolExecutor(max_workers=32) as e:
         result = np.array(list(e.map(lambda t: _calc_one_hour(t, lat, lon, progress), times)))
-    return result
+    return result[result[:,0] > 1] # 6.92261220099555e-310 was here sometimes for some reason
