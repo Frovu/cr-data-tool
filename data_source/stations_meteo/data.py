@@ -29,7 +29,7 @@ def get_with_model(lat, lon, t_from, t_to, period=PERIOD):
         return model_status, model_r
     if model_status == 'ok' and not proxy.analyze_integrity(station, t_from, t_trim):
         return 'ok', proxy.select(station, t_from, t_to, True)
-    log.info(f'LOCAL METEO: Filling {station} {t_from}:{t_trim}')
+    log.info(f'LOCAL METEO: Satisfying {station} {t_from}:{t_trim}')
     q = scheduler.do_fill(token, t_from, t_trim, period,
         parser.get_tasks(station, period, fill_fn), key_overwrite=key)
     if model_status == 'accepted':

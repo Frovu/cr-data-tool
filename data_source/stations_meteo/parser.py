@@ -65,29 +65,29 @@ def _align_to_period(datasets, t_from, t_to, period):
     return data.tolist()
 
 def _obtain_rmp_interval(station, t_from, t_to, query, period, hopeless=True):
-        raw_data = _query_aws_rmp(AWS_RMP_IDX[station], t_from, t_to)
-        if raw_data is None:
-            log.error(f'Failed to obtain, aborting aws.rmp: {station} {t_from}:{t_to}');
-            raise Exception('abort aws.rmp')
-        data = dict()
-        for entry in raw_data:
-            if not (type(entry) is dict):
+    raw_data = _query_aws_rmp(AWS_RMP_IDX[station], t_from, t_to)
+    if raw_data is None:
+        log.error(f'Failed to obtain, aborting aws.rmp: {station} {t_from}:{t_to}');
+        raise Exception('abort aws.rmp')
+    data = dict()
+    for entry in raw_data:
+        if not (type(entry) is dict):
+            continue
+        sensor = entry.get('0', {}).get('sensor_name')
+        if sensor is None:
+            continue
+        value = entry.get('value', [])
+        if 't2' in query and 'HMP155' == sensor:
+            if len(value) < 1 or value[0] < 200: # weird check that this is actually temperature in Kelvins (not humidity)
                 continue
-            sensor = entry.get('0', {}).get('sensor_name')
-            if sensor is None:
-                continue
-            value = entry.get('value', [])
-            if 't2' in query and 'HMP155' == sensor:
-                if len(value) < 1 or value[0] < 200: # weird check that this is actually temperature in Kelvins (not humidity)
-                    continue
-                data['t2'] = (entry.get('time', []), value)
-            elif 'pressure' in query and 'BARO-1/MD-20Д' == sensor:
-                data['pressure'] = (entry.get('time', []), value)
-        if len(data.keys()) > 0:
-            aligned = _align_to_period(data, t_from, t_to, period)
-            proxy.insert(station, aligned, list(data.keys()))
-        elif hopeless:
-            proxy.fill_empty(station, t_from, t_to, period)
+            data['t2'] = (entry.get('time', []), value)
+        elif 'pressure' in query and 'BARO-1/MD-20Д' == sensor:
+            data['pressure'] = (entry.get('time', []), value)
+    if len(data.keys()) > 0:
+        aligned = _align_to_period(data, t_from, t_to, period)
+        proxy.insert(station, aligned, list(data.keys()))
+    elif hopeless:
+        proxy.fill_empty(station, t_from, t_to, period)
 
 def get_tasks(station, period, fill_fn, query=['t2', 'pressure']):
     intg_fn = lambda i: proxy.analyze_integrity(station, *i)
