@@ -10,6 +10,7 @@ import logging as log
 HOUR = 3600
 MODEL_PERIOD = 6 * HOUR
 MODEL_LAG_H = 72 # assume NCEP/NCAR reanalysis data for that time back is always available
+FORECAST_OVERLAP_H = 12
 MODEL_LAG = (MODEL_LAG_H * HOUR) // MODEL_PERIOD * MODEL_PERIOD
 MODEL_EPOCH = np.datetime64('1948-01-01').astype(int)
 SPLINE_INDENT = 1 # additional periods on edges for spline evaluation
@@ -92,20 +93,22 @@ def get(lat, lon, t_from, t_to, no_response=False, only=[]):
     done, info = scheduler.status((token, t_from, t_to))
     if done == False:
         return 'failed' if info.get('failed') else 'busy', info
-    if done or not proxy.analyze_integrity(lat, lon, t_from, t_to, fc_age=f'{MODEL_LAG_H+12} hours'):
+    if done or not proxy.analyze_integrity(lat, lon, t_from, t_to, fc_age=f'{MODEL_LAG_H+FORECAST_OVERLAP_H} hours'):
         return 'ok', None if no_response else proxy.select(lat, lon, t_from, t_to, only)
     log.info(f'TEMPERATURE: Filling ({lat}, {lon}) {t_from}:{t_to}')
     mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
     query = scheduler.do_fill(token, t_from, forecast_from or t_to, HOUR, [
         ('temperature-model', fill_fn, (
-            lambda i: proxy.analyze_integrity(lat, lon, i[0], i[1]),
+            lambda i: proxy.analyze_integrity(lat, lon, i[0], i[1], fc_age=f'{MODEL_LAG_H} hours'),
             lambda i: _fill_interval(i, lat, lon, mq_fn),
             True, 16 # multithreading, workers=16
         ))
     ], key_overwrite=(token, t_from, t_to))
-    if forecast_from and proxy.analyze_integrity(lat, lon, forecast_from, t_to, fc_age=f'{MODEL_LAG_H} hours'):
+    forecast_required = proxy.analyze_integrity(lat, lon, forecast_from, t_to, fc_age=f'{MODEL_LAG_H+FORECAST_OVERLAP_H} hours')
+    print(forecast_required)
+    if forecast_from and forecast_required:
         log.info(f'GFS: Filling ({lat}, {lon}) {forecast_from}:{t_to}')
         query.submit_tasks([
-            (_fill_with_forecast, (forecast_from, t_to, lat, lon), 'temperature-forecast', True)
+            (_fill_with_forecast, (*forecast_required[0], lat, lon), 'temperature-forecast', True)
         ])
     return 'accepted', query
