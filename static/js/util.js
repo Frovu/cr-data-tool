@@ -46,12 +46,12 @@ export function constructQueryManager(url, callbacks, progDetails=true) {
 					progEl.innerHTML = Object.keys(prog).map(k=>`${k}: ${(100*prog[k]).toFixed(0)}%`).join('<br>');
 			} else if (body.status === 'failed') {
 				const reason = body.info && body.info.failed;
-				el.innerHTML = 'Failed to proc';
+				el.innerHTML = 'Error';
 				if (progDetails) progEl.innerHTML = `Failed: ${reason}`;
 			} else if (body.status === 'accepted') {
 				el.innerHTML = 'Accepted';
 			} else {
-				el.innerHTML = 'Error..';
+				el.innerHTML = 'Unknown Error';
 				return null;
 			}
 		} else {
