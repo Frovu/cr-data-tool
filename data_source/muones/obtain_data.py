@@ -11,7 +11,7 @@ def _psql_query(table, period, t_from, t_to, fields, epoch=False, count=True, co
     interval = f'interval \'{period} seconds\''
     return f'''WITH periods AS
 (SELECT generate_series(to_timestamp({t_from}), to_timestamp({t_to}), {interval}) period)
-SELECT {'EXTRACT(EPOCH FROM period)::integer' if epoch else 'period'} AS time,{'COUNT(*),'if count else ''}{', '.join([f'ROUND(AVG({f})::numeric, 2)::real as {f}' for f in fields[1:]])}
+SELECT {'EXTRACT(EPOCH FROM period)::integer' if epoch else 'period'} AS time,{'COUNT(*),'if count else ''}{', '.join([f'ROUND(AVG({f})::numeric, 3)::real as {f}' for f in fields[1:]])}
 FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < period + {interval} {cond})
 GROUP BY period ORDER BY period
 '''
