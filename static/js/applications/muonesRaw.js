@@ -5,13 +5,13 @@ import * as plot from '../plot.js';
 const FIELDS = {
 	Moscow: {
 		time: 'time',
-		c1: {
+		c0: {
 			label: 'c1',
 			scale: 'nd',
 			color: 'rgba(255,200,100,1)',
 			nounit: true
 		},
-		c2: {
+		c1: {
 			label: 'c2',
 			scale: 'nd',
 			color: 'rgba(255,150,100,1)',
@@ -33,7 +33,8 @@ const FIELDS = {
 			label: 't',
 			scale: '°C',
 			color: 'rgba(100,255,100,1)',
-			precision: 1
+			precision: 1,
+			show: false
 		},
 		temperature_ext: {
 			label: 't_ext',
@@ -45,7 +46,8 @@ const FIELDS = {
 			label: 'v',
 			scale: 'v',
 			color: 'rgba(50,0,50,1)',
-			precision: 2
+			precision: 2,
+			show: false
 		},
 	}
 };
@@ -80,11 +82,11 @@ function receiveData(resp) {
 function plotInit() {
 	const series = Object.values(FIELDS[params.station]).filter(f => f !== 'time');
 	const axes = [
-		{ scale: 'n' , nounit: true },
-		{ scale: 'mb', side: 1, size: 70 },
-		{ scale: 'nd', nounit: true, show: false },
+		{ scale: 'n' , nounit: true},
+		{ scale: 'mb', side: 1, size: 70, show: true },
+		{ scale: 'nd', nounit: true, show: false  },
 		{ scale: '°C', show: false },
-		{ scale: 'v', show: false  }
+		{ scale: 'v', side: 1, size: 60, show: true, precision: 2  }
 	];
 	plot.init(axes);
 	plot.series(series);
