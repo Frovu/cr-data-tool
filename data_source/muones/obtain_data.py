@@ -24,8 +24,8 @@ def obtain(station, period, t_from, t_to):
             password = os.environ.get('MUON_MSK_PASS'),
             host = os.environ.get('MUON_MSK_HOST')) as conn:
             with conn.cursor() as cursor:
-                cursor.execute(_psql_query('muon_data', period, t_from, t_to, ['dt', 'n_v', 'pressure'],
-                    cond='AND device_id=(SELECT id FROM devices WHERE key = \'muon-pioneer\')'))
+                cursor.execute(_psql_query('muon_data', period, t_from, t_to, ['dt', 'n_v', 'pressure']))
+                    # cond='AND device_id=(SELECT id FROM devices WHERE key = \'muon-pioneer\')'))
                 resp = cursor.fetchall()
                 return resp
 
@@ -36,7 +36,7 @@ def obtain_raw(station, t_from, t_to, period):
             password = os.environ.get('MUON_MSK_PASS'),
             host = os.environ.get('MUON_MSK_HOST')) as conn:
             with conn.cursor() as cursor:
-                q = _psql_query('muon_data', period, t_from, t_to, FIELDS["Moscow"], epoch=True, count=False,
-                    cond='AND device_id=(SELECT id FROM devices WHERE key = \'muon-pioneer\')')
+                q = _psql_query('muon_data', period, t_from, t_to, FIELDS["Moscow"], epoch=True, count=False)
+                    # cond='AND device_id=(SELECT id FROM devices WHERE key = \'muon-pioneer\')')
                 cursor.execute(q, [t_from, t_to])
                 return cursor.fetchall(), [desc[0] for desc in cursor.description]

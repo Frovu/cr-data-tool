@@ -7,13 +7,13 @@ const FIELDS = {
 		time: 'time',
 		c0: {
 			label: 'c1',
-			scale: 'nd',
+			scale: 'n',
 			color: 'rgba(255,200,100,1)',
 			nounit: true
 		},
 		c1: {
 			label: 'c2',
-			scale: 'nd',
+			scale: 'n',
 			color: 'rgba(255,150,100,1)',
 			nounit: true
 		},
