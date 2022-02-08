@@ -1,6 +1,7 @@
 
 .tab {
 	position: relative;
+	background-color: var(--color-tab-bg);
 }
 
 .tab button {
@@ -8,12 +9,12 @@
 	font-family: inherit;
 	font-size: 11pt;
 	text-shadow: 1px 1px darkgray;
-	border: 2px black outset;
+	border: 2px var(--color-border) outset;
 	background-color: inherit;
 }
 
 .tab button.active:hover {
-	background-color: cyan;
+	background-color: var(--color-active);
 }
 
 .tab button:active {
@@ -29,7 +30,7 @@
 
 .query-progress {
 	font-size: 9pt;
-	color: gray;
+	color: var(--color-inactive);
 	margin-right: 4px;
 	display: inline-block;
 	text-align: right;
@@ -47,7 +48,7 @@ button.submit.active {
 
 button.submit.ongoing {
 	width: 200px;
-	background-color: rgba(255,0,0,0.4);
+	background-color: var(--color-loading);
 }
 
 #view-tab.active {
@@ -69,13 +70,13 @@ button.submit.ongoing {
 }
 
 .view-option input:not(:checked) + label {
-	color: gray;
-	background-color: rgba(0,0,0,0.1);
+	color: var(--color-inactive);
+	background-color: var(--color-disabled);
 	border-color: transparent !important;
 }
 
 .view-option input:not(:checked) + label span {
-	background-color: rgba(0,0,0,0.1) !important;
+	background-color: var(--color-disabled) !important;
 }
 
 .view-option .color-box {
@@ -95,7 +96,7 @@ button.submit.ongoing {
 	max-height: 48px;
 }
 .switch-input:hover {
-	background-color: cyan;
+	background-color: var(--color-active);
 }
 
 .time-input {
@@ -103,10 +104,10 @@ button.submit.ongoing {
 }
 
 .time-input .footer {
-	font-size: 0.5rem;
+	font-size: 8pt;
 	margin-top: 0;
 	text-align: center;
-	color: rgba(0,0,0,0.5);
+	color: var(--color-shadow);
 }
 
 .time-input input {
@@ -117,18 +118,18 @@ button.submit.ongoing {
 	width: 128px;
 	margin-left: 4px;
 	margin-right: 4px;
-	background-color: rgba(0,0,0,0.1);
+	background-color: var(--color-disabled);
 	border: 2px transparent solid;
 }
 
 .time-input input.invalid {
-	border: 2px red solid;
-	background-color: rgba(255,0,0,0.2);
+	border: 2px var(--color-loading) solid;
+	background-color: var(--color-invalid);
 	transition: 500ms;
 }
 
 .time-input input:hover {
-	background-color: cyan;
+	background-color: var(--color-active);
 }
 
 .time-input input:focus {

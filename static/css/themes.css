@@ -1,0 +1,12 @@
+:root {
+	--color-bg: white;
+	--color-tab-bg: white;
+	--color-text: black;
+	--color-border: black;
+	--color-shadow: darkgray;
+	--color-inactive: gray;
+	--color-disabled: rgb(210,210,210);
+	--color-active: cyan;
+	--color-invalid: red;
+	--color-loading: rgb(255,200,200);
+}

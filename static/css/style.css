@@ -1,5 +1,6 @@
 body {
 	display: grid !important;
+	background-color: var(--color-bg);
 	grid-auto-flow: row;
 	grid-template-columns: minmax(360px, 41fr) minmax(360px, 60fr);
 	gap: 8px;
@@ -34,7 +35,7 @@ body {
 	user-select: none;
 	text-align: center;
 	text-shadow: 1px 1px darkgray;
-	color: gray;
+	color: var(--color-inactive);
 	padding: 2px 10px 2px 10px;
 	border: 1px gray solid;
 	cursor: pointer;
@@ -46,25 +47,25 @@ body {
 }
 
 .tool-option label:hover {
-	background-color: cyan;
+	background-color: var(--color-active);
 }
 
 .tool-option [type=radio]:checked+label {
 	text-shadow: 1px 1px cyan;
-	color: black;
+	color: var(--color-text);
 	padding: 1px 9px 1px 9px;
 	font-weight: bold;
-	border-color: black !important;
+	border-color: var(--color-border) !important;
 	border-width: 2px;
 }
 
 .tool-option [type=radio]:checked+label:hover {
-	background-color: white;
+	background-color: var(--color-tab-bg);
 }
 
 .tool-option [type=radio]:disabled+label {
 	text-decoration: line-through;
-	background-color: rgba(0,0,0,0.2);
+	background-color: var(--color-disabled);
 }
 
 select {
@@ -76,7 +77,7 @@ select {
 }
 
 select:hover {
-	background-color: cyan;
+	background-color: var(--color-active);
 }
 
 .graph {
