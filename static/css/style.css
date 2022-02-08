@@ -154,3 +154,11 @@ input:disabled, button:disabled, select:disabled {
 .u-value {
 	font-family: Courier New;
 }
+
+.u-series {
+	font-family: Courier New;
+}
+
+.u-select {
+	background-color: var(--color-shadow) !important;
+}

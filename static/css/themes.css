@@ -10,18 +10,20 @@
 	--color-active: cyan;
 	--color-invalid: red;
 	--color-loading: rgb(255,160,160);
+	--color-grid: rgba(0,0,0,0.15);
 }
 
 [main-theme="dark"] {
 	--color-bg: black;
-	--color-tab-bg: rgba(70,10,70,0.25);
+	--color-tab-bg: rgba(25,5,25,1);
 	--color-text: white;
 	--color-border: rgba(140,50,140,0.5);
 	--color-shadow: rgba(120,100,120,0.5);
-	--color-inactive: rgba(120,100,100,0.9);
+	--color-inactive: rgba(125,110,115,0.9);
 	--color-disabled: rgba(80,70,80,0.3);
 	--color-input: rgba(100,70,100,0.5);
 	--color-active: darkorange;
 	--color-invalid: red;
 	--color-loading: orange;
+	--color-grid: rgba(120,100,120,0.3);
 }

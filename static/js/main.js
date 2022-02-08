@@ -32,6 +32,7 @@ window.onload = () => {
 		console.log('theme swithed: '+newTheme);
 		document.documentElement.setAttribute('main-theme', newTheme);
 		window.localStorage.setItem('main-theme', newTheme);
+		applications.init();
 	};
 	for (const tab of tabs) {
 		const el = document.getElementById(`${tab}-btn`);

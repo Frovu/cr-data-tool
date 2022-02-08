@@ -1,6 +1,7 @@
 import uPlot from './uPlot.esm.js';
 
 const MIN_HEIGHT = 360;
+let color = {};
 let uplot;
 let plotTime;
 const parentEl = document.getElementsByClassName('graph')[0];
@@ -9,9 +10,9 @@ window.addEventListener('resize', () => {
 });
 
 function getPlotSize() {
-	const height = parentEl.offsetWidth * (plotTime?0.5:0.75);
+	const height = Math.floor(parentEl.offsetWidth * (plotTime?0.5:0.75));
 	return {
-		width: parentEl.offsetWidth,
+		width: parentEl.offsetWidth - 4,
 		height: height > (window.innerHeight-80) ? window.innerHeight-80 : (height > MIN_HEIGHT ? height : MIN_HEIGHT),
 	};
 }
@@ -21,6 +22,7 @@ function prepareSeries(series) {
 		return Object.assign(s, {
 			stroke: s.color,
 			paths: s.paths && uPlot.paths[s.paths](),
+			points: { fill: color.bg, stroke: s.color },
 			value: (u, v) => v == null ? '-' : (s.transform?s.transform(v):v).toFixed(s.precision||0) + (s.nounit ? '' : ' '+s.scale),
 		});
 	});
@@ -29,7 +31,11 @@ function prepareSeries(series) {
 function prepareAxes(axes) {
 	return axes.map(a => {
 		return Object.assign(a, {
-			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + (a.nounit ? '' : ' '+a.scale))
+			font: '13px Courier New',
+			stroke: color.text,
+			ticks: { stroke: color.grid, width: 1 },
+			grid: { stroke: color.grid, width: 1 },
+			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + (a.nounit ? '' : ''+a.scale))
 		});
 	});
 }
@@ -127,14 +133,23 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 }
 
 export function init(axes, time=true, scales, series) {
+	const css = window.getComputedStyle(document.body);
+	color = {
+		grid: css.getPropertyValue('--color-grid'),
+		text: css.getPropertyValue('--color-inactive'),
+		bg: css.getPropertyValue('--color-tab-bg')
+	};
 	plotTime = time;
 	if (uplot) uplot.destroy();
 	uplot = new uPlot({
 		...getPlotSize(),
 		tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
-		series: time?[{ value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC' }]:
+		series: time?[{ value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC', stroke: color.text }]:
 			(series?prepareSeries(series):[]),
-		axes: (time?[{}]:[]).concat(prepareAxes(axes)),
+		axes: (time?[{
+			font: '14px Courier New',
+			grid: { stroke: color.grid, width: 1 }, stroke: color.text
+		}]:[]).concat(prepareAxes(axes, color)),
 		scales,
 		cursor: {
 			drag: { dist: 12 },
@@ -157,27 +172,4 @@ export function series(series) {
 		uplot.delSeries(plotTime?1:0);
 	for (let i=0; i < prepared.length; ++i)
 		uplot.addSeries(prepared[i]);
-	/*
-	*** This code may be faster or more generic but is much less clean ***
-	let found = [];
-	for (let i=0; i < uplot.series.length; ++i) {
-		const s = uplot.series[i];
-		if (s.label === 'Time') {
-			found.push(series.indexOf('time'));
-			continue;
-		}
-		const idx = prepared.findIndex(es => es.label === s.label && s._stroke === es.stroke && s.scale === es.scale);
-		if (idx >= 0)
-			found.push(idx);
-		else
-			uplot.delSeries(i--);
-	}
-	prepared.forEach((s, i) => {
-		if (!found.includes(i)) {
-			found.push(i);
-			found = found.sort((a, b) => a-b);
-			uplot.addSeries(s, found.indexOf(i));
-		}
-	});
-	*/
 }

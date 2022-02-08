@@ -45,7 +45,7 @@ const FIELDS = {
 		voltage: {
 			label: 'v',
 			scale: 'v',
-			color: 'rgba(50,0,50,1)',
+			color: 'rgba(100,40,100,1)',
 			precision: 2,
 			show: false
 		},
@@ -86,7 +86,7 @@ function plotInit() {
 		{ scale: 'mb', side: 1, size: 70, show: true },
 		{ scale: 'nd', nounit: true, show: false  },
 		{ scale: '°C', show: false },
-		{ scale: 'v', side: 1, size: 60, show: true, precision: 2  }
+		{ scale: 'v', side: 1, size: 70, show: true, precision: 2  }
 	];
 	plot.init(axes);
 	plot.series(series);
