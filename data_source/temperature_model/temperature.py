@@ -14,7 +14,7 @@ FORECAST_OVERLAP_H = 12
 FORECAST_ALLOW_FUTURE = 4 * 24 * HOUR
 MODEL_LAG = (MODEL_LAG_H * HOUR) // MODEL_PERIOD * MODEL_PERIOD
 MODEL_EPOCH = np.datetime64('1948-01-01').astype(int)
-SPLINE_INDENT = 1 # additional periods on edges for spline evaluation
+SPLINE_INDENT = 2 # additional periods on edges for spline evaluation
 SPLINE_INDENT_H = MODEL_PERIOD // HOUR * SPLINE_INDENT
 scheduler = SequenceFiller(ttl=0)
 
