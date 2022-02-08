@@ -17,7 +17,6 @@ def _parse_fcrl_one(year, month, columns=['Pr']):
     logging.debug(f'P: fetching fcrl {month}/{year}')
     data = []
     dir = '/mnt/cr55/FCRL_Data/Result/'
-    dir = '/tmp/'
     if datetime.utcnow().year != year or datetime.utcnow().month != month:
         dir += 'Result_Pre_Final/'
     with open(f'{dir}{(year%100):02d}{month:02d}FCRL_Result.60u.txt') as f:
