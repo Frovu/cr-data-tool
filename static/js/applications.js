@@ -3,13 +3,15 @@ import * as tempHeight from './applications/tempHeight.js';
 import * as muones from './applications/muones.js';
 import * as muonesRaw from './applications/muonesRaw.js';
 import * as muonesCorr from './applications/muonesCorrelation.js';
+import * as pressure from './applications/pressure.js';
 
 const applications = {
+	temperature,
+	tempHeight,
 	muones,
 	muonesRaw,
 	muonesCorr,
-	temperature,
-	tempHeight
+	pressure
 };
 
 const tabsCache = {};

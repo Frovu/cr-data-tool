@@ -64,9 +64,9 @@ def _fetch_meteo(lat, lon, tf, tt):
             return True
         time.sleep(3)
 
-def get(lat, lon, t_from, t_to, period=3600):
+def get(station, t_from, t_to, period=3600):
     t_from, t_to = period * (t_from // period), period * (t_to // period)
-    if (lat, lon) != (55.47, 37.32):
+    if station.lower() != 'moscow':
         return None;
     with pg_conn.cursor() as cursor:
         query = f'''CREATE TABLE IF NOT EXISTS pressure (
@@ -77,10 +77,10 @@ def get(lat, lon, t_from, t_to, period=3600):
         pg_conn.commit()
     _fetch_fcrl(t_from, t_to)
     _fetch_muon(t_from, t_to)
-    _fetch_meteo(lat, lon, t_from, t_to)
+    _fetch_meteo(55.47, 37.32, t_from, t_to)
     with pg_conn.cursor() as cursor:
         q = '''SELECT EXTRACT(EPOCH FROM p.time), l.pressure, p.fcrl, p.muon_pioneer
         FROM pressure p INNER JOIN local_moscow l ON (l.time = p.time)
         WHERE p.time >= to_timestamp(%s) AND p.time <= to_timestamp(%s) ORDER BY p.time'''
         cursor.execute(q, [t_from, t_to])
-        return cursor.fetchall()
+        return cursor.fetchall(), ['time', 'rmp', 'fcrl', 'muon']
