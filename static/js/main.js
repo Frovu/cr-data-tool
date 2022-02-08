@@ -22,6 +22,17 @@ function showTab(tab) {
 }
 
 window.onload = () => {
+	const theme = window.localStorage.getItem('main-theme') || 'default';
+	const themeSelect = document.getElementById('theme-select');
+	for (const opt of themeSelect.children) {
+		opt.selected = opt.value === theme ? 'selected' : null;
+	}
+	themeSelect.onchange = () => {
+		const newTheme = themeSelect.value;
+		console.log('theme swithed: '+newTheme);
+		document.documentElement.setAttribute('main-theme', newTheme);
+		window.localStorage.setItem('main-theme', newTheme);
+	};
 	for (const tab of tabs) {
 		const el = document.getElementById(`${tab}-btn`);
 		el.addEventListener('click', () => {
@@ -31,3 +42,5 @@ window.onload = () => {
 	}
 	applications.init();
 };
+
+document.documentElement.setAttribute('main-theme', window.localStorage.getItem('main-theme') || 'default');

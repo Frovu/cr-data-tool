@@ -10,3 +10,16 @@
 	--color-invalid: red;
 	--color-loading: rgb(255,200,200);
 }
+
+[main-theme="dark"] {
+	--color-bg: black;
+	--color-tab-bg: rgba(20,0,20,0.5);
+	--color-text: white;
+	--color-border: rgba(20,0,20,0.5);
+	--color-shadow: rgba(20,0,20,0.9);
+	--color-inactive: gray;
+	--color-disabled: rgb(210,210,210);
+	--color-active: cyan;
+	--color-invalid: red;
+	--color-loading: rgb(255,200,200);
+}
