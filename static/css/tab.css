@@ -1,20 +1,13 @@
 
-.tab {
-	position: relative;
-	background-color: var(--color-tab-bg);
-}
-
 .tab button {
 	padding: 2px 10px 2px 10px;
-	font-family: inherit;
-	font-size: 11pt;
-	text-shadow: 1px 1px darkgray;
+	text-shadow: 1px 1px var(--color-shadow);
 	border: 2px var(--color-border) outset;
-	background-color: inherit;
 }
 
 .tab button.active:hover {
 	background-color: var(--color-active);
+	border-color: var(--color-active);
 }
 
 .tab button:active {
@@ -43,7 +36,7 @@ button.submit {
 }
 
 button.submit.active {
-	box-shadow: 0 0 10px 3px cyan;
+	box-shadow: 0 0 10px 3px var(--color-active);
 }
 
 button.submit.ongoing {
@@ -111,20 +104,15 @@ button.submit.ongoing {
 }
 
 .time-input input {
-	text-align: center;
-	font-family: inherit;
-	font-size: inherit;
-	color: inherit;
 	width: 128px;
 	margin-left: 4px;
 	margin-right: 4px;
-	background-color: var(--color-disabled);
 	border: 2px transparent solid;
 }
 
 .time-input input.invalid {
-	border: 2px var(--color-loading) solid;
-	background-color: var(--color-invalid);
+	border: 2px var(--color-invalid) solid;
+	background-color: var(--color-loading);
 	transition: 500ms;
 }
 
@@ -141,6 +129,7 @@ button.submit.ongoing {
 }
 
 .station-input input {
+	color: var(--color-inactive);
 	font-size: 10pt;
 	margin-right: 4px;
 	width: 64px;

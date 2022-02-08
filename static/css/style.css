@@ -5,7 +5,7 @@ body {
 	grid-auto-flow: row;
 	grid-template-columns: minmax(360px, 41fr) minmax(360px, 60fr);
 	gap: 8px;
-	font-family: monospace;
+	font-family: Courier New;
 	font-size: 11pt;
 	margin-top: 0.5rem;
 	margin-bottom: 0.5rem;
@@ -54,16 +54,17 @@ body {
 }
 
 .tool-option [type=radio]:checked+label {
-	text-shadow: 1px 1px var(--color-active);
+	/* text-shadow: 1px 1px var(--color-shadow); */
 	color: var(--color-text);
 	padding: 1px 9px 1px 9px;
 	font-weight: bold;
+	background-color: var(--color-tab-bg) !important;
 	border-color: var(--color-border) !important;
 	border-width: 2px;
 }
 
 .tool-option [type=radio]:checked+label:hover {
-	background-color: var(--color-tab-bg);
+	background-color: var(--color-tab-bg) !important;
 }
 
 .tool-option [type=radio]:disabled+label {
@@ -87,7 +88,7 @@ select:hover {
 	display: block;
 	min-height: 360px;
 	max-width: 1200px;
-	border: 2px black solid;
+	border: 2px var(--color-border) solid;
 	grid-row-start: 1;
 	grid-row-end: span 3;
 	grid-column: 2;
@@ -100,8 +101,10 @@ select:hover {
 }
 
 .tab {
+	position: relative;
 	padding: 0.5rem;
-	border: 2px black solid;
+	background-color: var(--color-tab-bg);
+	border: 2px var(--color-border) solid;
 	min-height: 30vh;
 	max-width: 600px;
 	grid-row-end: 3;
@@ -130,10 +133,24 @@ h4 {
 	}
 }
 
-input, button, select, label {
+input, button, select {
+	background-color: var(--color-input);
+	text-align: center;
+	font-family: inherit;
+	font-size: inherit;
+	border: inherit;
+	color: inherit;
 	transition: background-color 250ms;
 }
 
+input:disabled, button:disabled, select:disabled {
+	background-color: var(--color-disabled);
+}
+
+.uplot {
+	background-color: var(--color-tab-bg);
+}
+
 .u-value {
-	font-family: monospace;
+	font-family: Courier New;
 }

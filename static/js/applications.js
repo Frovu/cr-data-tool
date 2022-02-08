@@ -38,7 +38,7 @@ export function swithApp(nextApp) {
 		}
 	} else {
 		const apptab = document.getElementById('app-tab');
-		apptab.innerHTML = '<label for="app">Select application:</label>';
+		apptab.innerHTML = '<label for="app">Select application:&nbsp;</label>';
 		const select = document.createElement('select');
 		for (const app in applications) {
 			const opt = document.createElement('option');

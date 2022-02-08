@@ -5,21 +5,23 @@
 	--color-border: black;
 	--color-shadow: darkgray;
 	--color-inactive: gray;
-	--color-disabled: rgb(210,210,210);
+	--color-disabled: rgb(200,200,200);
+	--color-input: rgb(230,230,230);
 	--color-active: cyan;
 	--color-invalid: red;
-	--color-loading: rgb(255,200,200);
+	--color-loading: rgb(255,160,160);
 }
 
 [main-theme="dark"] {
 	--color-bg: black;
-	--color-tab-bg: rgba(20,0,20,0.5);
+	--color-tab-bg: rgba(70,10,70,0.25);
 	--color-text: white;
-	--color-border: rgba(20,0,20,0.5);
-	--color-shadow: rgba(20,0,20,0.9);
-	--color-inactive: gray;
-	--color-disabled: rgb(210,210,210);
-	--color-active: cyan;
+	--color-border: rgba(140,50,140,0.5);
+	--color-shadow: rgba(120,100,120,0.5);
+	--color-inactive: rgba(120,100,100,0.9);
+	--color-disabled: rgba(80,70,80,0.3);
+	--color-input: rgba(100,70,100,0.5);
+	--color-active: darkorange;
 	--color-invalid: red;
-	--color-loading: rgb(255,200,200);
+	--color-loading: orange;
 }
