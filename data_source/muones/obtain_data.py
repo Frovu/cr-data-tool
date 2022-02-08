@@ -29,14 +29,14 @@ def obtain(station, period, t_from, t_to):
                 resp = cursor.fetchall()
                 return resp
 
-def obtain_raw(station, t_from, t_to, period):
+def obtain_raw(station, t_from, t_to, period, fields=None):
     if station == 'Moscow':
         with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
             user = os.environ.get('MUON_MSK_USER'),
             password = os.environ.get('MUON_MSK_PASS'),
             host = os.environ.get('MUON_MSK_HOST')) as conn:
             with conn.cursor() as cursor:
-                q = _psql_query('muon_data', period, t_from, t_to, FIELDS["Moscow"], epoch=True, count=False)
+                q = _psql_query('muon_data', period, t_from, t_to, [FIELDS["Moscow"][0]] + fields if fields else FIELDS["Moscow"], epoch=True, count=False)
                     # cond='AND device_id=(SELECT id FROM devices WHERE key = \'muon-pioneer\')')
-                cursor.execute(q, [t_from, t_to])
+                cursor.execute(q)
                 return cursor.fetchall(), [desc[0] for desc in cursor.description]
