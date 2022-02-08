@@ -65,6 +65,12 @@ function linePaths() {
 // ref: https://leeoniya.github.io/uPlot/demos/scatter.html
 export function initCorr(data, label, pointPx, corrLine=false) {
 	if (uplot) uplot.destroy();
+	const css = window.getComputedStyle(document.body);
+	color = {
+		grid: css.getPropertyValue('--color-grid'),
+		text: css.getPropertyValue('--color-inactive'),
+		bg: css.getPropertyValue('--color-tab-bg')
+	};
 	function drawPoints(u, seriesIdx) {
 		const size = pointPx * devicePixelRatio;
 		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
@@ -87,6 +93,13 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 			u.ctx.fill(p);
 		});
 	}
+	const axis = (scale, size) => { return {
+		scale, size,
+		font: '13px Courier New',
+		stroke: color.text,
+		ticks: { stroke: color.grid, width: 1 },
+		grid: { stroke: color.grid, width: 1 }
+	}; };
 	uplot = new uPlot({
 		...getPlotSize(),
 		mode: 2,
@@ -120,7 +133,7 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 			{},
 			{
 				label: label,
-				stroke: 'red',
+				stroke: 'rgba(250,10,80,1)',
 				fill: 'rgba(255,0,0,0.1)',
 				paths: drawPoints
 			}
@@ -128,7 +141,8 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 			label: corrLine,
 			stroke: 'rgba(100,0,200,1)',
 			paths: linePaths()
-		}])
+		}]),
+		axes: [ axis('x', 36), axis('y', 60) ]
 	}, data, parentEl);
 }
 
