@@ -18,7 +18,7 @@ def _parse_fcrl_one(year, month, columns=['Pr']):
     data = []
     dir = '/mnt/cr55/FCRL_Data/Result/'
     dir = '/tmp/'
-    if datetime.now().year != year or datetime.now().month != month:
+    if datetime.utcnow().year != year or datetime.utcnow().month != month:
         dir += 'Result_Pre_Final/'
     with open(f'{dir}{(year%100):02d}{month:02d}FCRL_Result.60u.txt') as f:
         lines = f.readlines()
@@ -53,18 +53,20 @@ def _fetch_muon(t_from, t_to, station='Moscow', period=3600):
         pg_conn.commit()
 
 def _fetch_meteo(lat, lon, tf, tt):
-    logging.debug(f'P: fetching meteo {tf}:{tt}')
+    logging.debug(f'P/meteo: fetching {tf}:{tt}')
     import time
     for i in range(1000):
         status, data = meteo.get_with_model(lat, lon, tf, tt)
         if status != 'ok':
-            logging.debug(f'P/rmp: {status}:{data}')
+            logging.debug(f'P/meteo: {status}:{data}')
         else:
-            logging.debug(f'P/rmp: {status}')
+            logging.debug(f'P/meteo: {status}')
             return True
         time.sleep(3)
 
 def get(station, t_from, t_to, period=3600):
+    if t_to >= datetime.utcnow().timestamp():
+        t_to = datetime.utcnow().timestamp()
     t_from, t_to = period * (t_from // period), period * (t_to // period)
     if station.lower() != 'moscow':
         return None;
