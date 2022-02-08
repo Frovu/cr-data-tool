@@ -6,31 +6,44 @@ import psycopg2.extras
 import logging
 pg_conn = proxy.pg_conn
 
-def _parse_fcrl_one(year, mon, columns=['Pr']):
+def _integrity(t_from, t_to, column, period=3600):
+    with pg_conn.cursor() as cursor:
+        q = f'SELECT count(*) FROM pressure WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) AND {column} IS NOT NULL'
+        cursor.execute(q, [t_from, t_to])
+        cnt = cursor.fetchall()
+        return cnt[0][0] >= (t_to - t_from) // period
+
+def _parse_fcrl_one(year, month, columns=['Pr']):
+    logging.debug(f'P: fetching fcrl {month}/{year}')
     data = []
     dir = '/mnt/cr55/FCRL_Data/Result/'
-    if datetime.now().year != year or datetime.now().month != mon:
+    dir = '/tmp/'
+    if datetime.now().year != year or datetime.now().month != month:
         dir += 'Result_Pre_Final/'
-    with open(f'{SRC}{(year%100):02d}{month:02d}FCRL_Result.60u.txt') as f:
+    with open(f'{dir}{(year%100):02d}{month:02d}FCRL_Result.60u.txt') as f:
         lines = f.readlines()
-    indexes = [lines[0].split().index(c) for c in columns]
+    indexes = [lines[0].split().index(c)+1 for c in columns]
     for line in lines[2:]:
         sp = line.split()
         time = sp[0]+' '+sp[1]
-        data.append([DEVICE_ID, time] + [sp[i] for i in indexes])
+        data.append([time] + [sp[i] for i in indexes])
     with pg_conn.cursor() as cursor:
         q = f'INSERT INTO pressure (time, fcrl) VALUES %s ON CONFLICT(time) DO UPDATE SET fcrl = EXCLUDED.fcrl'
         psycopg2.extras.execute_values(cursor, q, data)
         pg_conn.commit()
 
 def _fetch_fcrl(t_from, t_to):
+    if _integrity(t_from, t_to, 'fcrl'):
+        return
     dt = datetime.utcfromtimestamp(t_from)
     mon_from = datetime(dt.year, dt.month, 1)
     while mon_from.timestamp() < t_to:
         _parse_fcrl_one(mon_from.year, mon_from.month)
-        mon_from += timedelta(days=1)
+        mon_from += timedelta(days=31)
 
 def _fetch_muon(t_from, t_to, station='Moscow', period=3600):
+    if _integrity(t_from, t_to, 'muon_pioneer'):
+        return
     logging.debug(f'P: fetching muon {t_from}:{t_to}')
     data = muones.obtain_raw(station, t_from, t_to, period, fields=['pressure'])[0]
     logging.debug(f'P: fetching muon - done [{len(data)}]')
@@ -52,6 +65,7 @@ def _fetch_meteo(lat, lon, tf, tt):
         time.sleep(3)
 
 def get(lat, lon, t_from, t_to, period=3600):
+    t_from, t_to = period * (t_from // period), period * (t_to // period)
     if (lat, lon) != (55.47, 37.32):
         return None;
     with pg_conn.cursor() as cursor:
@@ -61,7 +75,7 @@ def get(lat, lon, t_from, t_to, period=3600):
         muon_pioneer REAL)'''
         cursor.execute(query)
         pg_conn.commit()
-    # _fetch_fcrl(t_from, t_to)
+    _fetch_fcrl(t_from, t_to)
     _fetch_muon(t_from, t_to)
     _fetch_meteo(lat, lon, t_from, t_to)
     with pg_conn.cursor() as cursor:
