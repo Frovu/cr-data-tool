@@ -59,16 +59,19 @@ def correct(*args):
     data = data[~np.isnan(data[:,1])]
     data = data[~np.isnan(data[:,2])]
     n_u, p, t = data[:,1], data[:,2], data[:,3]
-    p = (1000 - p)
+    p = (np.mean(p) - p)
     t = (np.mean(t) - t)
-    beta, alpha = multiple_regression(np.column_stack((n_u, p, t)))
+    regr = multiple_regression(np.column_stack((n_u, p, t)))
+    print(regr)
+    beta, alpha = regr.coef_
     n_c = n_u * np.exp(-1 * beta * p) * (1 - alpha * t)
     proxy.upsert(station, period, np.column_stack((data[:,0], n_c)), ['n_v'], epoch=True)
+    res = proxy.select(station, t_from, t_to, period, ['n_v_raw', 'n_v', 'pressure', 'T_m'], where='n_v_raw > 99')
+    return *res, {"a": alpha, "b": beta}
 
 def multiple_regression(data):
     data = data[data[:,0] > 0]
-    reg = LinearRegression().fit(data[:,1:], np.log(data[:,0]))
-    return reg.coef_
+    return LinearRegression().fit(data[:,1:], np.log(data[:,0]))
 
 def linregress_corr(data, fields):
     data = np.array(data, dtype=np.float)

@@ -26,7 +26,7 @@ def get_corrected(station, t_from, t_to, period=3600, recalc=True):
         return 'failed' if info.get('failed') else 'busy', info
     if is_done or not proxy.analyze_integrity(station, t_from, t_to, period, ['raw_acc_cnt', 'T_m']):
         if recalc or proxy.analyze_integrity(station, t_from, t_to, period, ['n_v']):
-            corrections.correct(station, t_from, t_to, period)
+            return 'ok', corrections.correct(station, t_from, t_to, period)
         return 'ok', proxy.select(station, t_from, t_to, period, ['n_v_raw', 'n_v', 'pressure', 'T_m'], where='n_v_raw > 99')
     mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
     scheduler.do_fill(token, t_from, t_to, period, corrections.get_prepare_tasks(station, period, fill_fn, mq_fn, 'T_m'))

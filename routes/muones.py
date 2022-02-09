@@ -23,6 +23,7 @@ def corrected():
         status, data = muones.get_corrected(station, t_from, t_to, period)
         body = { "status": status }
         if status == 'ok':
+            body["info"] = data[2]
             body["fields"] = data[1]
             body["data"] = data[0]
         return body

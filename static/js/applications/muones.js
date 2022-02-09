@@ -7,20 +7,19 @@ const FIELDS = {
 	n_v_raw: {
 		label: 'n_v_raw',
 		scale: 'n',
-		color: 'rgba(0,0,255,0.5)',
+		color: 'rgba(60,10,150,0.5)',
 		nounit: true
 	},
 	n_v: {
 		label: 'n_v',
 		scale: 'n',
-		color: 'rgba(255,0,0,1)',
-		// width: 2,
+		color: 'rgba(255,10,60,1)',
 		nounit: true
 	},
 	pressure: {
 		label: 'p',
 		scale: 'mb',
-		color: 'rgba(200,0,200,0.7)',
+		color: 'rgba(200,0,200,0.6)',
 		precision: 1
 	},
 	T_m: {
