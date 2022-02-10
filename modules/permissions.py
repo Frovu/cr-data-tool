@@ -11,7 +11,7 @@ pg_conn = psycopg2.connect(
 
 with pg_conn.cursor() as cursor:
     cursor.execute(f'''CREATE TABLE IF NOT EXISTS users (
-    uid SERIAL PRIMARY KEY, at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    uid SERIAL PRIMARY KEY, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP,
     login TEXT, password TEXT)''')
     cursor.execute(f'''CREATE TABLE IF NOT EXISTS permissions (
     uid INTEGER NOT NULL, flag TEXT NOT NULL, target TEXT)''')

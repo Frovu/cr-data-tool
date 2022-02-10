@@ -41,6 +41,9 @@ def login():
         uid, uname, hash = res[0]
         if not bcrypt.check_password_hash(hash.encode(), passw):
             return {}, 401
+        with pg_conn.cursor() as cursor:
+            cursor.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE login = %s', [login])
+            pg_conn.commit()
         session['uid'] = uid
         session['uname'] = uname
         logging.info(f'AUTH: user authorized: {login}')
