@@ -2,10 +2,16 @@ import data_source.muones.data as muones
 import data_source.stations_meteo.pressure as meteo
 from flask import Blueprint, request
 from datetime import datetime
+from core import permissions
 import logging
 import traceback
 
 bp = Blueprint('muones', __name__, url_prefix='/api/muones')
+
+@bp.before_request
+@permissions.require('USE_APPLICATION', 'muon')
+def app_auth():
+    pass
 
 @bp.route('/stations')
 def stations():

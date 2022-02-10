@@ -1,7 +1,7 @@
 from flask import Blueprint, request, session
 from server import bcrypt
 import logging
-from modules import permissions
+from core import permissions
 pg_conn = permissions.pg_conn
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
