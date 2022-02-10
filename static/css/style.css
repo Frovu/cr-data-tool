@@ -135,11 +135,11 @@ h4 {
 }
 
 input, button, select {
+	border: 2px transparent solid;
 	background-color: var(--color-input);
 	text-align: center;
 	font-family: inherit;
 	font-size: inherit;
-	border: inherit;
 	color: inherit;
 	transition: background-color 250ms;
 }
@@ -147,7 +147,9 @@ input, button, select {
 input:focus {
 	outline: none;
 }
-
+input.invalid {
+	border: 2px var(--color-invalid) solid;
+}
 input:disabled, button:disabled, select:disabled {
 	background-color: var(--color-disabled);
 }
