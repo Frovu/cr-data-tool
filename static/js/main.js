@@ -147,8 +147,6 @@ window.onload = () => {
 		applications.init();
 	};
 
-	checkLogin().then(r => applications.updateView(r.permissions));
-
 	document.getElementById('login').onclick = login;
 	document.getElementById('logout').onclick = logout;
 	document.getElementById('register').onclick = register;
@@ -161,6 +159,8 @@ window.onload = () => {
 		if (el.checked) showTab(tab);
 	}
 	applications.init();
+
+	checkLogin().then(r => applications.updateView(r.permissions));
 };
 
 document.documentElement.setAttribute('main-theme', window.localStorage.getItem('main-theme') || 'default');

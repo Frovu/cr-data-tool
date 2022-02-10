@@ -19,8 +19,10 @@ const hierarchy = {
 };
 const publicApps = ['temperature'];
 
+const DEFAULT = 'temperature';
 const tabsCache = {};
 
+let allowed = [DEFAULT];
 let active;
 const selects = [];
 
@@ -32,6 +34,8 @@ export function swithApp(nextApp) {
 		if (app.unload) app.unload();
 		for (const tab of tabs) {
 			if (tab.id.startsWith('info')) continue;
+			if (tab.id.startsWith('app')) tab.classList.add('active');
+			else tab.classList.add('remove');
 			tabsCache[active][tab.id] = tab;
 			const newTab = tab.cloneNode(true);
 			newTab.innerHTML = '';
@@ -53,6 +57,7 @@ export function swithApp(nextApp) {
 			opt.innerHTML = app.charAt(0).toUpperCase() + app.slice(1);
 			if (app === nextApp) opt.selected = 'selected';
 			select.append(opt);
+			opt.hidden = allowed.includes(app) ? null : 'true';
 		}
 		select.onchange = () => {
 			swithApp(select.value);
@@ -73,15 +78,19 @@ export function swithApp(nextApp) {
 
 export function init() {
 	const savedApp = window.localStorage.getItem('application');
-	swithApp(savedApp || 'temperature');
+	swithApp(savedApp || DEFAULT);
 }
 
 export function updateView(permissions) {
 	const perm = permissions ? permissions.USE_APPLICATION : [];
-	const allowed = [].concat.apply([], perm.concat(publicApps).map(h => hierarchy[h]));
+	allowed = [].concat.apply([], perm.concat(publicApps).map(h => hierarchy[h]));
 	for (const sel of selects) {
 		for (const opt of sel.children) {
 			opt.hidden = allowed.includes(opt.value) ? null : 'true';
+			if (!allowed.includes(opt.value) && opt.selected)
+				opt.selected = null;
 		}
 	}
+	if (!allowed.includes(active))
+		swithApp(DEFAULT);
 }
