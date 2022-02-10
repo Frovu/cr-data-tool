@@ -14,16 +14,15 @@ def register():
         if not login or not passw:
             return {}, 400
         with pg_conn.cursor() as cursor:
-            cursor.execute('SELECT login FROM users WHERE login = $1', login)
+            cursor.execute('SELECT login FROM users WHERE login = %s', [login])
             exists = cursor.fetchall()
-            print(exists)
             if exists:
-                return {}, 409
-            hash = bcrypt.generate_password_hash(passw)
-            cursor.execute('INSERT INTO users(login, password) VALUES ($1, $2)', login, hash)
+                return { 'error': 'user exists' }, 409
+            hash = bcrypt.generate_password_hash(passw, rounds=10).decode()
+            cursor.execute('INSERT INTO users(login, password) VALUES (%s, %s)', [login, hash])
             pg_conn.commit()
         logging.info(f'AUTH: user registered: {login}')
-        return { 'registered': uname }
+        return { 'registered': login }
     except Exception as e:
         logging.error(f'ERROR: auth.register: {e}')
         return {}, 500
@@ -36,18 +35,18 @@ def login():
         if not login or not passw:
             return {}, 400
         with pg_conn.cursor() as cursor:
-            cursor.execute('SELECT uid, login, password FROM users WHERE login = $1', login)
+            cursor.execute('SELECT uid, login, password FROM users WHERE login = %s', [login])
             res = cursor.fetchall()
         if not res: return {}, 404
-        uid, uname, hash = res
-        if not bcrypt.check_password_hash(hash, passw):
+        uid, uname, hash = res[0]
+        if not bcrypt.check_password_hash(hash.encode(), passw):
             return {}, 401
         session['uid'] = uid
         session['uname'] = uname
         logging.info(f'AUTH: user authorized: {login}')
         return { 'authorized': uname }
     except Exception as e:
-        logging.error(f'ERROR: auth.register: {e}')
+        logging.error(f'ERROR: auth.login: {e}')
         return {}, 500
 
 @bp.route('/login')
