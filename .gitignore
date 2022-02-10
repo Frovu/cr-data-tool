@@ -4,3 +4,4 @@ logs
 *.log
 __pycache__
 a.py
+flask_session

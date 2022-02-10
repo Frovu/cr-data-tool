@@ -11,8 +11,8 @@ def addapt_float32(numpy_float32):
 register_adapter(numpy.float32, addapt_float32)
 
 pg_conn = psycopg2.connect(
-    dbname = os.environ.get("METEO_DB_NAME"),
-    user = os.environ.get("METEO_DB_USER"),
+    dbname = os.environ.get("METEO_DB_NAME") or "cr_meteo",
+    user = os.environ.get("METEO_DB_USER") or "crdt",
     password = os.environ.get("METEO_DB_PASS"),
     host = os.environ.get("METEO_DB_HOST")
 )

@@ -26,14 +26,22 @@ logger = logging.getLogger()
 logger.handlers = [ log_rotate, sh ]
 logger.setLevel(logging.DEBUG)
 
-from flask import Flask, send_file
+from flask import Flask, send_file, session
+from flask_session import Session
+from flask_bcrypt import Bcrypt
 from routes import temperature
 from routes import muones
+from routes import auth
 app = Flask(__name__,
             static_url_path='',
             static_folder='static',)
+app.config['SESSION_TYPE'] = 'filesystem'
+Session(app)
+bcrypt = Bcrypt(app)
+
 app.register_blueprint(temperature.bp)
 app.register_blueprint(muones.bp)
+app.register_blueprint(auth.bp)
 
 @app.route("/")
 def index():

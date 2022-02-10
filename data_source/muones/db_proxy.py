@@ -5,8 +5,8 @@ import os
 import psycopg2
 import psycopg2.extras
 pg_conn = psycopg2.connect(
-    dbname = os.environ.get("MUON_DB_NAME"),
-    user = os.environ.get("MUON_DB_USER"),
+    dbname = os.environ.get("MUON_DB_NAME") or "cr_muon",
+    user = os.environ.get("MUON_DB_USER") or "crdt",
     password = os.environ.get("MUON_DB_PASS"),
     host = os.environ.get("MUON_DB_HOST")
 )
