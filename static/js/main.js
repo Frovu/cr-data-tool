@@ -25,15 +25,17 @@ async function login() {
 		body: `login=${uname}&password=${password}`
 	});
 	if (res.status === 200) {
+		const body = await res.json();
 		error.innerHTML = '';
 		loginInp.classList.remove('invalid');
 		pwdInp.classList.remove('invalid');
 		const elIn = document.getElementById('logged-in');
 		const elOut = document.getElementById('logged-out');
 		const unameEl = document.getElementById('username');
-		unameEl.innerHTML = uname;
+		unameEl.innerHTML = body.login;
 		elOut.hidden = 'true';
 		elIn.hidden = null;
+		applications.updateView(body.permissions);
 	} else if (res.status === 404) {
 		loginInp.classList.add('invalid');
 		error.innerHTML = 'User not found.';
@@ -55,6 +57,7 @@ async function logout() {
 		unameEl.innerHTML = '';
 		elOut.hidden = null;
 		elIn.hidden = 'true';
+		applications.updateView();
 	}
 }
 
@@ -116,7 +119,8 @@ async function checkLogin() {
 		elOut.hidden = null;
 		elIn.hidden = 'true';
 	}
-	return uname;
+	console.log(`Logged in as ${uname}, permissions are:`, body.permissions);
+	return body;
 }
 
 function showTab(tab) {
@@ -143,8 +147,8 @@ window.onload = () => {
 		applications.init();
 	};
 
-	checkLogin();
-	applications.updateView();
+	checkLogin().then(r => applications.updateView(r.permissions));
+
 	document.getElementById('login').onclick = login;
 	document.getElementById('logout').onclick = logout;
 	document.getElementById('register').onclick = register;

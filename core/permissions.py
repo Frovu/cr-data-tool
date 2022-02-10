@@ -17,11 +17,10 @@ with pg_conn.cursor() as cursor:
     uid INTEGER NOT NULL, flag TEXT NOT NULL, target TEXT)''')
     pg_conn.commit()
 
-def check(uid, flag, target_required):
+def _check(uid, flag, target_required):
     with pg_conn.cursor() as cursor:
         cursor.execute('SELECT target FROM permissions WHERE uid = %s AND flag = %s', [ uid, flag ])
         targets = [r[0] for r in cursor.fetchall()]
-    print(targets)
     if target_required:
         return 'OVERRIDE' in targets or target_required in targets
     return len(targets) > 0
@@ -33,8 +32,23 @@ def require(flag, target=None):
             uid = session.get("uid", None)
             if not uid:
                 return { "error": "Unauthorized" }, 401
-            if not check(uid, flag, target):
+            if not _check(uid, flag, target):
                 return { "error": "Forbidden" }, 403
             func()
         return wrapper
     return decorator
+
+def list():
+    uid = session.get("uid", None)
+    if not uid: return None;
+    with pg_conn.cursor() as cursor:
+        cursor.execute('SELECT flag, target FROM permissions WHERE uid = %s', [ uid ])
+        rows = cursor.fetchall()
+    perms = dict()
+    for row in rows:
+        flag = row[0]
+        if (perms.get(flag)):
+            perms[flag].append(row[1])
+        else:
+            perms[flag] = [ row[1] ]
+    return perms

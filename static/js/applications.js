@@ -13,6 +13,11 @@ const applications = {
 	muonesCorr,
 	pressure
 };
+const hierarchy = {
+	muon: ['muones', 'muonesRaw', 'muonesCorr', 'pressure'],
+	temperature: ['temperature', 'tempHeight']
+};
+const publicApps = ['temperature'];
 
 const tabsCache = {};
 
@@ -71,6 +76,12 @@ export function init() {
 	swithApp(savedApp || 'temperature');
 }
 
-export async function updateView() {
-	
+export function updateView(permissions) {
+	const perm = permissions ? permissions.USE_APPLICATION : [];
+	const allowed = [].concat.apply([], perm.concat(publicApps).map(h => hierarchy[h]));
+	for (const sel of selects) {
+		for (const opt of sel.children) {
+			opt.hidden = allowed.includes(opt.value) ? null : 'true';
+		}
+	}
 }

@@ -47,15 +47,14 @@ def login():
         session['uid'] = uid
         session['uname'] = uname
         logging.info(f'AUTH: user authorized: {login}')
-        return { 'authorized': uname }
+        return { 'login': uname, 'permissions': permissions.list() }
     except Exception as e:
         logging.error(f'ERROR: auth.login: {e}')
         return {}, 500
 
 @bp.route('/login')
 def check_login():
-    uname = session.get('uname')
-    return { 'login': uname }
+    return { 'login': session.get('uname'), 'permissions': permissions.list() }
 
 @bp.route('/logout')
 def logout():
