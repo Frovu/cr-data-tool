@@ -88,6 +88,7 @@ select:hover {
 	display: block;
 	min-height: 360px;
 	max-width: 1200px;
+	height: fit-content;
 	border: 2px var(--color-border) solid;
 	grid-row-start: 1;
 	grid-row-end: span 3;
@@ -143,6 +144,10 @@ input, button, select {
 	transition: background-color 250ms;
 }
 
+input:focus {
+	outline: none;
+}
+
 input:disabled, button:disabled, select:disabled {
 	background-color: var(--color-disabled);
 }
@@ -161,4 +166,17 @@ input:disabled, button:disabled, select:disabled {
 
 .u-select {
 	background-color: var(--color-shadow) !important;
+}
+
+.form {
+	max-width: fit-content;
+	text-align: right;
+}
+
+.form-line {
+	margin: 0.5em;
+}
+
+.error {
+	color: var(--color-invalid)
 }

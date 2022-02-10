@@ -46,6 +46,22 @@
 		<div class="tab" id="export-tab"></div>
 		<div class="graph" id="graph-tab"></div>
 		<div class="tab" id="info-tab">
+			<div id="logged-in" hidden="">
+				Logged in as <b id="username">asd@example.com</b>
+				<button id="logout">Logout</button>
+			</div>
+			<div id="logged-out">
+				Not logged in.
+				<button id="login">Login</button>
+				or
+				<button id="register">Register</button>
+				<div class="form">
+					<p class="form-line">Email:&nbsp;<input type="text" id="uname" placeholder="user@example.com" value=""></p>
+					<p class="form-line">Password:&nbsp;<input type="password" id="pwd" value=""></p>
+					<p class="form-line" id="repeat-input" hidden="">Repeat password:&nbsp;<input type="password" id="repeat-pwd" value=""></p>
+					<p id="login-error" class="error"></p>
+				</div>
+			</div>
 			<h4>Settings</h4>
 			<label>Theme:
 			<select id="theme-select">

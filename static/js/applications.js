@@ -70,3 +70,7 @@ export function init() {
 	const savedApp = window.localStorage.getItem('application');
 	swithApp(savedApp || 'temperature');
 }
+
+export async function updateView() {
+	
+}
