@@ -15,7 +15,7 @@
 }
 
 .query {
-	margin-top: 1em;
+	margin: 2em 0.5em 0.5em 0;
 	display: block;
 	text-align: right;
 }
