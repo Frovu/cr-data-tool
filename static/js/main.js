@@ -175,12 +175,12 @@ window.onload = () => {
 
 	for (const tab of tabs) {
 		const el = document.getElementById(`${tab}-btn`);
-		el.addEventListener('click', e => {
+		el.parentNode.children[1].onclick = e => { // listen label element
+			if (el.disabled) return;
+			e.preventDefault();
 			if (activeTabs.includes(tab)) {
 				if (layout === 'rich' && activeTabs.length > 1)
 					hideTab(tab);
-				else
-					e.preventDefault();
 			} else {
 				if (activeTabs.length === 1 && activeTabs[0] === 'info')
 					hideTab('info');
@@ -190,7 +190,7 @@ window.onload = () => {
 			}
 			if (tab === 'graph')
 				window.dispatchEvent(new Event('resize')); // make sure to redraw plot
-		});
+		};
 		if (el.checked && (!activeTabs.length || layout === 'rich')) {
 			showTab(tab);
 		} else {
