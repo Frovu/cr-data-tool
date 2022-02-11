@@ -70,6 +70,12 @@ export function swithApp(nextApp) {
 	for (const tab of tabs) {
 		const button = document.getElementById(`${tab.id.split('-')[0]}-btn`);
 		button.disabled = !tab.innerHTML;
+		if (button.disabled)
+			tab.classList.remove('active');
+		if (tab.classList.contains('active'))
+			button.checked = true;
+		else
+			button.checked = false;
 	}
 	if (applications[nextApp].load) applications[nextApp].load();
 	active = nextApp;
@@ -82,7 +88,8 @@ export function init() {
 }
 
 export function updateView(permissions) {
-	const perm = permissions ? permissions.USE_APPLICATION : [];
+	const perm = permissions ? 	(permissions.USE_APPLICATION.includes('OVERRIDE') ?
+		Object.keys(hierarchy) : permissions.USE_APPLICATION) : [];
 	allowed = [].concat.apply([], perm.concat(publicApps).map(h => hierarchy[h]));
 	for (const sel of selects) {
 		for (const opt of sel.children) {
