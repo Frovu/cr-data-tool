@@ -34,8 +34,6 @@ export function swithApp(nextApp) {
 		if (app.unload) app.unload();
 		for (const tab of tabs) {
 			if (tab.id.startsWith('info')) continue;
-			if (tab.id.startsWith('app')) tab.classList.add('active');
-			else tab.classList.add('remove');
 			tabsCache[active][tab.id] = tab;
 			const newTab = tab.cloneNode(true);
 			newTab.innerHTML = '';
