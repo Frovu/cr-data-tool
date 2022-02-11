@@ -9,7 +9,7 @@ const tabs = [
 	'export',
 	'graph'
 ];
-let activeTab = 'app';
+let activeTab;
 
 async function login() {
 	const pwdShow = document.getElementById('repeat-input');
@@ -131,6 +131,7 @@ function showTab(tab) {
 	if (activeTab === 'graph' || tab === 'graph')
 		window.dispatchEvent(new Event('resize')); // make sure to redraw plot
 	activeTab = tab;
+	window.localStorage.setItem('active-tab', activeTab);
 }
 
 window.onload = () => {
@@ -151,13 +152,15 @@ window.onload = () => {
 	document.getElementById('logout').onclick = logout;
 	document.getElementById('register').onclick = register;
 
+	activeTab = window.localStorage.getItem('active-tab') || 'app';
 	for (const tab of tabs) {
 		const el = document.getElementById(`${tab}-btn`);
 		el.addEventListener('click', () => {
 			showTab(tab);
 		});
-		if (el.checked) showTab(tab);
+		el.checked = tab === activeTab ? 'true' : null;
 	}
+	showTab(activeTab);
 	applications.init();
 
 	checkLogin().then(r => applications.updateView(r.permissions));
