@@ -19,6 +19,10 @@ body {
 	}
 }
 
+p {
+	margin: 0.5em 0 0.5em 0.25em;
+}
+
 .tool-selector {
 	display: flex;
 	flex-wrap: wrap;
@@ -53,7 +57,7 @@ body {
 	background-color: var(--color-active);
 }
 
-.tool-option [type=radio]:checked+label {
+.tool-option [type=checkbox]:checked+label {
 	/* text-shadow: 1px 1px var(--color-shadow); */
 	color: var(--color-text);
 	padding: 1px 9px 1px 9px;
@@ -63,11 +67,11 @@ body {
 	border-width: 2px;
 }
 
-.tool-option [type=radio]:checked+label:hover {
+.tool-option [type=checkbox]:checked+label:hover {
 	background-color: var(--color-tab-bg) !important;
 }
 
-.tool-option [type=radio]:disabled+label {
+.tool-option [type=checkbox]:disabled+label {
 	text-decoration: line-through;
 	background-color: var(--color-disabled);
 }
@@ -91,7 +95,7 @@ select:hover {
 	height: fit-content;
 	border: 2px var(--color-border) solid;
 	grid-row-start: 1;
-	grid-row-end: span 3;
+	grid-row-end: span 4;
 	grid-column: 2;
 }
 
@@ -106,9 +110,9 @@ select:hover {
 	padding: 0.5rem;
 	background-color: var(--color-tab-bg);
 	border: 2px var(--color-border) solid;
-	min-height: 30vh;
+	/* min-height: 30vh; */
 	max-width: 600px;
-	grid-row-end: 3;
+	/* grid-row-end: 3; */
 	grid-column: 1;
 }
 

@@ -11,40 +11,34 @@
 	<body style="display: none;">
 		<div class="tool-selector">
 			<div class="tool-option">
-				<input type="radio" name="tool-select" id="info-btn">
+				<input type="checkbox" name="tool-select" id="info-btn">
 				<label for="info-btn">?</label>
 			</div>
 			<div class="tool-option">
-				<input type="radio" name="tool-select" id="app-btn" checked>
+				<input type="checkbox" name="tool-select" id="app-btn" checked>
 				<label for="app-btn">Application</label>
 			</div>
 			<div class="tool-option">
-				<input type="radio" name="tool-select" id="query-btn">
+				<input type="checkbox" name="tool-select" id="query-btn">
 				<label for="query-btn">Query</label>
 			</div>
 			<div class="tool-option">
-				<input type="radio" name="tool-select" id="tools-btn">
+				<input type="checkbox" name="tool-select" id="tools-btn">
 				<label for="tools-btn">Tools</label>
 			</div>
 			<div class="tool-option">
-				<input type="radio" name="tool-select" id="view-btn">
+				<input type="checkbox" name="tool-select" id="view-btn">
 				<label for="view-btn">View</label>
 			</div>
 			<div class="tool-option">
-				<input type="radio" name="tool-select" id="export-btn">
+				<input type="checkbox" name="tool-select" id="export-btn">
 				<label for="export-btn">Export</label>
 			</div>
 			<div class="tool-option">
-				<input type="radio" name="tool-select" id="graph-btn">
+				<input type="checkbox" name="tool-select" id="graph-btn">
 				<label for="graph-btn">Graph</label>
 			</div>
 		</div>
-		<div class="tab" id="app-tab"></div>
-		<div class="tab" id="query-tab"></div>
-		<div class="tab" id="tools-tab"></div>
-		<div class="tab" id="view-tab"></div>
-		<div class="tab" id="export-tab"></div>
-		<div class="graph" id="graph-tab"></div>
 		<div class="tab" id="info-tab">
 			<div id="logged-in" hidden="">
 				Logged in as <b id="username">asd@example.com</b>
@@ -63,16 +57,16 @@
 				</div>
 			</div>
 			<h4>Settings</h4>
-			<label>Theme:
+			<p>Theme:
 			<select id="theme-select">
 				<option value="default">Bright</option>
 				<option value="dark">Dark</option>
-			</select></label>
-			<label>Layout:
+			</select></p>
+			<p>Layout:
 			<select id="layout-select">
 				<option value="default">Default</option>
 				<option value="rich">Rich</option>
-			</select></label>
+			</select></p>
 			<h4>Cosmic Rays Data Tool</h4>
 			Status: WIP
 			<h4>Plot interactions</h4>
@@ -80,6 +74,12 @@
 			- Double-click to reset zoom
 			<p style="text-align: right; margin-top: 2rem;">(c) 2021-2021 Frovy, IZMIRAN</p>
 		</div>
+		<div class="tab" id="app-tab"></div>
+		<div class="tab" id="query-tab"></div>
+		<div class="tab" id="tools-tab"></div>
+		<div class="tab" id="view-tab"></div>
+		<div class="tab" id="export-tab"></div>
+		<div class="graph" id="graph-tab"></div>
 		<script type="module" src="js/main.js"></script>
 	</body>
 </html>

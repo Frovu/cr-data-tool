@@ -9,7 +9,8 @@ const tabs = [
 	'export',
 	'graph'
 ];
-let activeTab;
+
+let activeTabs = [];
 
 async function login() {
 	const pwdShow = document.getElementById('repeat-input');
@@ -124,14 +125,19 @@ async function checkLogin() {
 }
 
 function showTab(tab) {
-	const active = document.getElementById(`${activeTab}-tab`);
-	active.classList.remove('active');
+	activeTabs.push(tab);
 	const el = document.getElementById(`${tab}-tab`);
+	const btnEl = document.getElementById(`${tab}-btn`);
+	btnEl.checked = true;
 	el.classList.add('active');
-	if (activeTab === 'graph' || tab === 'graph')
-		window.dispatchEvent(new Event('resize')); // make sure to redraw plot
-	activeTab = tab;
-	window.localStorage.setItem('active-tab', activeTab);
+}
+
+function hideTab(tab) {
+	activeTabs = activeTabs.filter(t => t !== tab);
+	const el = document.getElementById(`${tab}-tab`);
+	const btnEl = document.getElementById(`${tab}-btn`);
+	btnEl.checked = false;
+	el.classList.remove('active');
 }
 
 window.onload = () => {
@@ -148,19 +154,51 @@ window.onload = () => {
 		applications.init();
 	};
 
+	let layout = window.localStorage.getItem('layout') || 'default';
+	const layoutSelect = document.getElementById('layout-select');
+	for (const opt of layoutSelect.children) {
+		opt.selected = opt.value === layout ? 'selected' : null;
+	}
+	layoutSelect.onchange = () => {
+		layout = layoutSelect.value;
+		console.log('layout swithed: '+layout);
+		window.localStorage.setItem('layout', layout);
+		if (layout !== 'rich') {
+			activeTabs.map(t => hideTab(t));
+			showTab('info');
+		}
+	};
+
 	document.getElementById('login').onclick = login;
 	document.getElementById('logout').onclick = logout;
 	document.getElementById('register').onclick = register;
 
-	activeTab = window.localStorage.getItem('active-tab') || 'app';
 	for (const tab of tabs) {
 		const el = document.getElementById(`${tab}-btn`);
-		el.addEventListener('click', () => {
-			showTab(tab);
+		el.addEventListener('click', e => {
+			if (activeTabs.includes(tab)) {
+				if (layout === 'rich' && activeTabs.length > 1)
+					hideTab(tab);
+				else
+					e.preventDefault();
+			} else {
+				if (activeTabs.length === 1 && activeTabs[0] === 'info')
+					hideTab('info');
+				if (layout !== 'rich')
+					activeTabs.map(t => hideTab(t));
+				showTab(tab);
+			}
+			if (tab === 'graph')
+				window.dispatchEvent(new Event('resize')); // make sure to redraw plot
 		});
-		el.checked = tab === activeTab ? 'true' : null;
+		if (el.checked && (!activeTabs.length || layout === 'rich')) {
+			showTab(tab);
+		} else {
+			hideTab(tab);
+		}
 	}
-	showTab(activeTab);
+	if (!activeTabs.length)
+		showTab('app');
 	applications.init();
 
 	checkLogin().then(r => applications.updateView(r.permissions));

@@ -15,10 +15,9 @@
 }
 
 .query {
+	margin-top: 1em;
 	display: block;
-	position: absolute;
-	bottom: 1rem;
-	right: 1rem;
+	text-align: right;
 }
 
 .query-progress {
