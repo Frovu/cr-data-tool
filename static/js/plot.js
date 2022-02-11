@@ -20,6 +20,7 @@ function getPlotSize() {
 function prepareSeries(series) {
 	return series.map(s => {
 		return Object.assign(s, {
+			fill: '#0000',
 			stroke: s.color,
 			paths: s.paths && uPlot.paths[s.paths](),
 			points: { fill: color.bg, stroke: s.color },

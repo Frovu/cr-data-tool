@@ -146,11 +146,12 @@ When query parameters are changed, the button becomes highlighted.`)
 	});
 	tabs.fill('view', viewSelectors);
 	tabs.fill('export', [exprt.el]);
+	query.fetch(params);
 }
 
 export function load() {
 	plotInit();
-	query.fetch(params);
+	plotData();
 }
 
 export function unload() {

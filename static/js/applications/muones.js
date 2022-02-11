@@ -109,11 +109,11 @@ WIP<br>
 		}, { from: params.from, to: params.to }),
 		query.el
 	]);
+	query.fetch(params);
 }
 
 export function load() {
-	plotInit();
-	query.fetch(params);
+	plotInit(data);
 }
 
 export function unload() {

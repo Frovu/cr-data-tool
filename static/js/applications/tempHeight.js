@@ -45,7 +45,7 @@ function plotInit() {
 		{
 			scale: 'mb',
 			label: 'Height',
-			color: null
+			// color: null
 		}, {
 			scale: temperatureUnit,
 			label: 'Temperature',
@@ -92,11 +92,11 @@ Refer to "Temperature" app for more details`)
 			plotInit();
 		}, { options: ['K', '°C'], text: 'Unit: ' })
 	]);
+	query.fetch(params);
 }
 
 export function load() {
 	plotInit();
-	query.fetch(params);
 }
 
 export function unload() {
