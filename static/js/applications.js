@@ -101,3 +101,14 @@ export function updateView(permissions) {
 	if (!allowed.includes(active))
 		swithApp(DEFAULT);
 }
+
+window.onkeydown = e => {
+	if (e.keyCode === 9) { // Tab
+		e.preventDefault();
+		const cached = Object.keys(tabsCache);
+		if (!cached.length) return;
+		const nextId = cached.indexOf(active) + 1;
+		const restore = cached[nextId < cached.length ? nextId : 0];
+		swithApp(restore);
+	}
+};

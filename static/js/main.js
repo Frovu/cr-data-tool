@@ -10,8 +10,6 @@ const tabs = [
 	'graph'
 ];
 
-let activeTabs = [];
-
 async function login() {
 	const pwdShow = document.getElementById('repeat-input');
 	pwdShow.hidden = 'true';
@@ -125,7 +123,6 @@ async function checkLogin() {
 }
 
 function showTab(tab) {
-	activeTabs.push(tab);
 	const el = document.getElementById(`${tab}-tab`);
 	const btnEl = document.getElementById(`${tab}-btn`);
 	btnEl.checked = true;
@@ -133,7 +130,6 @@ function showTab(tab) {
 }
 
 function hideTab(tab) {
-	activeTabs = activeTabs.filter(t => t !== tab);
 	const el = document.getElementById(`${tab}-tab`);
 	const btnEl = document.getElementById(`${tab}-btn`);
 	btnEl.checked = false;
@@ -164,7 +160,7 @@ window.onload = () => {
 		console.log('layout swithed: '+layout);
 		window.localStorage.setItem('layout', layout);
 		if (layout !== 'rich') {
-			activeTabs.map(t => hideTab(t));
+			tabs.map(t => hideTab(t));
 			showTab('info');
 		}
 	};
@@ -178,26 +174,27 @@ window.onload = () => {
 		el.parentNode.children[1].onclick = e => { // listen label element
 			if (el.disabled) return;
 			e.preventDefault();
-			if (activeTabs.includes(tab)) {
+			const activeTabs = tabs.filter(t => document.getElementById(`${t}-btn`).checked);
+			if (el.checked) {
 				if (layout === 'rich' && activeTabs.length > 1)
 					hideTab(tab);
 			} else {
 				if (activeTabs.length === 1 && activeTabs[0] === 'info')
 					hideTab('info');
 				if (layout !== 'rich')
-					activeTabs.map(t => hideTab(t));
+					tabs.map(t => hideTab(t));
 				showTab(tab);
 			}
 			if (tab === 'graph')
 				window.dispatchEvent(new Event('resize')); // make sure to redraw plot
 		};
-		if (el.checked && (!activeTabs.length || layout === 'rich')) {
+		if (el.checked) {
 			showTab(tab);
 		} else {
 			hideTab(tab);
 		}
 	}
-	if (!activeTabs.length)
+	if (!tabs.filter(t => document.getElementById(`${t}-btn`).checked).length)
 		showTab('app');
 	applications.init();
 
