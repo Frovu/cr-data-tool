@@ -78,6 +78,7 @@ export function initTabs() {
 		}
 	});
 	const userOpts = {};
+	const permOpts = {};
 	const userPerms = document.createElement('p');
 	const queryUser = tabs.input('query', resp => {
 		editPerms.hidden = null;
@@ -86,11 +87,11 @@ export function initTabs() {
 	}, { url: 'api/admin/user', text: 'Fetch' });
 	const usernameInp = tabs.input('text', uname => {
 		userOpts.username = uname;
+		permOpts.username = uname;
 		queryUser.setParams(userOpts);
 	}, { label: 'Username:' });
 	usernameInp.append(queryUser.elem);
 
-	const permOpts = {};
 	editPerms.innerHTML = '<summary><u>Edit permissions</u></summary>';
 	editPerms.open = true;
 	editPerms.hidden = 'true';
@@ -100,17 +101,17 @@ export function initTabs() {
 	const permRemove = tabs.input('query', () => {
 		queryUser.fetch();
 	}, { url: 'api/admin/permissions/remove', text: 'Forbid' });
-	const permTypeInp = tabs.input('text', val => {
-		permOpts.type = val;
+	const permFlagInp = tabs.input('text', val => {
+		permOpts.flag = val;
 		permAdd.setParams(permOpts);
 		permRemove.setParams(permOpts);
-	}, { label: '&nbsp;&nbsp;Type:', placeholder: 'USE_APPLICATION' });
+	}, { label: '&nbsp;&nbsp;Flag:', placeholder: 'USE_APPLICATION' });
 	const permTargetInp = tabs.input('text', val => {
 		permOpts.target = val;
 		permAdd.setParams(permOpts);
 		permRemove.setParams(permOpts);
 	}, { label: 'Target:', placeholder: 'muon' });
-	editPerms.append(document.createElement('p'), permTypeInp, permAdd.elem,
+	editPerms.append(document.createElement('p'), permFlagInp, permAdd.elem,
 		document.createElement('p'), permTargetInp, permRemove.elem);
 
 	tabs.fill('tools', [

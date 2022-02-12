@@ -45,3 +45,42 @@ def user():
         if len(res) < 1:
             return {}, 404
         return permissions.list(res[0])
+
+def editPermissions(action):
+    flag = request.args.get('flag', '').upper()
+    target = request.args.get('target', '').upper()
+    if action == 'remove' and not target:
+        target = 'OVERRIDE'
+    if not flag or not target:
+        return {}, 400
+    if flag not in permissions.ALLOWED_TYPES:
+        return {}, 403
+    with pg_conn.cursor() as cur:
+        cur.execute('SELECT uid FROM users WHERE login = %s', [request.args.get('username')])
+        res = cur.fetchall()
+        if len(res) < 1:
+            return {}, 404
+        uid = res[0]
+        if action == 'add':
+            res = cur.fetchall()
+            q = 'INSERT INTO permissions VALUES (%s, %s, %s)'
+            vals = [ uid, flag, target]
+            cur.execute('SELECT uid FROM permissions WHERE uid = %s AND flag = %s AND target = %s', vals)
+            if len(cur.fetchall()) > 0:
+                return {}, 409
+        else:
+             q = 'DELETE FROM permissions WHERE uid = %s AND flag = %s'
+             vals = [ uid, flag ]
+             if target != 'OVERRIDE':
+                q += 'AND target = %s'
+                vals.append(target)
+        cur.execute(q, vals)
+        return {}, 200
+
+@bp.route('/permissions/add')
+def allow():
+    return editPermissions('add')
+
+@bp.route('/permissions/remove')
+def forbid():
+    return editPermissions('remove')

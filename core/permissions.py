@@ -9,6 +9,10 @@ pg_conn = psycopg2.connect(
     host = os.environ.get("SYS_DB_HOST")
 )
 
+ALLOWED_TYPES = [
+    'USE_APPLICATION'
+]
+
 with pg_conn.cursor() as cursor:
     cursor.execute(f'''CREATE TABLE IF NOT EXISTS users (
     uid SERIAL PRIMARY KEY, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP,
