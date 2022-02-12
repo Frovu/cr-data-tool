@@ -4,6 +4,7 @@ import * as muones from './applications/muones.js';
 import * as muonesRaw from './applications/muonesRaw.js';
 import * as muonesCorr from './applications/muonesCorrelation.js';
 import * as pressure from './applications/pressure.js';
+import * as admin from './applications/admin.js';
 
 const applications = {
 	temperature,
@@ -11,11 +12,12 @@ const applications = {
 	muones,
 	muonesRaw,
 	muonesCorr,
-	pressure
+	pressure,
+	admin
 };
 const hierarchy = {
 	muon: ['muones', 'muonesRaw', 'muonesCorr', 'pressure'],
-	temperature: ['temperature', 'tempHeight']
+	temperature: ['temperature', 'tempHeight'],
 };
 const publicApps = ['temperature'];
 
@@ -86,9 +88,10 @@ export function init() {
 }
 
 export function updateView(permissions) {
-	const perm = permissions ? 	(permissions.USE_APPLICATION.includes('OVERRIDE') ?
-		Object.keys(hierarchy) : permissions.USE_APPLICATION) : [];
+	const perm = permissions ? (permissions.USE_APPLICATION.includes('OVERRIDE') ?
+		Object.keys(hierarchy) :  permissions.USE_APPLICATION) : [];
 	allowed = [].concat.apply([], perm.concat(publicApps).map(h => hierarchy[h]));
+	if (permissions.ADMIN) allowed.push('admin');
 	for (const sel of selects) {
 		for (const opt of sel.children) {
 			opt.hidden = allowed.includes(opt.value) ? null : 'true';

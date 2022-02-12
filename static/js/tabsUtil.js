@@ -108,11 +108,21 @@ export function input(type, callback, options = {}) {
 			callback(opt);
 		});
 	} else if (type === 'text') {
+		const div = document.createElement('div');
+		div.classList.add('text-input');
 		elem = document.createElement('input');
-		elem.classList.add('text-input');
 		elem.value = options.value || '';
 		elem.placeholder = options.placeholder || '';
 		elem.onchange = () => callback(elem.value);
+		if (options.label) {
+			const lbl = document.createElement('span');
+			lbl.innerHTML = options.label;
+			div.append(lbl, elem);
+			return div;
+		} else {
+			div.append( elem);
+		}
+		return div;
 	} else if (type === 'query') {
 		let target = options.url, params = options.params || {};
 		elem = document.createElement('button');
@@ -122,10 +132,10 @@ export function input(type, callback, options = {}) {
 			elem.innerHTML = '...';
 			const method = options.method || 'GET';
 			const keys = Object.keys(params);
-			const param = keys.length ? '?' + keys.map(k => `${k}=${params[k]}`).join('&') : '';
-			const res = await fetch(target + (options.method === 'GET' ? param : ''), {
+			const param = keys.length ? '?' + keys.map(k => `${k}=${encodeURIComponent(params[k])}`).join('&') : '';
+			const res = await fetch(target + (method === 'GET' ? param : ''), {
 				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-				body: options.method === 'POST' ? param : '',
+				body: options.method === 'POST' ? param : null,
 				method
 			});
 			if (res.status === 200) {
@@ -142,7 +152,8 @@ export function input(type, callback, options = {}) {
 		};
 		return {
 			elem,
-			setParams: p => params = p
+			setParams: p => params = p,
+			fetch: elem.onclick
 		};
 	}
 	return elem;

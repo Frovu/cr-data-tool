@@ -29,6 +29,7 @@
 }
 
 button.submit {
+	margin-left: 1em;
 	display: inline-block;
 	width: 128px;
 	transition: 500ms;
