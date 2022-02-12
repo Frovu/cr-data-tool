@@ -3,7 +3,7 @@ import * as plot from '../plot.js';
 
 const params = {
 	from: (Math.floor(Date.now()/1000/3600)-1)*3600-86400,
-	to: Math.floor(Date.now()/1000) + 3600,
+	to: Math.floor(Date.now()/1000),
 	period: '1 hour'
 };
 let data;

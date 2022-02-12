@@ -196,7 +196,14 @@ window.onload = () => {
 	}
 	if (!tabs.filter(t => document.getElementById(`${t}-btn`).checked).length)
 		showTab('app');
+
 	applications.init();
+	setTimeout(() => {
+		for (const t of tabs) {
+			if (document.getElementById(`${t}-btn`).checked)
+				document.getElementById(`${t}-tab`).classList.add('active');
+		}
+	}, 1); // this timeout fixes some weird "restore tab" behavior
 
 	checkLogin().then(r => applications.updateView(r.permissions));
 };
