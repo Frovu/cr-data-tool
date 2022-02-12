@@ -90,10 +90,10 @@ export function init() {
 }
 
 export function updateView(permissions) {
-	const perm = permissions ? (permissions.USE_APPLICATION.includes('OVERRIDE') ?
+	const perm = permissions && permissions.USE_APPLICATION ? (permissions.USE_APPLICATION.includes('OVERRIDE') ?
 		Object.keys(hierarchy) :  permissions.USE_APPLICATION) : [];
-	allowed = [].concat.apply([], perm.concat(publicApps).map(h => hierarchy[h]));
-	if (permissions.ADMIN) allowed.push('admin');
+	allowed = [].concat.apply([], perm.concat(publicApps).map(h => hierarchy[h.toLowerCase()]));
+	if (permissions && permissions.ADMIN) allowed.push('admin');
 	for (const sel of selects) {
 		for (const opt of sel.children) {
 			opt.hidden = allowed.includes(opt.value) ? null : 'true';

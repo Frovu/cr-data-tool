@@ -9,7 +9,7 @@ import traceback
 bp = Blueprint('muones', __name__, url_prefix='/api/muones')
 
 @bp.before_request
-@permissions.require('USE_APPLICATION', 'muon')
+@permissions.require('USE_APPLICATION', 'MUON')
 def app_auth():
     pass
 
