@@ -22,7 +22,9 @@ const hierarchy = {
 const publicApps = ['temperature'];
 
 const DEFAULT = 'temperature';
+const DONT_SAVE = ['info-tab', 'graph-tab'];
 const tabsCache = {};
+const graphsCache = {};
 
 let allowed = [DEFAULT];
 let active;
@@ -30,12 +32,14 @@ const selects = [];
 
 export function swithApp(nextApp) {
 	const tabs = document.getElementsByClassName('tab');
+	const graphTab = document.getElementById('graph-tab');
 	if (active) { // save app's tabs to cache
 		const app = applications[active];
 		if (!tabsCache[active]) tabsCache[active] = {};
 		if (app.unload) app.unload();
+		graphsCache[active] = graphTab.classList.contains('active');
 		for (const tab of tabs) {
-			if (tab.id.startsWith('info')) continue;
+			if (DONT_SAVE.includes(tab.id)) continue;
 			tabsCache[active][tab.id] = tab;
 			const newTab = tab.cloneNode(true);
 			newTab.innerHTML = '';
@@ -44,9 +48,12 @@ export function swithApp(nextApp) {
 	}
 	if (tabsCache[nextApp]) { // restore app's tabs from cache
 		for (const tab of tabs) {
-			if (tab.id.startsWith('info')) continue;
+			if (DONT_SAVE.includes(tab.id)) continue;
 			document.body.replaceChild(tabsCache[nextApp][tab.id], tab);
 		}
+		const graphBtn = document.getElementById('graph-btn');
+		graphTab.classList[graphsCache[nextApp] ? 'add' : 'remove']('active');
+		graphBtn.checked = graphsCache[nextApp];
 	} else {
 		const apptab = document.getElementById('app-tab');
 		apptab.innerHTML = '<label for="app">Select application:&nbsp;</label>';

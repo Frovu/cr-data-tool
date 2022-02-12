@@ -163,6 +163,7 @@ window.onload = () => {
 			tabs.map(t => hideTab(t));
 			showTab('info');
 		}
+		window.dispatchEvent(new Event('resize')); // make sure to redraw plot
 	};
 
 	document.getElementById('login').onclick = login;
@@ -185,8 +186,7 @@ window.onload = () => {
 					tabs.map(t => hideTab(t));
 				showTab(tab);
 			}
-			if (tab === 'graph')
-				window.dispatchEvent(new Event('resize')); // make sure to redraw plot
+			window.dispatchEvent(new Event('resize')); // make sure to redraw plot
 		};
 		if (el.checked) {
 			showTab(tab);
