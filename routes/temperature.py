@@ -2,6 +2,7 @@ import data_source.temperature_model.temperature as t_model
 import data_source.stations_meteo.data as t_stations
 from flask import Blueprint, request
 from datetime import datetime
+from core import permissions
 
 bp = Blueprint('temperature', __name__, url_prefix='/api/temperature')
 
@@ -25,7 +26,10 @@ def get():
     if status != 'ok':
         if status in ['busy', 'failed'] and data:
             body["info"] = data
+        elif status == 'accepted':
+            permissions.log_action('query_accepted', 'temperature', f'{lat},{lon}')
         return body
+    permissions.log_action('get_result', 'temperature', f'{lat},{lon}')
     body["fields"] = data[1]
     body["data"] = data[0]
     return body

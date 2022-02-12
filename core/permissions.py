@@ -15,6 +15,8 @@ with pg_conn.cursor() as cursor:
     login TEXT, password TEXT)''')
     cursor.execute(f'''CREATE TABLE IF NOT EXISTS permissions (
     uid INTEGER NOT NULL, flag TEXT NOT NULL, target TEXT)''')
+    cursor.execute(f'''CREATE TABLE IF NOT EXISTS action_log (
+    time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, uid INTEGER, type TEXT NOT NULL, target TEXT, details TEXT)''')
     pg_conn.commit()
 
 def _check(uid, flag, target_required):
@@ -52,3 +54,10 @@ def list():
         else:
             perms[flag] = [ row[1] ]
     return perms
+
+def log_action(type, target=None, details=None):
+    uid = session.get("uid", None)
+    with pg_conn.cursor() as cursor:
+        cursor.execute('INSERT INTO action_log(uid, type, target, details) VALUES (%s, %s, %s, %s)',
+            [ uid, type, target, details ])
+        pg_conn.commit()

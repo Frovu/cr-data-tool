@@ -32,6 +32,9 @@ def corrected():
             body["info"] = data[2]
             body["fields"] = data[1]
             body["data"] = data[0]
+            permissions.log_action('get_result', 'muones/corrected', station)
+        elif status == 'accepted':
+            permissions.log_action('query_accepted', 'muones/corrected', station)
         return body
     except ValueError:
         return {}, 400
@@ -53,6 +56,7 @@ def raw():
         if status == 'ok':
             body["fields"] = data[1]
             body["data"] = data[0]
+            permissions.log_action('get_result', 'muones/raw', station)
         return body
     except ValueError:
         return {}, 400
@@ -73,6 +77,7 @@ def correlation():
         status, data = muones.get_correlation(station, t_from, t_to, period, against)
         body = { "status": status }
         if status == 'ok':
+            permissions.log_action('get_result', 'muones/correlation', station)
             body["data"] = data
         elif status in ['busy', 'failed'] and data:
             body["info"] = data
@@ -91,6 +96,7 @@ def pressure():
         station = request.args.get('station', '')
         data = meteo.get(station, t_from, t_to)
         if data:
+            permissions.log_action('get_result', 'muones/pressure', station)
             return { "status": "ok", "data": data[0], "fields": data[1] }
         else:
             return { "status": "unknown" }
