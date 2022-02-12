@@ -91,35 +91,35 @@ button.submit.ongoing {
 	background-color: var(--color-active);
 }
 
-.time-input {
+.text-input {
 	display: inline-block;
 }
 
-.time-input .footer {
+.text-input .footer {
 	font-size: 8pt;
 	margin-top: 0;
 	text-align: center;
 	color: var(--color-shadow);
 }
 
-.time-input input {
+.text-input input {
 	width: 128px;
 	margin-left: 4px;
 	margin-right: 4px;
 	border: 2px transparent solid;
 }
 
-.time-input input.invalid {
+.text-input input.invalid {
 	border: 2px var(--color-invalid) solid;
 	background-color: var(--color-loading);
 	transition: 500ms;
 }
 
-.time-input input:hover {
+.text-input input:hover {
 	background-color: var(--color-active);
 }
 
-.time-input input:focus {
+.text-input input:focus {
 	outline: none;
 }
 

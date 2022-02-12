@@ -14,7 +14,7 @@ export function text(html) {
 	return el;
 }
 
-export function input(type, callback, options) {
+export function input(type, callback, options = {}) {
 	let elem;
 	if (type === 'station') {
 		elem = document.createElement('div');
@@ -50,7 +50,7 @@ export function input(type, callback, options) {
 		elem.append(sel);
 	} else if (type === 'timestamp') {
 		elem = document.createElement('div');
-		elem.classList.add('time-input');
+		elem.classList.add('text-input');
 		const inp = document.createElement('input');
 		inp.value = new Date(options.value*1000).toISOString().replace(/T.*/, '') || '';
 		const submitChange = force => {
@@ -71,7 +71,7 @@ export function input(type, callback, options) {
 		elem.append('at date', inp, footer);
 	} else if (type === 'time') {
 		elem = document.createElement('div');
-		elem.classList.add('time-input');
+		elem.classList.add('text-input');
 		const from = document.createElement('input');
 		const to = document.createElement('input');
 		from.value = new Date(options.from*1000).toISOString().replace(/T.*/, '') || '';
@@ -96,11 +96,6 @@ export function input(type, callback, options) {
 		footer.classList.add('footer');
 		footer.innerHTML = 'date format: yyyy-mm-dd';
 		elem.append('from', from, 'to', to, footer);
-	} else if (type === 'query') {
-		elem = document.createElement('button');
-		elem.classList.add('submit');
-		elem.innerHTML = 'Query data';
-		if (callback) elem.addEventListener('click', callback);
 	} else if (type === 'switch') {
 		elem = document.createElement('button');
 		elem.classList.add('switch-input');
@@ -112,6 +107,43 @@ export function input(type, callback, options) {
 			elem.innerHTML = options.text + opt;
 			callback(opt);
 		});
+	} else if (type === 'text') {
+		elem = document.createElement('input');
+		elem.classList.add('text-input');
+		elem.value = options.value || '';
+		elem.placeholder = options.placeholder || '';
+		elem.onchange = () => callback(elem.value);
+	} else if (type === 'query') {
+		let target = options.url, params = options.params || {};
+		elem = document.createElement('button');
+		elem.classList.add('submit');
+		elem.innerHTML = 'Query';
+		elem.onclick = async () => {
+			elem.innerHTML = '...';
+			const method = options.method || 'GET';
+			const keys = Object.keys(params);
+			const param = keys.length ? '?' + keys.map(k => `${k}=${params[k]}`).join('&') : '';
+			const res = await fetch(target + (options.method === 'GET' ? param : ''), {
+				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+				body: options.method === 'POST' ? param : '',
+				method
+			});
+			if (res.status === 200) {
+				callback(await res.json());
+			} else {
+				elem.classList.add('error');
+				console.log(await res.json().catch(()=>{}));
+			}
+			elem.innerHTML = res.status;
+			setTimeout(() => {
+				elem.classList.remove('error');
+				elem.innerHTML = 'Query';
+			}, 1500);
+		};
+		return {
+			elem,
+			setParams: p => params = p
+		};
 	}
 	return elem;
 }
