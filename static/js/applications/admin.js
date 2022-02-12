@@ -2,7 +2,7 @@ import * as tabs from '../tabsUtil.js';
 import * as plot from '../plot.js';
 
 const params = {
-	from: Math.floor(Date.now()/1000) - 86400,
+	from: (Math.floor(Date.now()/1000/3600)-1)*3600-86400,
 	to: Math.floor(Date.now()/1000) + 3600,
 	period: '1 hour'
 };
@@ -66,6 +66,7 @@ export function initTabs() {
 		periodInput,
 	]);
 
+	const editPerms = document.createElement('details');
 	const userList = document.createElement('details');
 	userList.innerHTML = '<summary>Users list</summary>';
 	fetch('api/admin/listUsers').then(async res => {
@@ -77,19 +78,47 @@ export function initTabs() {
 		}
 	});
 	const userOpts = {};
-	const userPerms = document.createElement('div');
+	const userPerms = document.createElement('p');
 	const queryUser = tabs.input('query', resp => {
+		editPerms.hidden = null;
 		userPerms.innerHTML = '<h4>Permissions</h4>';
-		userPerms.innerHTML = Object.keys(resp).map(k => `<p>${k}: <i>${resp[k].join()}</i></p>`).join('\n');
-	}, { url: 'api/admin/user', options: userOpts });
+		userPerms.innerHTML += Object.keys(resp).map(k => `<p>${k}: <i>${resp[k].join()}</i></p>`).join('\n');
+	}, { url: 'api/admin/user', text: 'Fetch' });
 	const usernameInp = tabs.input('text', uname => {
 		userOpts.username = uname;
 		queryUser.setParams(userOpts);
 	}, { label: 'Username:' });
 	usernameInp.append(queryUser.elem);
+
+	const permOpts = {};
+	editPerms.innerHTML = '<summary><u>Edit permissions</u></summary>';
+	editPerms.open = true;
+	editPerms.hidden = 'true';
+	const permAdd = tabs.input('query', () => {
+		queryUser.fetch();
+	}, { url: 'api/admin/permissions/add', text: 'Allow' });
+	const permRemove = tabs.input('query', () => {
+		queryUser.fetch();
+	}, { url: 'api/admin/permissions/remove', text: 'Forbid' });
+	const permTypeInp = tabs.input('text', val => {
+		permOpts.type = val;
+		permAdd.setParams(permOpts);
+		permRemove.setParams(permOpts);
+	}, { label: '&nbsp;&nbsp;Type:', placeholder: 'USE_APPLICATION' });
+	const permTargetInp = tabs.input('text', val => {
+		permOpts.target = val;
+		permAdd.setParams(permOpts);
+		permRemove.setParams(permOpts);
+	}, { label: 'Target:', placeholder: 'muon' });
+	editPerms.append(document.createElement('p'), permTypeInp, permAdd.elem,
+		document.createElement('p'), permTargetInp, permRemove.elem);
+
 	tabs.fill('tools', [
 		userList,
+		document.createElement('p'),
 		usernameInp,
+		document.createElement('p'),
+		editPerms,
 		userPerms
 	]);
 	statsQuery.fetch(params);

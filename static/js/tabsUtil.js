@@ -125,9 +125,10 @@ export function input(type, callback, options = {}) {
 		return div;
 	} else if (type === 'query') {
 		let target = options.url, params = options.params || {};
+		const text = options.text || 'Query';
 		elem = document.createElement('button');
 		elem.classList.add('submit');
-		elem.innerHTML = 'Query';
+		elem.innerHTML = text;
 		elem.onclick = async () => {
 			elem.innerHTML = '...';
 			const method = options.method || 'GET';
@@ -147,7 +148,7 @@ export function input(type, callback, options = {}) {
 			elem.innerHTML = res.status;
 			setTimeout(() => {
 				elem.classList.remove('error');
-				elem.innerHTML = 'Query';
+				elem.innerHTML = text;
 			}, 1500);
 		};
 		return {
