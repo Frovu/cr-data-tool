@@ -18,15 +18,15 @@ def register():
         args = request.args
         t_from = int(args.get('from'))
         t_to = args.get('to') and int(args.get('to'))
-        period = int(args.get('period')) if args.get('period') else 3600
+        interval = args.get('period') or '1 hour'
+        types = ['query_accepted', 'get_result']
         with pg_conn.cursor() as cur:
-            q = 'COUNT(*)'
-            cur.execute(sql_queries.stack_periods(t_from, t_to, period, table, q))
-            res = cursor.fetchall()
-            print(res)
-        return { "data": "" }
+            q = ', '.join([f'COUNT(*) FILTER (WHERE type = \'{t}\')' for t in types])
+            cur.execute(sql_queries.aggregate_periods(t_from, t_to, interval, 'action_log', q))
+            res = cur.fetchall()
+        return { "data": res, "fields": ["time"] + types }
     except ValueError:
         return {}, 400
     except Exception:
-        logging.error(f'exc in admin/stats: {traceback.format_exc()}')
+        logging.info(f'exc in admin/stats: {traceback.format_exc()}')
         return {}, 500

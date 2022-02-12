@@ -31,12 +31,13 @@ input (t_from, t_to, t_interval) AS (
 SELECT {", ".join([f"EXTRACT(EPOCH FROM {f})::integer" if return_epoch else f for f in ["gap_start", "gap_end"]])}
 FROM rec WHERE gap_end - gap_start >= interval \'{period} s\' OR (gap_end = gap_start AND EXTRACT(EPOCH FROM gap_end)::integer%{period}=0);'''
 
-def aggregate_periods(t_from, t_to, period, table, select, time_column='time'):
-    interval = f'interval \'{period} s\''
+def aggregate_periods(t_from, t_to, period, table, select, time_column='time', condition=''):
+    interval = f'interval \'{period}\''
     t_to = f'to_timestamp({t_to})' if t_to else 'CURRENT_TIMESTAMP+' + interval
     return f'''WITH periods AS
     (SELECT generate_series(to_timestamp({t_from}), {t_to}, {interval}) period)
     SELECT EXTRACT(EPOCH FROM period)::integer AS time,
         {select}
-    FROM periods LEFT JOIN {table} ON (period <= {time_column} AND {time_column} < period + {interval})
+    FROM (periods LEFT JOIN {table} ON (period <= {time_column} AND {time_column} < period + {interval})) as agg
+    {condition and ('WHERE ' + condition)}
     GROUP BY period ORDER BY period'''
