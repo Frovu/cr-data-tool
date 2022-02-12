@@ -59,9 +59,11 @@ export function swithApp(nextApp) {
 			select.append(opt);
 			opt.hidden = allowed.includes(app) ? null : 'true';
 		}
-		select.onchange = () => {
+		select.onchange = e => {
+			e.preventDefault();
+			const prev = active;
 			swithApp(select.value);
-			selects.forEach(sel => sel.value = select.value);
+			if (prev) select.value = prev;
 		};
 		selects.push(select);
 		apptab.append(select);
