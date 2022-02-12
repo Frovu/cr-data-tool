@@ -30,3 +30,18 @@ def register():
     except Exception:
         logging.info(f'exc in admin/stats: {traceback.format_exc()}')
         return {}, 500
+
+@bp.route('/listUsers')
+def listu():
+    with pg_conn.cursor() as cur:
+        cur.execute('SELECT login FROM users ORDER BY uid')
+        return { "list": cur.fetchall() }
+
+@bp.route('/user')
+def user():
+    with pg_conn.cursor() as cur:
+        cur.execute('SELECT uid FROM users WHERE login = %s', [request.args.get('username')])
+        res = cur.fetchall()
+        if len(res) < 1:
+            return {}, 404
+        return permissions.list(res[0])

@@ -95,7 +95,7 @@ select:hover {
 	height: fit-content;
 	border: 2px var(--color-border) solid;
 	grid-row-start: 1;
-	grid-row-end: span 4;
+	grid-row-end: span 6;
 	grid-column: 2;
 }
 

@@ -32,19 +32,16 @@ function receiveData(resp) {
 			idx[index] = i;
 	});
 	data = fields.map(() => Array(len));
-	console.log(idx)
 	for (let i = 0; i < len; ++i) {
 		for (let j = 0; j < fields.length; ++j) {
 			data[j][i] = rows[i][idx[j]];
 		}
 	}
-	console.log(data)
 }
 
 function drawPlot(data) {
 	plot.init([{ scale: 'n' , nounit: true}]);
 	plot.series(Object.values(SERIES));
-	console.log(data)
 	if (data) plot.data(data);
 }
 
@@ -67,6 +64,33 @@ export function initTabs() {
 			params.to = to;
 		}, { from: params.from, to: params.to }),
 		periodInput,
+	]);
+
+	const userList = document.createElement('details');
+	userList.innerHTML = '<summary>Users list</summary>';
+	fetch('api/admin/listUsers').then(async res => {
+		if (res.status == 200) {
+			const data = await res.json();
+			userList.innerHTML += '<p>'+data.list.map(u => `<i>${u}</i>`).join(', ')+'</p>';
+		} else {
+			userList.innerHTML = 'Failed to load';
+		}
+	});
+	const userOpts = {};
+	const userPerms = document.createElement('div');
+	const queryUser = tabs.input('query', resp => {
+		userPerms.innerHTML = '<h4>Permissions</h4>';
+		userPerms.innerHTML = Object.keys(resp).map(k => `<p>${k}: <i>${resp[k].join()}</i></p>`).join('\n');
+	}, { url: 'api/admin/user', options: userOpts });
+	const usernameInp = tabs.input('text', uname => {
+		userOpts.username = uname;
+		queryUser.setParams(userOpts);
+	}, { label: 'Username:' });
+	usernameInp.append(queryUser.elem);
+	tabs.fill('tools', [
+		userList,
+		usernameInp,
+		userPerms
 	]);
 	statsQuery.fetch(params);
 }

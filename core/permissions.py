@@ -40,8 +40,8 @@ def require(flag, target=None):
         return wrapper
     return decorator
 
-def list():
-    uid = session.get("uid", None)
+def list(uid=None):
+    uid = uid or session.get("uid", None)
     if not uid: return None;
     with pg_conn.cursor() as cursor:
         cursor.execute('SELECT flag, target FROM permissions WHERE uid = %s', [ uid ])
