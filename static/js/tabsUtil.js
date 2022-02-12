@@ -28,7 +28,8 @@ export function input(type, callback, options) {
 		lon.value = options.lon || '';
 		lat.disabled = lon.disabled = true;
 		options.list.forEach(s => {
-			sel.innerHTML += `<option value="${s.name}">${s.name}</option>`;
+			const ss = options.lat === s.lat && options.lon === s.lon;
+			sel.innerHTML += `<option value="${s.name}" ${ss?'selected':''}>${s.name}</option>`;
 		});
 		sel.onchange = () => {
 			const st = options.list.find(s => s.name === sel.value);
