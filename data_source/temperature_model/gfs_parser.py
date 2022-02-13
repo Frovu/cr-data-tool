@@ -8,11 +8,12 @@ from scipy import interpolate, ndimage
 from data_source.temperature_model.proxy import LEVELS
 from concurrent.futures import ThreadPoolExecutor
 import traceback
+import time
 
 _GFS_URL = 'https://nomads.ncep.noaa.gov'
 _GFS_QUERY_VARS = '&var_TMP=on' + ''.join([f'&lev_{str(lvl)}_mb=on' for lvl in LEVELS])
 
-def _download(filename, latlon, fcst_date, fcst_hour, source='gfs'):
+def _download(filename, latlon, fcst_date, fcst_hour, source='gfs', retry=2):
     if source != 'gfs': source = 'gdas'
     hh, yyyymmdd = f'{fcst_date.hour:02}', fcst_date.strftime("%Y%m%d")
     query = f'/cgi-bin/filter_{source}_0p25.pl?'
@@ -20,13 +21,19 @@ def _download(filename, latlon, fcst_date, fcst_hour, source='gfs'):
     query += f'&dir=%2F{source}.{yyyymmdd}%2F{hh}%2Fatmos'
     query += f'&subregion=&leftlon={latlon[1][0]}&rightlon={latlon[1][1]}&bottomlat={latlon[0][0]}&toplat={latlon[0][1]}'
     logging.debug(f'Query GFS {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
-    res = requests.get(f'{_GFS_URL}{query}{_GFS_QUERY_VARS}', stream=True)
-    if res.status_code == 200:
-        with open(filename, 'wb') as f:
-            for chunk in res.iter_content(chunk_size=None):
-                f.write(chunk)
-        return filename
-    logging.debug(f'Failed GFS [{res.status_code}] {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
+    try:
+        res = requests.get(f'{_GFS_URL}{query}{_GFS_QUERY_VARS}', stream=True)
+        if res.status_code == 200:
+            with open(filename, 'wb') as f:
+                for chunk in res.iter_content(chunk_size=None):
+                    f.write(chunk)
+            return filename
+        logging.debug(f'Failed GFS [{res.status_code}] {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
+    except requests.exceptions.ConnectionError as e:
+        if retry < 1: raise e
+        logging.debug(f'GFS ConnectionError, retrying {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
+        time.sleep(3)
+        return _download(filename, latlon, fcst_date, fcst_hour, source, retry-1)
     return False
 
 def _tries_list(dtime, depth=8, PER_H=6):
@@ -71,7 +78,7 @@ def _calc_one_hour(timestamp, lat, lon, progress, grid_margin=2):
                         logging.warning(f'Unexpected level in gfs.grb: {grb.level}')
                 break
     except Exception as e:
-        logging.error(f'Failed to get GFS data for {dtime}: {e}') # traceback.format_exc()
+        logging.error(f'Failed to get GFS data for {dtime}') # traceback.format_exc()
         result[0] = 0
     if os.path.exists(fname): os.remove(fname)
     progress[0] += 1

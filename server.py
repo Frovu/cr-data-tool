@@ -26,6 +26,10 @@ logger = logging.getLogger()
 logger.handlers = [ log_rotate, sh ]
 logger.setLevel(logging.DEBUG)
 
+import requests
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('urllib3').propagate = False
+
 from flask import Flask, send_file, session
 from flask_session import Session
 from flask_bcrypt import Bcrypt
