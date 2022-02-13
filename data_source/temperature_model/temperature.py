@@ -106,8 +106,9 @@ def get(lat, lon, t_from, t_to, no_response=False, only=[]):
     ], key_overwrite=(token, t_from, t_to))
     forecast_required = forecast_from and proxy.analyze_integrity(lat, lon, forecast_from, t_to)
     if forecast_from and forecast_required:
-        log.info(f'GFS: Filling ({lat}, {lon}) {forecast_from}:{t_to}')
+        joined_interv = (forecast_required[0][0], forecast_required[-1][1])
+        log.info(f'GFS: Filling ({lat}, {lon}) {joined_interv[0]}:{joined_interv[1]}')
         query.submit_tasks([
-            (_fill_with_forecast, (*forecast_required[0], lat, lon), 'temperature-forecast', True)
+            (_fill_with_forecast, (*joined_interv, lat, lon), 'temperature-forecast', True)
         ])
     return 'accepted', query
