@@ -129,7 +129,6 @@ The button on "Query" tab indicates your data query progress.
 When query parameters are changed, the button becomes highlighted.`)
 	]);
 	const stations = await fetchStations();
-	console.log(stations)
 	tabs.fill('query', [
 		!stations ? tabs.text('Stations failed to load, please refresh tab') :
 			tabs.input('station', (lat, lon) => {
@@ -157,7 +156,7 @@ When query parameters are changed, the button becomes highlighted.`)
 			url: `${URL}/delete`, text: 'Erase', params: eraseParams
 		});
 		const editBtn = tabs.input('query', () => {}, {
-			url: `${URL}/stations`, text: 'Edit/Create', params: eraseParams, method: 'POST'
+			url: `${URL}/stations`, text: 'Edit/Create', params: stationParams, method: 'POST'
 		});
 		const stName = tabs.input('text', val => {
 			stationParams.name = val;
@@ -172,9 +171,9 @@ When query parameters are changed, the button becomes highlighted.`)
 			editBtn.setParams(stationParams);
 		}, { value: s.lon, label: 'lon=' });
 		const stDesc = tabs.input('text', val => {
-			stationParams.name = val;
+			stationParams.description = val;
 			editBtn.setParams(stationParams);
-		}, { value: s.desc, label: 'Description:' });
+		}, { value: s.desc, label: 'Description:', width: 256 });
 		stationEdit.append(stName, stLat, stLon, tabs.text('<p>'), stDesc, tabs.text('<p>'), editBtn.elem);
 		stationEdit.classList.add('station-input');
 		tabs.fill('tools', [
@@ -182,10 +181,10 @@ When query parameters are changed, the button becomes highlighted.`)
 			tabs.input('station', (lat, lon, name, desc) => {
 				eraseParams.lat = lat;
 				eraseParams.lon = lon;
-				stationParams.lat = lat;
-				stationParams.lon = lon;
-				stationParams.name = name;
-				stationParams.description = desc;
+				stLat.children[1].value = stationParams.lat = lat;
+				stLon.children[1].value = stationParams.lon = lon;
+				stName.children[1].value = stationParams.name = name;
+				stDesc.children[1].value = stationParams.description = desc;
 				editBtn.setParams(stationParams);
 				eraseBtn.setParams(eraseParams);
 			}, { text: 'station', list: stations, lat: eraseParams.lat, lon: eraseParams.lon }),
@@ -195,7 +194,7 @@ When query parameters are changed, the button becomes highlighted.`)
 				eraseBtn.setParams(eraseParams);
 			}, { from: eraseParams.from, to: eraseParams.to }),
 			eraseBtn.elem,
-			tabs.text('<p>Note: To perform this action you should be authorized and have certain permission.</p>'),
+			tabs.text('<p>Note: To perform this action you should be authorized and have certain permission.</p><p>'),
 			stationEdit
 		]);
 	}

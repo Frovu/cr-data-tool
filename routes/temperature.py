@@ -61,17 +61,17 @@ def erase():
 @permissions.require('ADMIN', 'TEMPERATURE')
 def station_edit():
     try:
-        lat = float(request.args.get('lat', ''))
-        lon = float(request.args.get('lon', ''))
-        name = request.args.get('name')
-        description = request.args.get('description')
+        lat = float(request.values.get('lat', ''))
+        lon = float(request.values.get('lon', ''))
+        name = request.values.get('name')
+        description = request.values.get('description')
         if not name: raise ValueError()
         if database.get_station(lat, lon):
             database.edit_station(lat, lon, name, description)
-            permissions.log_action('edit_station', 'temperature', f'{lat},{lon}')
+            permissions.log_action('edit_station', 'temperature', f'{lat},{lon},{name}')
         else:
             database.create_station(lat, lon, name, description)
-            permissions.log_action('create_station', 'temperature', f'{lat},{lon}')
+            permissions.log_action('create_station', 'temperature', f'{lat},{lon},{name}')
         return {}
     except ValueError:
         return {}, 400

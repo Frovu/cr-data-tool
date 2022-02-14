@@ -55,8 +55,10 @@ export async function swithApp(nextApp) {
 		graphTab.classList[graphsCache[nextApp] ? 'add' : 'remove']('active');
 		graphBtn.checked = graphsCache[nextApp];
 	} else {
-		for (const tab of tabs)
+		for (const tab of tabs) {
+			if (DONT_SAVE.includes(tab.id)) continue;
 			tab.innerHTML = '';
+		}
 		const apptab = document.getElementById('app-tab');
 		apptab.innerHTML = '<label for="app">Select application:&nbsp;</label>';
 		const select = document.createElement('select');

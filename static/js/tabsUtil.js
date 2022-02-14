@@ -111,6 +111,8 @@ export function input(type, callback, options = {}) {
 		const div = document.createElement('div');
 		div.classList.add('text-input');
 		elem = document.createElement('input');
+		if (options.width)
+			elem.style.width = options.width+'px';
 		elem.value = options.value || '';
 		elem.placeholder = options.placeholder || '';
 		elem.onchange = () => callback(elem.value);
@@ -133,8 +135,8 @@ export function input(type, callback, options = {}) {
 			elem.innerHTML = '...';
 			const method = options.method || 'GET';
 			const keys = Object.keys(params);
-			const param = keys.length ? '?' + keys.map(k => `${k}=${encodeURIComponent(params[k])}`).join('&') : '';
-			const res = await fetch(target + (method === 'GET' ? param : ''), {
+			const param = keys.length ? keys.map(k => `${k}=${encodeURIComponent(params[k])}`).join('&') : '';
+			const res = await fetch(target + (method === 'GET' ? '?'+param : ''), {
 				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
 				body: options.method === 'POST' ? param : null,
 				method

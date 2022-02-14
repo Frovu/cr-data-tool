@@ -49,13 +49,13 @@ _fetch_existing()
 
 def edit_station(lat, lon, name, description=None):
     with pg_conn.cursor() as cursor:
-        cursor.execute('UPDATE stations SET name=%s, description=%s WHERE lat=%s AND lon = %s', [name, description, lat, lon])
+        cursor.execute(f'UPDATE stations SET name=%s, description=%s WHERE lat={lat}::real AND lon={lon}::real', [name, description])
         pg_conn.commit()
     _fetch_existing()
 
 def create_station(lat, lon, name, description=None):
     with pg_conn.cursor() as cursor:
-        cursor.execute('INSERT INTO stations (lat, lon, name, description VALUES (%s, %s, %s, %s)', [lat, lon, name, description])
+        cursor.execute('INSERT INTO stations (lat, lon, name, description) VALUES (%s, %s, %s, %s)', [lat, lon, name, description])
         pg_conn.commit()
     _fetch_existing()
 
