@@ -1,4 +1,5 @@
 from flask import session, request
+import logging
 import os
 import psycopg2
 
@@ -65,3 +66,6 @@ def log_action(type, target=None, details=None):
         cursor.execute('INSERT INTO action_log(uid, type, target, details) VALUES (%s, %s, %s, %s)',
             [ uid, type, target, details ])
         pg_conn.commit()
+    tgt = ('->'+target) if target else ''
+    dtls = ('('+details+')') if details else ''
+    logging.info(f"USER[{session.get('uname') or 'anon'}] {type}{tgt} {dtls}")

@@ -1,3 +1,5 @@
+import os
+import gzip
 import logging
 import traceback
 from flask import Blueprint, request
@@ -84,3 +86,19 @@ def allow():
 @bp.route('/permissions/remove')
 def forbid():
     return editPermissions('remove')
+
+@bp.route('/logs')
+def readlog():
+    file_arg = request.args.get('file', '')
+    level = request.args.get('file', '').upper()
+    if file_arg:
+        file = next((f for f in os.listdir('logs') if file_arg in f), None)
+        if not file:
+            return 'Not found: '+file_arg
+    else:
+        file = 'crdt.log'
+    with gzip.open('logs/'+file, 'rb') if '.gz' in file else open('logs/'+file, 'rb') as f:
+        text = f.read().decode()
+    return f'''<html style="font-size: 13; font-family: monospace; background-color: rgb(25,5,25); color: darkgray;">
+<head><title>{file}</title></head>
+<plaintext>'''+text
