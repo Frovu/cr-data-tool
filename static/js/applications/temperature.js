@@ -145,6 +145,26 @@ When query parameters are changed, the button becomes highlighted.`)
 	]);
 	tabs.fill('view', viewSelectors);
 	tabs.fill('export', [exprt.el]);
+
+	const eraseParams = { lat: params.lat, lon: params.lon, from: params.from, to: params.to };
+	const eraseBtn = tabs.input('query', () => {}, {
+		url: `${URL}/delete`, text: 'Erase', params: eraseParams
+	});
+	tabs.fill('tools', [
+		tabs.text('<h4>Erase data</h4><p>Delete data from server cache, forcing new calculation to be run. Recalculation may fix some data issues.</p>'),
+		tabs.input('station', (lat, lon) => {
+			eraseParams.lat = lat;
+			eraseParams.lon = lon;
+			eraseBtn.setParams(eraseParams);
+		}, { text: 'station', list: stations, lat: eraseParams.lat, lon: eraseParams.lon }),
+		tabs.input('time', (from, to) => {
+			eraseParams.from = from;
+			eraseParams.to = to;
+			eraseBtn.setParams(eraseParams);
+		}, { from: eraseParams.from, to: eraseParams.to }),
+		eraseBtn.elem,
+		tabs.text('<p>Note: To perform this action you should be authorized and have certain permission.</p>')
+	]);
 	query.fetch(params);
 }
 
