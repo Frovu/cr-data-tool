@@ -90,7 +90,7 @@ def forbid():
 @bp.route('/logs')
 def readlog():
     file_arg = request.args.get('file', '')
-    level = request.args.get('file', '').upper()
+    debug = request.args.get('debug', '')
     if file_arg:
         file = next((f for f in os.listdir('logs') if file_arg in f), None)
         if not file:
@@ -99,6 +99,8 @@ def readlog():
         file = 'crdt.log'
     with gzip.open('logs/'+file, 'rb') if '.gz' in file else open('logs/'+file, 'rb') as f:
         text = f.read().decode()
+    if debug == 'false':
+        text = '\n'.join([l for l in text.split('\n') if 'DEBUG' not in l])
     return f'''<html style="font-size: 13; font-family: monospace; background-color: rgb(25,5,25); color: darkgray;">
 <head><title>{file}</title></head>
 <plaintext>'''+text

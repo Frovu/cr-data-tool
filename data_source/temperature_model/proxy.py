@@ -77,7 +77,7 @@ def select(lat, lon, t_from, t_to, only=[]):
 
 def insert(lat, lon, data, forecast=False):
     if not len(data): return
-    log.info(f'TEMPERATURE: Insert: {table_name(lat, lon)} <-[{len(data)}] {data[0][0]}:{data[-1][0]}')
+    log.info(f'TEMPERATURE: Insert: {table_name(lat, lon)} <-[{len(data)}] {int(data[0][0])}:{int(data[-1][0])}')
     cols = ['time', 'forecast', T_M_COLUMN] + LEVELS_COLUMNS
     query = f'INSERT INTO {table_name(lat, lon)}({",".join(cols)}) VALUES %s ON CONFLICT (time) DO UPDATE SET ' + ', '.join([f'{col} = EXCLUDED.{col}' for col in [FC_COLUMN, T_M_COLUMN] + LEVELS_COLUMNS])
     with pg_conn.cursor() as cursor:
