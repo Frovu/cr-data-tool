@@ -95,9 +95,9 @@ export async function swithApp(nextApp) {
 	window.localStorage.setItem('application', active);
 }
 
-export function init() {
+export async function init() {
 	const savedApp = window.localStorage.getItem('application');
-	swithApp(savedApp || DEFAULT);
+	await swithApp(savedApp || DEFAULT);
 }
 
 export function updateView(permissions) {

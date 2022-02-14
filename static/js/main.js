@@ -136,7 +136,7 @@ function hideTab(tab) {
 	el.classList.remove('active');
 }
 
-window.onload = () => {
+window.onload = async () => {
 	const theme = window.localStorage.getItem('main-theme') || 'default';
 	const themeSelect = document.getElementById('theme-select');
 	for (const opt of themeSelect.children) {
@@ -197,7 +197,10 @@ window.onload = () => {
 	if (!tabs.filter(t => document.getElementById(`${t}-btn`).checked).length)
 		showTab('app');
 
-	applications.init();
+	await applications.init();
+	const perm = await checkLogin();
+	applications.updateView(perm);
+
 	setTimeout(() => {
 		for (const t of tabs) {
 			if (document.getElementById(`${t}-btn`).checked)
@@ -205,7 +208,6 @@ window.onload = () => {
 		}
 	}, 1); // this timeout fixes some weird "restore tab" behavior
 
-	checkLogin().then(r => applications.updateView(r.permissions));
 };
 
 document.documentElement.setAttribute('main-theme', window.localStorage.getItem('main-theme') || 'default');
