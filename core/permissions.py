@@ -11,7 +11,8 @@ pg_conn = psycopg2.connect(
 )
 
 ALLOWED_TYPES = [
-    'USE_APPLICATION'
+    'USE_APPLICATION',
+    'DELETE_DATA'
 ]
 
 with pg_conn.cursor() as cursor:
@@ -41,7 +42,7 @@ def require(flag, target=None):
                 return { "error": "Unauthorized" }, 401
             if not _check(uid, flag, target):
                 return { "error": "Forbidden" }, 403
-            func()
+            return func()
         return wrapper
     return decorator
 

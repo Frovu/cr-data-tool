@@ -1,8 +1,10 @@
 import data_source.temperature_model.temperature as t_model
+import data_source.temperature_model.proxy as database
 import data_source.stations_meteo.data as t_stations
 from flask import Blueprint, request
 from datetime import datetime
 from core import permissions
+import logging
 
 bp = Blueprint('temperature', __name__, url_prefix='/api/temperature')
 
@@ -37,3 +39,20 @@ def get():
 @bp.route('/stations')
 def stations():
     return { 'list': t_model.get_stations() }
+
+@bp.route('/delete')
+@permissions.require('DELETE_DATA', 'TEMPERATURE')
+def erase():
+    try:
+        lat = float(request.args.get('lat', ''))
+        lon = float(request.args.get('lon', ''))
+        t_from = int(request.args.get('from', ''))
+        t_to = int(request.args.get('to', ''))
+        database.delete(lat, lon, t_from, t_to)
+        permissions.log_action('delete_data', 'temperature', f'{lat},{lon}')
+        return {}
+    except ValueError:
+        return {}, 400
+    except Exception as e:
+        logging.error(f'ERROR in temperature/delete {e}')
+        return {}, 500

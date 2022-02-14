@@ -85,3 +85,8 @@ def insert(lat, lon, data, forecast=False):
             template='(to_timestamp(%s)'+(',to_timestamp(%s)' if forecast else ',NULL')+
             ''.join([',%s' for i in range(data.shape[1]-(2 if forecast else 1))])+')')
         pg_conn.commit()
+
+def delete(lat, lon, t_from, t_to):
+    with pg_conn.cursor() as cursor:
+        cursor.execute(f'DELETE FROM {table_name(lat, lon)} WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s)', [t_from, t_to])
+        pg_conn.commit()
