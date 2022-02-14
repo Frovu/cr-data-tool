@@ -76,7 +76,7 @@ def _bound_query(t_from, t_to):
     end_trim = now + FORECAST_ALLOW_FUTURE
     if t_from - MODEL_PERIOD * SPLINE_INDENT < MODEL_EPOCH: t_from = MODEL_EPOCH
     if t_to > end_trim: t_to = end_trim
-    forecast_from = now - MODEL_LAG if now - MODEL_LAG < t_to else None
+    forecast_from = now - MODEL_LAG + HOUR if now - MODEL_LAG < t_to else None
     if forecast_from and forecast_from < t_from: forecast_from = t_from
     return t_from, t_to, forecast_from
 
@@ -93,22 +93,26 @@ def get(lat, lon, t_from, t_to, no_response=False, only=[]):
     done, info = scheduler.status((token, t_from, t_to))
     if done == False:
         return 'failed' if info.get('failed') else 'busy', info
-    if done or not proxy.analyze_integrity(lat, lon, t_from, t_to):
-        return 'ok', None if no_response else proxy.select(lat, lon, t_from, t_to, only)
-    log.info(f'TEMPERATURE: Filling ({lat}, {lon}) {t_from}:{t_to}')
-    mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
-    query = scheduler.do_fill(token, t_from, forecast_from or t_to, HOUR, [
-        ('temperature-model', fill_fn, (
-            lambda i: proxy.analyze_integrity(lat, lon, i[0], i[1]),
-            lambda i: _fill_interval(i, lat, lon, mq_fn),
-            True, 16 # multithreading, workers=16
-        ))
-    ], key_overwrite=(token, t_from, t_to))
+    model_t_to = forecast_from - HOUR if forecast_from else t_to
+    model_required = proxy.analyze_integrity(lat, lon, t_from, model_t_to)
     forecast_required = forecast_from and proxy.analyze_integrity(lat, lon, forecast_from, t_to)
-    if forecast_from and forecast_required:
+    if done or (not model_required and not forecast_required):
+        return 'ok', None if no_response else proxy.select(lat, lon, t_from, t_to, only)
+    query = None
+    if model_required:
+        log.info(f'NCEP/NCAR: Filling ({lat}, {lon}) {t_from}:{model_t_to}')
+        mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
+        query = scheduler.do_fill(token, t_from, model_t_to, HOUR, [
+            ('temperature-model', fill_fn, (
+                lambda i: proxy.analyze_integrity(lat, lon, i[0], i[1]),
+                lambda i: _fill_interval(i, lat, lon, mq_fn),
+                True, 16 # multithreading, workers=16
+            ))
+        ], key_overwrite=(token, t_from, t_to))
+    if forecast_required:
         joined_interv = (forecast_required[0][0], forecast_required[-1][1])
         log.info(f'GFS: Filling ({lat}, {lon}) {joined_interv[0]}:{joined_interv[1]}')
-        query.submit_tasks([
-            (_fill_with_forecast, (*joined_interv, lat, lon), 'temperature-forecast', True)
-        ])
+        tasks = [(_fill_with_forecast, (*joined_interv, lat, lon), 'temperature-forecast', True)]
+        query = query or scheduler.query_tasks((token, t_from, t_to), [])
+        query.submit_tasks(tasks)
     return 'accepted', query
