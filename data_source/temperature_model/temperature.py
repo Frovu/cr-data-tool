@@ -80,9 +80,6 @@ def _bound_query(t_from, t_to):
     if forecast_from and forecast_from < t_from: forecast_from = t_from
     return t_from, t_to, forecast_from
 
-def get_stations():
-    return proxy.get_stations()
-
 def get(lat, lon, t_from, t_to, no_response=False, only=[]):
     lat = round(float(lat), 2)
     lon = round(float(lon), 2)

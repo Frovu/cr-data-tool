@@ -4,10 +4,9 @@
 CREATE TABLE stations (
 	id SERIAL PRIMARY KEY,
 	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	updated_at TIMESTAMP,
 	lat REAL NOT NULL,
 	lon REAL NOT NULL,
-	name TEXT,
+	name TEXT UNIQUE,
 	description TEXT
 );
 ```

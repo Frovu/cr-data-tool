@@ -36,7 +36,7 @@ def get():
     body["data"] = data[0]
     return body
 
-@bp.route('/stations')
+@bp.route('/stations', methods=['GET'])
 def stations():
     return { 'list': t_model.get_stations() }
 
@@ -55,4 +55,26 @@ def erase():
         return {}, 400
     except Exception as e:
         logging.error(f'ERROR in temperature/delete {e}')
+        return {}, 500
+
+@bp.route('/stations', methods=['POST'])
+@permissions.require('ADMIN', 'TEMPERATURE')
+def erase():
+    try:
+        lat = float(request.args.get('lat', ''))
+        lon = float(request.args.get('lon', ''))
+        name = request.args.get('name')
+        description = request.args.get('description')
+        if not name: raise ValueError()
+        if database.get_station(lat, lon):
+            database.edit_station(lat, lon, name, description)
+            permissions.log_action('edit_station', 'temperature', f'{lat},{lon}')
+        else:
+            database.create_station(lat, lon, name, description)
+            permissions.log_action('create_station', 'temperature', f'{lat},{lon}')
+        return {}
+    except ValueError:
+        return {}, 400
+    except Exception as e:
+        logging.error(f'ERROR in temperature/station {e}')
         return {}, 500

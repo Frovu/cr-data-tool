@@ -25,9 +25,9 @@ LEVELS_COLUMNS = [f'p_{int(l)}' for l in LEVELS]
 
 stations = []
 def _fetch_existing():
+    stations = []
     with pg_conn.cursor() as cursor:
         cursor.execute('SELECT lat, lon, name FROM stations')
-        log.info(f"TEMPERATURE: Starting with {cursor.rowcount} stations")
         for row in cursor.fetchall():
             stations.append({'name': row[2], 'lat': row[0], 'lon': row[1]})
             _create_if_not_exists(row[0], row[1])
@@ -45,6 +45,18 @@ forecast TIMESTAMP,
         cursor.execute(query)
         pg_conn.commit()
 _fetch_existing()
+
+def edit_station(lat, lon, name, description=None):
+    with pg_conn.cursor() as cursor:
+        cursor.execute('UPDATE stations SET name=%s, description=%s WHERE lat=%s AND lon = %s', [name, description, lat, lon])
+        pg_conn.commit()
+    _fetch_existing()
+
+def create_station(lat, lon, name, description=None):
+    with pg_conn.cursor() as cursor:
+        cursor.execute('INSERT INTO stations (lat, lon, name, description VALUES (%s, %s, %s, %s)', [lat, lon, name, description])
+        pg_conn.commit()
+    _fetch_existing()
 
 def get_station(lat, lon):
     return next((x for x in stations if (x.get('lat') == lat and x.get('lon') == lon)), None)
