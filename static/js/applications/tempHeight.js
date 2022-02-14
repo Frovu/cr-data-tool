@@ -64,28 +64,27 @@ const query = util.constructQueryManager(URL, {
 	params: p => util.storage.setObject('tempHeight-params', p)
 });
 
-export function initTabs() {
+export async function initTabs() {
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
 Build atmospheric temperature lapse curve using <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> data.<br>
 Refer to "Temperature" app for more details`)
 	]);
-	temp.fetchStations().then(ss => {
-		tabs.fill('query', [
-			!ss ? tabs.text('Stations failed to load, please refresh tab') :
-				tabs.input('station', (lat, lon) => {
-					params.lat = lat;
-					params.lon = lon;
-					query.params(params);
-				}, { text: 'in', list: ss, lat: params.lat, lon: params.lon }),
-			tabs.input('timestamp', (date, force) => {
-				params.from = date;
-				params.to = params.from + 3600;
-				query.params(params, force);
-			}, { value: params.from }),
-			query.el
-		]);
-	});
+	const stations = await temp.fetchStations();
+	tabs.fill('query', [
+		!stations ? tabs.text('Stations failed to load, please refresh tab') :
+			tabs.input('station', (lat, lon) => {
+				params.lat = lat;
+				params.lon = lon;
+				query.params(params);
+			}, { text: 'in', list: stations, lat: params.lat, lon: params.lon }),
+		tabs.input('timestamp', (date, force) => {
+			params.from = date;
+			params.to = params.from + 3600;
+			query.params(params, force);
+		}, { value: params.from }),
+		query.el
+	]);
 	tabs.fill('view', [
 		tabs.input('switch', unit => {
 			temperatureUnit = unit;

@@ -22,7 +22,7 @@ def _download(filename, latlon, fcst_date, fcst_hour, source='gfs', retry=2):
     query += f'&subregion=&leftlon={latlon[1][0]}&rightlon={latlon[1][1]}&bottomlat={latlon[0][0]}&toplat={latlon[0][1]}'
     logging.debug(f'Query GFS {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
     try:
-        res = requests.get(f'{_GFS_URL}{query}{_GFS_QUERY_VARS}', stream=True, timeout=20)
+        res = requests.get(f'{_GFS_URL}{query}{_GFS_QUERY_VARS}', stream=True, timeout=10)
         if res.status_code == 200:
             with open(filename, 'wb') as f:
                 for chunk in res.iter_content(chunk_size=None):

@@ -96,7 +96,7 @@ const query = util.constructQueryManager(URL, {
 	}
 });
 
-export function initTabs() {
+export async function initTabs() {
 	const fillSpaces = s => s + Array(11).fill('&nbsp;').slice(s.length).join('');
 	const viewSelectors = COLUMNS.map((col, i) => {
 		const div = document.createElement('div');
@@ -128,22 +128,21 @@ Resulting data consists of 18 series of temperature at certain height.
 The button on "Query" tab indicates your data query progress.
 When query parameters are changed, the button becomes highlighted.`)
 	]);
-	fetchStations().then(ss => {
-		tabs.fill('query', [
-			!ss ? tabs.text('Stations failed to load, please refresh tab') :
-				tabs.input('station', (lat, lon) => {
-					params.lat = lat;
-					params.lon = lon;
-					query.params(params);
-				}, { text: 'in', list: ss, lat: params.lat, lon: params.lon }),
-			tabs.input('time', (from, to, force) => {
-				params.from = from;
-				params.to = to;
-				query.params(params, force);
-			}, { from: params.from, to: params.to }),
-			query.el
-		]);
-	});
+	const stations = await fetchStations();
+	tabs.fill('query', [
+		!stations ? tabs.text('Stations failed to load, please refresh tab') :
+			tabs.input('station', (lat, lon) => {
+				params.lat = lat;
+				params.lon = lon;
+				query.params(params);
+			}, { text: 'in', list: stations, lat: params.lat, lon: params.lon }),
+		tabs.input('time', (from, to, force) => {
+			params.from = from;
+			params.to = to;
+			query.params(params, force);
+		}, { from: params.from, to: params.to }),
+		query.el
+	]);
 	tabs.fill('view', viewSelectors);
 	tabs.fill('export', [exprt.el]);
 	query.fetch(params);

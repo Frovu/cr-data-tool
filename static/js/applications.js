@@ -30,7 +30,7 @@ let allowed = [DEFAULT];
 let active;
 const selects = [];
 
-export function swithApp(nextApp) {
+export async function swithApp(nextApp) {
 	const tabs = document.getElementsByClassName('tab');
 	const graphTab = document.getElementById('graph-tab');
 	if (active) { // save app's tabs to cache
@@ -74,11 +74,11 @@ export function swithApp(nextApp) {
 		};
 		selects.push(select);
 		apptab.append(select);
-		applications[nextApp].initTabs();
+		await applications[nextApp].initTabs();
 	}
 	for (const tab of tabs) {
 		const button = document.getElementById(`${tab.id.split('-')[0]}-btn`);
-		button.disabled = !tab.innerHTML && !tab.id.startsWith('query');
+		button.disabled = !tab.innerHTML;
 		if (button.disabled)
 			tab.classList.remove('active');
 		if (tab.classList.contains('active'))

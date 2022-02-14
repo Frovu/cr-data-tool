@@ -50,6 +50,7 @@ export function constructQueryManager(url, callbacks, progDetails=true) {
 				if (progDetails) progEl.innerHTML = `Failed: ${reason}`;
 			} else if (body.status === 'accepted') {
 				el.innerHTML = 'Accepted';
+				setTimeout(fetchOnce, 500);
 			} else {
 				el.innerHTML = 'Unknown Error';
 				return null;

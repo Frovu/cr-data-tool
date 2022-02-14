@@ -39,13 +39,14 @@ const FIELDS = {
 		temperature_ext: {
 			label: 't_ext',
 			scale: '°C',
-			color: 'rgba(150,255,150,1)',
-			precision: 1
+			color: 'rgb(100,255,100)',
+			precision: 1,
+			show: false
 		},
 		voltage: {
 			label: 'v',
 			scale: 'v',
-			color: 'rgba(100,40,100,1)',
+			color: 'rgb(255,10,100)',
 			precision: 2,
 			show: false
 		},
