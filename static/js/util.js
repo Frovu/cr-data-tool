@@ -50,7 +50,6 @@ export function constructQueryManager(url, callbacks, progDetails=true) {
 				if (progDetails) progEl.innerHTML = `Failed: ${reason}`;
 			} else if (body.status === 'accepted') {
 				el.innerHTML = 'Accepted';
-				setTimeout(fetchOnce, 500);
 			} else {
 				el.innerHTML = 'Unknown Error';
 				return null;
@@ -73,20 +72,21 @@ export function constructQueryManager(url, callbacks, progDetails=true) {
 			fetchOngoing = true;
 			paramsChanged = false;
 			const data = await fetchOnce() || await new Promise(resolve => {
-				fetchInterval = setInterval(() => {
-					if (!fetchOngoing) {
-						resolve(null);
-						clearInterval(fetchInterval);
-						fetchInterval = null;
-						return;
-					}
+				let delay = 300;
+				const fetchfn = () => {
+					fetchInterval = null;
+					if (!fetchOngoing)
+						return resolve(null);
 					fetchOnce().then(ok => {
-						if (typeof ok === 'undefined') return;
-						resolve(ok);
-						clearInterval(fetchInterval);
-						fetchInterval = null;
+						if (typeof ok === 'undefined' && fetchOngoing) {
+							delay = delay<2000 ? (delay+50) : delay;
+							fetchInterval = setTimeout(fetchfn, delay);
+						} else {
+							resolve(ok);
+						}
 					});
-				}, 2000);
+				};
+				fetchInterval = setTimeout(fetchfn, delay);
 			});
 			if (data && callbacks.data) callbacks.data(data);
 		} else {
