@@ -34,7 +34,6 @@ def _check(uid, flag, target_required):
     return len(targets) > 0
 
 def require(flag, target=None):
-    # if not target and flag == "manage_station"
     def decorator(func):
         def wrapper():
             uid = session.get("uid", None)
@@ -43,6 +42,7 @@ def require(flag, target=None):
             if not _check(uid, flag, target):
                 return { "error": "Forbidden" }, 403
             return func()
+        wrapper.__name__ = func.__name__
         return wrapper
     return decorator
 

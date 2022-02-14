@@ -38,7 +38,7 @@ def get():
 
 @bp.route('/stations', methods=['GET'])
 def stations():
-    return { 'list': t_model.get_stations() }
+    return { 'list': database.get_stations() }
 
 @bp.route('/delete')
 @permissions.require('DELETE_DATA', 'TEMPERATURE')
@@ -59,7 +59,7 @@ def erase():
 
 @bp.route('/stations', methods=['POST'])
 @permissions.require('ADMIN', 'TEMPERATURE')
-def erase():
+def station_edit():
     try:
         lat = float(request.args.get('lat', ''))
         lon = float(request.args.get('lon', ''))

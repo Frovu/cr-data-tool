@@ -129,8 +129,9 @@ button.submit.ongoing {
 }
 
 .station-input input {
-	color: var(--color-inactive);
-	font-size: 10pt;
 	margin-right: 4px;
 	width: 64px;
+}
+.station-input input:disabled {
+	color: var(--color-inactive);
 }

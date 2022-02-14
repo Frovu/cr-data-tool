@@ -25,11 +25,12 @@ LEVELS_COLUMNS = [f'p_{int(l)}' for l in LEVELS]
 
 stations = []
 def _fetch_existing():
+    global stations
     stations = []
     with pg_conn.cursor() as cursor:
-        cursor.execute('SELECT lat, lon, name FROM stations')
+        cursor.execute('SELECT lat, lon, name, description FROM stations')
         for row in cursor.fetchall():
-            stations.append({'name': row[2], 'lat': row[0], 'lon': row[1]})
+            stations.append({'name': row[2], 'lat': row[0], 'lon': row[1], 'desc': row[3]})
             _create_if_not_exists(row[0], row[1])
 
 def table_name(lat, lon):

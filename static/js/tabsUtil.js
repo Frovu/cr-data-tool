@@ -35,7 +35,7 @@ export function input(type, callback, options = {}) {
 			const st = options.list.find(s => s.name === sel.value);
 			lat.value = st.lat;
 			lon.value = st.lon;
-			callback(st.lat, st.lon);
+			callback(st.lat, st.lon, st.name, st.desc);
 		};
 		elem.append(sel, 'lat=', lat, 'lon=', lon);
 	} else if (type === 'station-only') {
