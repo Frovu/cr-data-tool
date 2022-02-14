@@ -15,7 +15,7 @@ const params = util.storage.getObject('temperature-params') || {
 let data;
 let activeSeries = [0, 1, 2];
 const unitOptions = ['K', '°C'];
-let temperatureUnit = 'K';
+let temperatureUnit = '°C';
 
 function receiveData(resp) {
 	const rows = resp.data, len = resp.data.length;
@@ -56,7 +56,7 @@ function plotInit(full=true) {
 		transform
 	};});
 	if (full) {
-		const axes = [{ scale: temperatureUnit, transform }];
+		const axes = [{ scale: temperatureUnit, transform, size: 54}];
 		plot.init(axes);
 	}
 	plot.series(series);

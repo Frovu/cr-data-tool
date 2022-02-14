@@ -1,12 +1,13 @@
 body {
+	--font: DejaVu Sans Mono, Liberation Mono, monospace;
 	display: grid !important;
 	background-color: var(--color-bg);
 	color: var(--color-text);
 	grid-auto-flow: row;
 	grid-template-columns: minmax(360px, 41fr) minmax(360px, 60fr);
 	gap: 8px;
-	font-family: Courier New;
-	font-size: 11pt;
+	font-family: var(--font);
+	font-size: 14px;
 	margin-top: 0.5rem;
 	margin-bottom: 0.5rem;
 	transition: background-color 300ms;
@@ -163,11 +164,11 @@ input:disabled, button:disabled, select:disabled {
 }
 
 .u-value {
-	font-family: Courier New;
+	font-family: var(--font);
 }
 
 .u-series {
-	font-family: Courier New;
+	font-family: var(--font);
 }
 
 .u-select {

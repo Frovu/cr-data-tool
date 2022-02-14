@@ -1,7 +1,7 @@
 import uPlot from './uPlot.esm.js';
 
 const MIN_HEIGHT = 360;
-let color = {};
+let style = {};
 let uplot;
 let plotTime;
 const parentEl = document.getElementsByClassName('graph')[0];
@@ -23,7 +23,7 @@ function prepareSeries(series) {
 			fill: '#0000',
 			stroke: s.color,
 			paths: s.paths && uPlot.paths[s.paths](),
-			points: { fill: color.bg, stroke: s.color },
+			points: { fill: style.bg, stroke: s.color },
 			value: (u, v) => v == null ? '-' : (s.transform?s.transform(v):v).toFixed(s.precision||0) + (s.nounit ? '' : ' '+s.scale),
 		});
 	});
@@ -32,10 +32,10 @@ function prepareSeries(series) {
 function prepareAxes(axes) {
 	return axes.map(a => {
 		return Object.assign(a, {
-			font: '13px Courier New',
-			stroke: color.text,
-			ticks: { stroke: color.grid, width: 1 },
-			grid: { stroke: color.grid, width: 1 },
+			font: style.font.replace('14px', '12px'),
+			stroke: style.text,
+			ticks: { stroke: style.grid, width: 1 },
+			grid: { stroke: style.grid, width: 1 },
 			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + (a.nounit ? '' : ''+a.scale))
 		});
 	});
@@ -67,7 +67,7 @@ function linePaths() {
 export function initCorr(data, label, pointPx, corrLine=false) {
 	if (uplot) uplot.destroy();
 	const css = window.getComputedStyle(document.body);
-	color = {
+	style = {
 		grid: css.getPropertyValue('--color-grid'),
 		text: css.getPropertyValue('--color-inactive'),
 		bg: css.getPropertyValue('--color-tab-bg')
@@ -96,10 +96,10 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 	}
 	const axis = (scale, size) => { return {
 		scale, size,
-		font: '13px Courier New',
-		stroke: color.text,
-		ticks: { stroke: color.grid, width: 1 },
-		grid: { stroke: color.grid, width: 1 }
+		font: style.font,
+		stroke: style.text,
+		ticks: { stroke: style.grid, width: 1 },
+		grid: { stroke: style.grid, width: 1 }
 	}; };
 	uplot = new uPlot({
 		...getPlotSize(),
@@ -149,7 +149,8 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 
 export function init(axes, time=true, scales, series) {
 	const css = window.getComputedStyle(document.body);
-	color = {
+	style = {
+		font: css.font,
 		grid: css.getPropertyValue('--color-grid'),
 		text: css.getPropertyValue('--color-inactive'),
 		bg: css.getPropertyValue('--color-tab-bg')
@@ -159,12 +160,12 @@ export function init(axes, time=true, scales, series) {
 	uplot = new uPlot({
 		...getPlotSize(),
 		tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
-		series: time?[{ value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC', stroke: color.text }]:
+		series: time?[{ value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC', stroke: style.text }]:
 			(series?prepareSeries(series):[]),
 		axes: (time?[{
-			font: '14px Courier New',
-			grid: { stroke: color.grid, width: 1 }, stroke: color.text
-		}]:[]).concat(prepareAxes(axes, color)),
+			font: style.font,
+			grid: { stroke: style.grid, width: 1 }, stroke: style.text
+		}]:[]).concat(prepareAxes(axes, style)),
 		scales,
 		cursor: {
 			drag: { dist: 12 },
