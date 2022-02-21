@@ -5,32 +5,31 @@ import os
 import psycopg2
 import psycopg2.extras
 pg_conn = psycopg2.connect(
-    dbname = os.environ.get("MUON_DB_NAME") or "cr_muon",
+    dbname = os.environ.get("MUON_DB_NAME") or "cr_cr",
     user = os.environ.get("MUON_DB_USER") or "crdt",
     password = os.environ.get("MUON_DB_PASS"),
     host = os.environ.get("MUON_DB_HOST")
 )
 
-FIELDS = [
-    'n_v_raw',
-    'raw_acc_cnt',
-    'n_v_pc',
-    'n_v',
+DATA_FIELDS = [
+    'count_raw',
+    'count_corr_p',
+    'count_corr',
     'pressure',
     'T_m'
 ]
 
-
-
 def _table_name(station, period):
     per = f'{period // 3600}h' if period >= 3600 and period % 3600 == 0 else f'{period}s'
-    return f'proc_{station}_{per}'
+    return f'muon_{station}_{per}'
 
-def _create_if_not_exists(table_name):
+def _create_if_not_exists(station, period):
     with pg_conn.cursor() as cursor:
-        query = f'''CREATE TABLE IF NOT EXISTS {table_name} (
+        query = f'''CREATE TABLE IF NOT EXISTS {_table_name(station, period)} (
         time TIMESTAMP NOT NULL PRIMARY KEY,
-        {", ".join([f"{f} REAL" for f in FIELDS])})'''
+        channel TEXT,
+        raw_acc_cnt INTEGER DEFAULT 1,
+        {", ".join([f"{f} REAL" for f in DATA_FIELDS])})'''
         cursor.execute(query)
         pg_conn.commit()
 
@@ -54,7 +53,7 @@ def coordinates(station):
         result = cursor.fetchall()
         return result[0] if result else None
 
-def analyze_integrity(station, t_from, t_to, period, columns='n_v'):
+def analyze_integrity(station, t_from, t_to, period, channel='V', columns='count_corr'):
     # FIXME: some extra wacky hack to analyze across several columns without geting intervals
     if type(columns) is list:
         for col in columns:
@@ -62,14 +61,13 @@ def analyze_integrity(station, t_from, t_to, period, columns='n_v'):
                 return True
         return False
 
-    table = _table_name(station, period)
-    _create_if_not_exists(table)
+    _create_if_not_exists(station, period)
     with pg_conn.cursor() as cursor:
         q = integrity_query(t_from, t_to, period, table, columns)
         cursor.execute(q)
         return cursor.fetchall()
 
-def select(station, t_from, t_to, period, columns=FIELDS, include_time=True, order='time', where=''):
+def select(station, t_from, t_to, period, channel='V', columns=['count_corr'], include_time=True, order='time', where=''):
     with pg_conn.cursor() as cursor:
         q = f'''SELECT {"EXTRACT(EPOCH FROM time)," if include_time else ""}{",".join(columns)}
 FROM {_table_name(station, period)} WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s)
@@ -77,7 +75,7 @@ FROM {_table_name(station, period)} WHERE time >= to_timestamp(%s) AND time <= t
         cursor.execute(q, [t_from, t_to])
         return cursor.fetchall(), (['time']+columns) if include_time else columns
 
-def upsert(station, period, data, columns, epoch=False):
+def upsert(station, period, channel, data, columns, epoch=False):
     if not len(data): return
     with pg_conn.cursor() as cursor:
         query = f'''INSERT INTO {_table_name(station, period)} (time, {", ".join(columns)}) VALUES %s

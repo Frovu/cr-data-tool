@@ -36,7 +36,7 @@ def _calculate_temperatures(lat, lon, t_from, t_to, period, add_query):
         delay += .1 if delay < 1 else 0
         time.sleep(delay)
 
-def get_prepare_tasks(station, period, fill_fn, subquery_fn, against):
+def get_prepare_tasks(station, period, fill_fn, subquery_fn):
         lat, lon = proxy.coordinates(station)
         tasks = []
         tasks.append(('raw data', fill_fn, (
@@ -44,12 +44,11 @@ def get_prepare_tasks(station, period, fill_fn, subquery_fn, against):
             lambda i: proxy.upsert(station, period, parser.obtain(station, period, i[0], i[1]), COLUMNS_RAW),
             True
         )))
-        if against == 'T_m':
-            tasks.append(('temp mass-avg', fill_fn, (
-                lambda i: proxy.analyze_integrity(station, i[0], i[1], period, COLUMNS_TEMP[0]),
-                lambda i: proxy.upsert(station, period, _calculate_temperatures(lat, lon, i[0], i[1], period, subquery_fn), COLUMNS_TEMP, True),
-                True
-            )))
+        tasks.append(('temp mass-avg', fill_fn, (
+            lambda i: proxy.analyze_integrity(station, i[0], i[1], period, COLUMNS_TEMP[0]),
+            lambda i: proxy.upsert(station, period, _calculate_temperatures(lat, lon, i[0], i[1], period, subquery_fn), COLUMNS_TEMP, True),
+            True
+        )))
         return tasks
 
 # !!! Presumes that all needed data is prepared

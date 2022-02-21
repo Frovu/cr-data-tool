@@ -16,7 +16,10 @@ FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < perio
 GROUP BY period ORDER BY period
 '''
 
-def obtain(station, period, t_from, t_to):
+def _obtain_shinshu(station, year):
+    pass
+
+def obtain(station, period, t_from, t_to, channel):
     logging.debug(f'Muones: querying raw ({station})[{period}] {t_from}:{t_to}')
     if station == 'Moscow':
         with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
@@ -28,6 +31,8 @@ def obtain(station, period, t_from, t_to):
                     # cond='AND device_id=(SELECT id FROM devices WHERE key = \'muon-pioneer\')'))
                 resp = cursor.fetchall()
                 return resp
+    elif station == 'Nagoya':
+
 
 def obtain_raw(station, t_from, t_to, period, fields=None):
     if station == 'Moscow':
