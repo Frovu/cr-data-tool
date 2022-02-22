@@ -9,8 +9,7 @@ import time
 import re
 from math import floor, ceil
 
-COLUMNS_TEMP = ['T_m']
-COLUMNS_RAW = ['raw_acc_cnt', 'n_v_raw', 'pressure']
+COLUMN_TEMP = 'T_m'
 MODEL_PERIOD = 3600
 
 def _calculate_temperatures(lat, lon, t_from, t_to, period, add_query):
@@ -36,17 +35,17 @@ def _calculate_temperatures(lat, lon, t_from, t_to, period, add_query):
         delay += .1 if delay < 1 else 0
         time.sleep(delay)
 
-def get_prepare_tasks(station, period, fill_fn, subquery_fn):
+def get_prepare_tasks(station, period, channel, fill_fn, subquery_fn):
         lat, lon = proxy.coordinates(station)
         tasks = []
         tasks.append(('raw data', fill_fn, (
-            lambda i: proxy.analyze_integrity(station, i[0], i[1], period, COLUMNS_RAW[0]),
-            lambda i: proxy.upsert(station, period, parser.obtain(station, period, i[0], i[1]), COLUMNS_RAW),
-            True
+            lambda i: proxy.analyze_integrity(station, *i, period, 'raw_acc_cnt'),
+            lambda i: proxy.upsert(station, period, channel, *parser.obtain(station, *i, period, channel)),
+            False, 4, 7200
         )))
-        tasks.append(('temp mass-avg', fill_fn, (
-            lambda i: proxy.analyze_integrity(station, i[0], i[1], period, COLUMNS_TEMP[0]),
-            lambda i: proxy.upsert(station, period, _calculate_temperatures(lat, lon, i[0], i[1], period, subquery_fn), COLUMNS_TEMP, True),
+        tasks.append(('air temperature', fill_fn, (
+            lambda i: proxy.analyze_integrity(station, *i, period, COLUMN_TEMP),
+            lambda i: proxy.upsert(station, period, channel, _calculate_temperatures(lat, lon, *i, period, subquery_fn), ['time', COLUMN_TEMP], epoch=True),
             True
         )))
         return tasks
@@ -64,7 +63,7 @@ def correct(*args):
     print(regr)
     beta, alpha = regr.coef_
     n_c = n_u * np.exp(-1 * beta * p) * (1 - alpha * t)
-    proxy.upsert(station, period, np.column_stack((data[:,0], n_c)), ['n_v'], epoch=True)
+    proxy.upsert(station, period, channel, np.column_stack((data[:,0], n_c)), ['time', 'n_v'], epoch=True)
     res = proxy.select(station, t_from, t_to, period, ['n_v_raw', 'n_v', 'pressure', 'T_m'], where='n_v_raw > 99')
     return *res, {"a": alpha, "b": beta}
 
@@ -72,7 +71,7 @@ def multiple_regression(data):
     data = data[data[:,0] > 0]
     return LinearRegression().fit(data[:,1:], np.log(data[:,0]))
 
-def linregress_corr(data, fields):
+def calc_correlation(data, fields):
     data = np.array(data, dtype=np.float)
     yavg = np.nanmean(data[:,1])
     filter = int(yavg - yavg/4)

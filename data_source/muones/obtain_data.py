@@ -34,11 +34,11 @@ def _obtain_gmdn(station, t_from, t_to, channel):
             for line in file:
                 split = line.split()
                 time = datetime(*[int(i) for i in split[:4]])
-                result.append([time, float(split[chan_idx]) / 60, float(split[pres_idx]])) # /60 for ppm
+                result.append([time, float(split[chan_idx]) / 60, float(split[pres_idx])]) # /60 for ppm
     return result
 
-def obtain(station, period, t_from, t_to, channel):
-    logging.debug(f'Muones: querying raw ({station})[{period}] {t_from}:{t_to}')
+def obtain(station, t_from, t_to, period, channel):
+    logging.debug(f'Muones: querying raw ({station}:{channel}/{period}) {t_from}:{t_to}')
     if station == 'Moscow':
         with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
             user = os.environ.get('MUON_MSK_USER'),

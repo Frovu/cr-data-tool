@@ -18,15 +18,13 @@ CREATE TABLE muon_telescopes (
 	UNIQUE(station_name, channel)
 );
 
-INSERT INTO stations(lat, lon, name) VALUES (
-	(55.47, 37.32, 'Moscow'),
-	(61.59, 129.41, 'Yakutsk'),
-	(35.2, 137.0, 'Nagoya')
-);
-INSERT INTO channels(station_name, channel_name) VALUES (
-	('Moscow', 'V'),
-	('Yakutsk', 'V'),
-	('Nagoya', 'V')
-);
+INSERT INTO stations(lat, lon, name) VALUES
+(55.47, 37.32, 'Moscow'),
+(61.59, 129.41, 'Yakutsk'),
+(35.2, 137.0, 'Nagoya');
+INSERT INTO channels(station_name, channel_name) VALUES
+('Moscow', 'V'),
+('Yakutsk', 'V'),
+('Nagoya', 'V');
 
 ```

@@ -74,7 +74,9 @@ def correlation():
         station = request.args.get('station', '')
         if period not in [60, 3600] or against not in ['pressure', 'Tm']:
             raise ValueError()
-        status, data = muones.get_correlation(station, t_from, t_to, period, against)
+        what = 'count_raw' if station in ['Moscow'] else 'count_corr_p'
+        status, data = muones.get_correlation(station, t_from, t_to, period,
+            against=against, channel='V', what=what)
         body = { "status": status }
         if status == 'ok':
             permissions.log_action('get_result', 'muones/correlation', station)

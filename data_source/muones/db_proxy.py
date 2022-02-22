@@ -26,10 +26,11 @@ def _table_name(station, period):
 def _create_if_not_exists(station, period):
     with pg_conn.cursor() as cursor:
         query = f'''CREATE TABLE IF NOT EXISTS {_table_name(station, period)} (
-        time TIMESTAMP NOT NULL PRIMARY KEY,
+        time TIMESTAMP NOT NULL,
         channel TEXT,
         raw_acc_cnt INTEGER DEFAULT 1,
-        {", ".join([f"{f} REAL" for f in DATA_FIELDS])})'''
+        {", ".join([f"{f} REAL" for f in DATA_FIELDS])},
+        UNIQUE (time, channel))'''
         cursor.execute(query)
         pg_conn.commit()
 
@@ -63,7 +64,8 @@ def analyze_integrity(station, t_from, t_to, period, channel='V', columns='count
 
     _create_if_not_exists(station, period)
     with pg_conn.cursor() as cursor:
-        q = integrity_query(t_from, t_to, period, table, columns, where=f'channel = {channel}')
+        q = integrity_query(t_from, t_to, period, _table_name(station, period),
+            columns, where=f'channel = \'{channel}\'')
         cursor.execute(q)
         return cursor.fetchall()
 
@@ -78,9 +80,9 @@ FROM {_table_name(station, period)} WHERE channel = %s AND time >= to_timestamp(
 def upsert(station, period, channel, data, columns, epoch=False):
     if not len(data): return
     with pg_conn.cursor() as cursor:
-        query = f'''INSERT INTO {_table_name(station, period)} (channel, time, {", ".join(columns)}) VALUES %s
-        ON CONFLICT (time) DO UPDATE SET (time,{", ".join(columns)}) = ({", ".join([f"EXCLUDED.{f}" for f in ["time"]+columns])})'''
-        tl = f'({channel},{'to_timestamp(%s)' if epoch else '%s'},{",".join(["%s" for f in columns])})'
+        query = f'''INSERT INTO {_table_name(station, period)} (channel, {", ".join(columns)}) VALUES %s
+        ON CONFLICT (time, channel) DO UPDATE SET ({", ".join(columns)}) = ({", ".join([f"EXCLUDED.{f}" for f in columns])})'''
+        tl = f'(\'{channel}\',{"to_timestamp(%s)" if epoch else "%s"},{",".join(["%s" for f in columns[1:]])})'
         psycopg2.extras.execute_values (cursor, query, data, template=tl)
         pg_conn.commit()
-        logging.info(f'Upsert: {_table_name(station, period)} <-[{len(data)}] {",".join(columns)} from {data[0][0]}')
+        logging.info(f'Upsert: {_table_name(station, period)}/{channel} <-[{len(data)}] {",".join(columns[-2:])} from {int(data[0][0])}')
