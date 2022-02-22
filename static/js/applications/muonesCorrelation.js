@@ -22,7 +22,7 @@ function receiveData(resp) {
 
 function plotInit(data) {
 	if (!data) return;
-	plot.initCorr(data, `N(${params.against})`, params.period===60?2:4, `r=${r.toFixed(4)}`);
+	plot.initCorr(data, `N(${params.against})`, params.period===60?2:4, `coef=${r.toFixed(4)}`);
 }
 
 async function fetchStations() {
@@ -52,7 +52,7 @@ Supported only for ${sText}`)
 				params.station = station;
 				plotInit();
 				query.params(params);
-			}, { text: 'station:', list: stations }) :
+			}, { text: 'station:', list: stations, selected: params.station }) :
 			tabs.text(sText),
 		tabs.input('switch', per => {
 			params.period = per.includes('minute') ? 60 : 3600;

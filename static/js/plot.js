@@ -9,6 +9,16 @@ window.addEventListener('resize', () => {
 	if (uplot) uplot.setSize(getPlotSize());
 });
 
+function getStyle() {
+	const css = window.getComputedStyle(document.body);
+	style = {
+		font: css.font,
+		grid: css.getPropertyValue('--color-grid'),
+		text: css.getPropertyValue('--color-inactive'),
+		bg: css.getPropertyValue('--color-tab-bg')
+	};
+}
+
 function getPlotSize() {
 	const height = Math.floor(parentEl.offsetWidth * (plotTime?0.5:0.75));
 	return {
@@ -66,12 +76,7 @@ function linePaths() {
 // ref: https://leeoniya.github.io/uPlot/demos/scatter.html
 export function initCorr(data, label, pointPx, corrLine=false) {
 	if (uplot) uplot.destroy();
-	const css = window.getComputedStyle(document.body);
-	style = {
-		grid: css.getPropertyValue('--color-grid'),
-		text: css.getPropertyValue('--color-inactive'),
-		bg: css.getPropertyValue('--color-tab-bg')
-	};
+	getStyle();
 	function drawPoints(u, seriesIdx) {
 		const size = pointPx * devicePixelRatio;
 		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
@@ -98,6 +103,7 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 		scale, size,
 		font: style.font,
 		stroke: style.text,
+		values: (u, vals) => vals.map(v => v.toFixed(0)),
 		ticks: { stroke: style.grid, width: 1 },
 		grid: { stroke: style.grid, width: 1 }
 	}; };
@@ -148,13 +154,7 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 }
 
 export function init(axes, time=true, scales, series) {
-	const css = window.getComputedStyle(document.body);
-	style = {
-		font: css.font,
-		grid: css.getPropertyValue('--color-grid'),
-		text: css.getPropertyValue('--color-inactive'),
-		bg: css.getPropertyValue('--color-tab-bg')
-	};
+	getStyle();
 	plotTime = time;
 	if (uplot) uplot.destroy();
 	uplot = new uPlot({

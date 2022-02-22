@@ -199,7 +199,7 @@ window.onload = async () => {
 
 	await applications.init();
 	const perm = await checkLogin();
-	applications.updateView(perm);
+	applications.updateView(perm.permissions);
 
 	setTimeout(() => {
 		for (const t of tabs) {

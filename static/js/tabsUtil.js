@@ -44,7 +44,7 @@ export function input(type, callback, options = {}) {
 		if (options.text) elem.append(options.text);
 		const sel = document.createElement('select');
 		options.list.forEach(s => {
-			sel.innerHTML += `<option value="${s}">${s}</option>`;
+			sel.innerHTML += `<option value="${s}" ${options.selected===s?'selected':''}>${s}</option>`;
 		});
 		sel.onchange = () => callback(sel.value);
 		elem.append(sel);

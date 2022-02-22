@@ -94,7 +94,7 @@ WIP<br>
 				params.station = station;
 				plotInit();
 				query.params(params);
-			}, { text: 'station:', list: stations }) :
+			}, { text: 'station:', list: stations, selected: params.station }) :
 			tabs.text(sText),
 		tabs.input('switch', per => {
 			params.period = per.includes('minute') ? 60 : 3600;
