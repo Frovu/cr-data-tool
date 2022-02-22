@@ -1,6 +1,7 @@
 import os
 import psycopg2
 import logging
+from datetime import datetime
 from core.sql_queries import integrity_query
 
 FIELDS = {
@@ -16,8 +17,25 @@ FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < perio
 GROUP BY period ORDER BY period
 '''
 
-def _obtain_shinshu(station, year):
-    pass
+def _obtain_gmdn(station, t_from, t_to, channel):
+    # FIXME: some station will not have Pres. column
+    dir = next(d for d in os.listdir('tmp/gmdn') if station in d)
+    dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
+    result = []
+    for year in range(dt_from.year, dt_to.year + 1):
+        with open(f'tmp/gmdn/{dir}/{year}.txt') as file:
+            for line in file:
+                if '*'*32 in line:
+                    columns = last.split()
+                    break
+                last = line
+            pres_idx = columns.index('Pres.')
+            chan_idx = columns.index(channel)
+            for line in file:
+                split = line.split()
+                time = datetime(*[int(i) for i in split[:4]])
+                result.append([time, float(split[chan_idx]) / 60, float(split[pres_idx]])) # /60 for ppm
+    return result
 
 def obtain(station, period, t_from, t_to, channel):
     logging.debug(f'Muones: querying raw ({station})[{period}] {t_from}:{t_to}')
@@ -30,9 +48,10 @@ def obtain(station, period, t_from, t_to, channel):
                 cursor.execute(_psql_query('muon_data', period, t_from, t_to, ['dt', 'n_v', 'pressure']))
                     # cond='AND device_id=(SELECT id FROM devices WHERE key = \'muon-pioneer\')'))
                 resp = cursor.fetchall()
-                return resp
-    elif station == 'Nagoya':
-
+                return resp, ['time', 'raw_acc_cnt', 'count_raw', 'pressure']
+    elif station in ['Nagoya']:
+        data = _obtain_gmdn(station, t_from, t_to, channel)
+        return data, ['time', 'count_corr_p', 'pressure']
 
 def obtain_raw(station, t_from, t_to, period, fields=None):
     if station == 'Moscow':

@@ -57,30 +57,30 @@ def analyze_integrity(station, t_from, t_to, period, channel='V', columns='count
     # FIXME: some extra wacky hack to analyze across several columns without geting intervals
     if type(columns) is list:
         for col in columns:
-            if analyze_integrity(station, t_from, t_to, period, col):
+            if analyze_integrity(station, t_from, t_to, period, channel, col):
                 return True
         return False
 
     _create_if_not_exists(station, period)
     with pg_conn.cursor() as cursor:
-        q = integrity_query(t_from, t_to, period, table, columns)
+        q = integrity_query(t_from, t_to, period, table, columns, where=f'channel = {channel}')
         cursor.execute(q)
         return cursor.fetchall()
 
 def select(station, t_from, t_to, period, channel='V', columns=['count_corr'], include_time=True, order='time', where=''):
     with pg_conn.cursor() as cursor:
         q = f'''SELECT {"EXTRACT(EPOCH FROM time)," if include_time else ""}{",".join(columns)}
-FROM {_table_name(station, period)} WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s)
+FROM {_table_name(station, period)} WHERE channel = %s AND time >= to_timestamp(%s) AND time <= to_timestamp(%s)
 {"AND "+where if where else ""} ORDER BY {order}'''
-        cursor.execute(q, [t_from, t_to])
+        cursor.execute(q, [channel, t_from, t_to])
         return cursor.fetchall(), (['time']+columns) if include_time else columns
 
 def upsert(station, period, channel, data, columns, epoch=False):
     if not len(data): return
     with pg_conn.cursor() as cursor:
-        query = f'''INSERT INTO {_table_name(station, period)} (time, {", ".join(columns)}) VALUES %s
+        query = f'''INSERT INTO {_table_name(station, period)} (channel, time, {", ".join(columns)}) VALUES %s
         ON CONFLICT (time) DO UPDATE SET (time,{", ".join(columns)}) = ({", ".join([f"EXCLUDED.{f}" for f in ["time"]+columns])})'''
-        psycopg2.extras.execute_values (cursor, query, data,
-            template=f'(to_timestamp(%s),{",".join(["%s" for f in columns])})' if epoch else None)
+        tl = f'({channel},{'to_timestamp(%s)' if epoch else '%s'},{",".join(["%s" for f in columns])})'
+        psycopg2.extras.execute_values (cursor, query, data, template=tl)
         pg_conn.commit()
         logging.info(f'Upsert: {_table_name(station, period)} <-[{len(data)}] {",".join(columns)} from {data[0][0]}')
