@@ -45,7 +45,7 @@ def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pr
         return 'failed' if info.get('failed') else 'busy', info
     int_columns = 'raw_acc_cnt' if against=='pressure' else [against, 'raw_acc_cnt']
     if is_done or not proxy.analyze_integrity(*args, int_columns):
-        data = proxy.select(*args, [against, what], include_time=False, order=against)
+        data = proxy.select(*args, [against, what], include_time=False, where=what+' > 0', order=against)
         return 'ok', corrections.calc_correlation(*data)
     mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
     scheduler.do_fill(token, t_from, t_to, period,

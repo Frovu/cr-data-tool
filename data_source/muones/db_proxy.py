@@ -85,4 +85,4 @@ def upsert(station, period, channel, data, columns, epoch=False):
         tl = f'(\'{channel}\',{"to_timestamp(%s)" if epoch else "%s"},{",".join(["%s" for f in columns[1:]])})'
         psycopg2.extras.execute_values (cursor, query, data, template=tl)
         pg_conn.commit()
-        logging.info(f'Upsert: {_table_name(station, period)}/{channel} <-[{len(data)}] {",".join(columns[-2:])} from {int(data[0][0])}')
+        logging.info(f'Upsert: {_table_name(station, period)}/{channel} <-[{len(data)}] {",".join(columns[-2:])} from {data[0][0]}')

@@ -80,7 +80,7 @@ def _bound_query(t_from, t_to):
     if forecast_from and forecast_from < t_from: forecast_from = t_from
     return t_from, t_to, forecast_from
 
-def get(lat, lon, t_from, t_to, no_response=False, only=[]):
+def get(lat, lon, t_from, t_to, no_response=False, only=[], merge_query=None):
     lat = round(float(lat), 2)
     lon = round(float(lon), 2)
     if not proxy.get_station(lat, lon):
@@ -98,7 +98,7 @@ def get(lat, lon, t_from, t_to, no_response=False, only=[]):
     query = None
     if model_required:
         log.info(f'NCEP/NCAR: Filling ({lat}, {lon}) {t_from}:{model_t_to}')
-        mq_fn = lambda q: scheduler.merge_query(token, t_from, t_to, q)
+        mq_fn = merge_query or (lambda q: scheduler.merge_query(token, t_from, t_to, q))
         query = scheduler.do_fill(token, t_from, model_t_to, HOUR, [
             ('temperature-model', fill_fn, (
                 lambda i: proxy.analyze_integrity(lat, lon, i[0], i[1]),

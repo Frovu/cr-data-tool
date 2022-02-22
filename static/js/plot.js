@@ -103,7 +103,7 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 		scale, size,
 		font: style.font,
 		stroke: style.text,
-		values: (u, vals) => vals.map(v => v.toFixed(0)),
+		values: (u, vals) => vals.map(v => v.toFixed(0) + (scale == 'y' ? '%' : '')),
 		ticks: { stroke: style.grid, width: 1 },
 		grid: { stroke: style.grid, width: 1 }
 	}; };

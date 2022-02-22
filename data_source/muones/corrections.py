@@ -12,18 +12,18 @@ from math import floor, ceil
 COLUMN_TEMP = 'T_m'
 MODEL_PERIOD = 3600
 
-def _calculate_temperatures(lat, lon, t_from, t_to, period, add_query):
+def _calculate_temperatures(lat, lon, t_from, t_to, period, merge_query):
     pa_from, pa_to = floor(t_from/MODEL_PERIOD)*MODEL_PERIOD, ceil(t_to/MODEL_PERIOD)*MODEL_PERIOD
     logging.debug(f'Muones: querying model temp ({lat}, {lon}) {t_from}:{t_to}')
     delay = .1
     while True:
-        status, data = temperature.get(lat, lon, pa_from, pa_to, only=['mass_average'])
+        status, data = temperature.get(lat, lon, pa_from, pa_to, only=['mass_average'], merge_query=merge_query)
         if status == 'accepted':
-            add_query(data)
-        elif status == 'failed':
-            raise Exception('Muones: failed to obtain T_m')
+            merge_query(data)
+        elif status in ['failed', 'unknown']:
+            raise Exception('Muones: failed to obtain T_m: '+status)
         elif status == 'ok':
-            logging.debug(f'Muones: got model response')
+            logging.debug(f'Muones: got model response {pa_from}:{pa_to}')
             data = np.array(data[0])
             times = data[:,0]
             t_avg = data[:,1]
@@ -46,7 +46,7 @@ def get_prepare_tasks(station, period, channel, fill_fn, subquery_fn):
         tasks.append(('air temperature', fill_fn, (
             lambda i: proxy.analyze_integrity(station, *i, period, COLUMN_TEMP),
             lambda i: proxy.upsert(station, period, channel, _calculate_temperatures(lat, lon, *i, period, subquery_fn), ['time', COLUMN_TEMP], epoch=True),
-            True
+            True, 4, 10000
         )))
         return tasks
 
@@ -73,18 +73,20 @@ def multiple_regression(data):
 
 def calc_correlation(data, fields):
     data = np.array(data, dtype=np.float)
-    yavg = np.nanmean(data[:,1])
-    filter = int(yavg - yavg/4)
-    was = data.shape
-    data = data[np.where(data[:,1] > filter)]
-    logging.debug(f'Muones: correlation to {fields[0]} filtered: {was[0]-data.shape[0]}/{was[0]}')
+    # yavg = np.nanmean(data[:,1])
+    # filter = int(yavg - yavg/4)
+    # was = data.shape
+    # data = data[np.where(data[:,1] > filter)]
+    # logging.debug(f'Muones: correlation to {fields[0]} filtered: {was[0]-data.shape[0]}/{was[0]}')
     x, y = data[:,0], data[:,1]
-    lg = stats.linregress(x, y)
+    variation = y / np.mean(y) * 100 - 100
+    lg = stats.linregress(x, variation)
     rrange = np.linspace(x[0], x[-1])
     return {
-        'r': lg.rvalue,
+        'slope': lg.slope,
+        'error': lg.stderr,
         'x': x.tolist(),
-        'y': y.tolist(),
+        'y': variation.tolist(),
         'rx': rrange.tolist(),
         'ry': (lg.intercept + lg.slope * rrange).tolist()
     }
