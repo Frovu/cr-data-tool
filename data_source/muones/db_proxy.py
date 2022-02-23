@@ -36,21 +36,28 @@ def _create_if_not_exists(station, period):
 
 def stations():
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT name, lat, lon FROM stations')
+        cursor.execute(f'SELECT name, lat, lon, (SELECT array_agg(channel_name) AS channels FROM muon_channels WHERE station_name = name) FROM muon_stations')
         result = []
         for s in cursor.fetchall():
-            result.append({'name': s[0], 'lat': float(s[1]), 'lon': float(s[2])})
+            print
+            result.append({'name': s[0], 'lat': float(s[1]), 'lon': float(s[2]), 'channels': s[3]})
         return result
 
 def station(lat, lon):
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT name FROM stations WHERE round(lat::numeric,2) = %s AND round(lon::numeric,2) = %s', [round(lat, 2), round(lon, 2)])
+        cursor.execute(f'SELECT name FROM muon_stations WHERE round(lat::numeric,2) = %s AND round(lon::numeric,2) = %s', [round(lat, 2), round(lon, 2)])
         result = cursor.fetchall()
         return result[0][0] if result else None
 
 def coordinates(station):
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT lat, lon FROM stations WHERE name = %s', [station])
+        cursor.execute(f'SELECT lat, lon FROM muon_stations WHERE name = %s', [station])
+        result = cursor.fetchall()
+        return result[0] if result else None
+
+def channel(station, channel):
+    with pg_conn.cursor() as cursor:
+        cursor.execute(f'SELECT coef_pressure, coef_tm FROM muon_channels WHERE station_name = %s AND channel_name = %s', [station, channel])
         result = cursor.fetchall()
         return result[0] if result else None
 

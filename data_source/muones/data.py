@@ -13,9 +13,9 @@ def station(lat, lon):
     return proxy.station(lat, lon)
 
 def get_corrected(station, t_from, t_to, period=3600, channel='V', recalc=True):
-    if not proxy.coordinates(station):
+    if not proxy.channel(station, channel):
         return 'unknown', None
-    token = station + str(period)
+    token = station + channel + str(period)
     t_from = floor(t_from / period) * period
     t_to = ceil(t_to / period) * period
     args = (station, t_from, t_to, period, channel)
@@ -33,10 +33,10 @@ def get_corrected(station, t_from, t_to, period=3600, channel='V', recalc=True):
 
 def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pressure', what='count_raw'):
     if against == 'Tm': against = 'T_m'
-    if not proxy.coordinates(station) or against not in ['T_m', 'pressure']:
+    if not proxy.channel(station, channel) or against not in ['T_m', 'pressure']:
         return 'unknown', None
     # FIXME: this leads to duplicate raw data calculations (but nobody cares)
-    token = 'corr'+against+station+str(period)
+    token = 'corr' + station + channel + str(period)
     t_from = floor(t_from / period) * period
     t_to = ceil(t_to / period) * period
     args = (station, t_from, t_to, period, channel)

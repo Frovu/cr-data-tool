@@ -130,7 +130,7 @@ export function initCorr(data, label, pointPx, title, corrLine=false) {
 				range: (u, min, max) => [min, max],
 			},
 			y: {
-				range: (u, min, max) => [min, max],
+				range: [-10, 10],
 			},
 		},
 		cursor: {
