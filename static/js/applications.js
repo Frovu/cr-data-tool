@@ -1,22 +1,22 @@
 import * as temperature from './applications/temperature.js';
 import * as tempHeight from './applications/tempHeight.js';
-import * as muones from './applications/muones.js';
-import * as muonesRaw from './applications/muonesRaw.js';
-import * as muonesCorr from './applications/muonesCorrelation.js';
+import * as muon from './applications/muones.js';
+import * as muonRaw from './applications/muonesRaw.js';
+import * as muonCorr from './applications/muonesCorrelation.js';
 import * as pressure from './applications/pressure.js';
 import * as admin from './applications/admin.js';
 
 const applications = {
 	temperature,
 	tempHeight,
-	muones,
-	muonesRaw,
-	muonesCorr,
+	muon,
+	muonRaw,
+	muonCorr,
 	pressure,
 	admin
 };
 const hierarchy = {
-	muon: ['muones', 'muonesRaw', 'muonesCorr', 'pressure'],
+	muon: ['muon', 'muonRaw', 'muonCorr', 'pressure'],
 	temperature: ['temperature', 'tempHeight'],
 };
 const publicApps = ['temperature'];
@@ -97,7 +97,7 @@ export async function swithApp(nextApp) {
 
 export async function init() {
 	const savedApp = window.localStorage.getItem('application');
-	await swithApp(savedApp || DEFAULT);
+	await swithApp(applications[savedApp] ? savedApp : DEFAULT);
 }
 
 export function updateView(permissions) {

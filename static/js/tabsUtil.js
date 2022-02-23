@@ -64,6 +64,7 @@ export function input(type, callback, options = {}) {
 			updateChannels(sel.value);
 			callback(sel.value, channelSel.value);
 		};
+		channelSel.onchange = () => callback(sel.value, channelSel.value);
 		elem.append(sel, channelSel);
 	} else if (type === 'timestamp') {
 		elem = document.createElement('div');

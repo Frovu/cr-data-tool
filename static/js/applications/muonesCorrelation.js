@@ -24,8 +24,8 @@ function receiveData(resp) {
 
 function plotInit(data) {
 	if (!data) return;
-	const title = `${params.station}:${params.channel}`;
-	const corr = `c=${info.slope.toFixed(6)}, err=${info.error.toFixed(10)}`;
+	const title = `${params.station}:${params.channel} [${data[1][1].length} points], stderr=${info.error.toFixed(6)}`;
+	const corr = `c=${info.slope.toFixed(6)}`;
 	plot.initCorr(data, `v(${params.against})`, params.period===60?2:3, title, corr);
 }
 
@@ -52,8 +52,9 @@ Supported only for ${sText}`)
 	const against = ['pressure', 'Tm'];
 	tabs.fill('query', [
 		stations ?
-			tabs.input('station-channel', (station) => {
+			tabs.input('station-channel', (station, channel) => {
 				params.station = station;
+				params.channel = channel;
 				plotInit();
 				query.params(params);
 			}, { text: 'station:', list: stations, selected: params.station }) :

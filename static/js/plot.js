@@ -74,7 +74,7 @@ function linePaths() {
 }
 
 // ref: https://leeoniya.github.io/uPlot/demos/scatter.html
-export function initCorr(data, label, pointPx, corrLine=false) {
+export function initCorr(data, label, pointPx, title, corrLine=false) {
 	if (uplot) uplot.destroy();
 	getStyle();
 	function drawPoints(u, seriesIdx) {
@@ -109,6 +109,7 @@ export function initCorr(data, label, pointPx, corrLine=false) {
 	}; };
 	uplot = new uPlot({
 		...getPlotSize(),
+		title,
 		mode: 2,
 		legend: {
 			live: false,

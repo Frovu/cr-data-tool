@@ -163,12 +163,12 @@ input:disabled, button:disabled, select:disabled {
 	background-color: var(--color-tab-bg);
 }
 
-.u-value {
+.u-series, .u-value, .u-title {
 	font-family: var(--font);
 }
-
-.u-series {
-	font-family: var(--font);
+.u-title {
+	margin-top: 2px;
+	font-size: 15px;
 }
 
 .u-select {
