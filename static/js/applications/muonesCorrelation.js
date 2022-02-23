@@ -8,6 +8,7 @@ const params = util.storage.getObject('muonesCorr-params') || {
 	to: Math.floor(Date.now()/1000) - 86400*5,
 	station: 'Moscow',
 	period: 3600,
+	channel: 'V',
 	against: 'pressure'
 };
 let data;
@@ -23,7 +24,9 @@ function receiveData(resp) {
 
 function plotInit(data) {
 	if (!data) return;
-	plot.initCorr(data, `v(${params.against})`, params.period===60?2:3, `c=${info.slope.toFixed(6)}, err=${info.error.toFixed(10)}`);
+	const title = `${params.station}:${params.channel}`;
+	const corr = `c=${info.slope.toFixed(6)}, err=${info.error.toFixed(10)}`;
+	plot.initCorr(data, `v(${params.against})`, params.period===60?2:3, title, corr);
 }
 
 async function fetchStations() {
@@ -38,8 +41,8 @@ const query = util.constructQueryManager(URL, {
 });
 
 export async function initTabs() {
-	const stations = (await fetchStations() || []).map(s => s.name);
-	const sText = stations ? stations.join() : 'Stations failed to load, refresh tab please.';
+	const stations = await fetchStations() || [];
+	const sText = stations ? stations.map(s => s.name).join(', ') : 'Stations failed to load, refresh tab please.';
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
 Plot correlations of muones telescopes data.<br>
@@ -49,7 +52,7 @@ Supported only for ${sText}`)
 	const against = ['pressure', 'Tm'];
 	tabs.fill('query', [
 		stations ?
-			tabs.input('station-only', (station) => {
+			tabs.input('station-channel', (station) => {
 				params.station = station;
 				plotInit();
 				query.params(params);

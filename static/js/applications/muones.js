@@ -90,7 +90,7 @@ WIP<br>
 	const periods = ['1 hour', '1 minute'];
 	tabs.fill('query', [
 		stations ?
-			tabs.input('station-only', (station) => {
+			tabs.input('station-channel', (station) => {
 				params.station = station;
 				plotInit();
 				query.params(params);

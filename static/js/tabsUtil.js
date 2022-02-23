@@ -43,11 +43,28 @@ export function input(type, callback, options = {}) {
 		elem.classList.add('station-input');
 		if (options.text) elem.append(options.text);
 		const sel = document.createElement('select');
-		options.list.forEach(s => {
-			sel.innerHTML += `<option value="${s}" ${options.selected===s?'selected':''}>${s}</option>`;
-		});
+		sel.innerHTML = options.list.map(s =>
+			`<option value="${s.name}" ${s.name===options.selected?'selected':''}>${s.name}</option>`).join('\n');
 		sel.onchange = () => callback(sel.value);
 		elem.append(sel);
+	} else if (type === 'station-channel') {
+		elem = document.createElement('div');
+		elem.classList.add('station-input');
+		if (options.text) elem.append(options.text);
+		const sel = document.createElement('select');
+		const channelSel = document.createElement('select');
+		sel.innerHTML = options.list.map(s =>
+			`<option value="${s.name}" ${s.name===options.selected?'selected':''}>${s.name}</option>`).join('\n');
+		const updateChannels = sn => {
+			const st = options.list.find(s => s.name === sn);
+			channelSel.innerHTML = st && st.channels.map(c => `<option value="${c}">${c}</option>`).join('\n');
+		};
+		updateChannels(options.selected || options.list[0].name);
+		sel.onchange = () => {
+			updateChannels(sel.value);
+			callback(sel.value, channelSel.value);
+		};
+		elem.append(sel, channelSel);
 	} else if (type === 'timestamp') {
 		elem = document.createElement('div');
 		elem.classList.add('text-input');
