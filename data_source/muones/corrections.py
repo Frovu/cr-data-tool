@@ -39,7 +39,7 @@ def get_prepare_tasks(station, period, channel, fill_fn, subquery_fn):
         lat, lon = proxy.coordinates(station)
         tasks = []
         tasks.append(('raw data', fill_fn, (
-            lambda i: proxy.analyze_integrity(station, *i, period, 'raw_acc_cnt'),
+            lambda i: proxy.analyze_integrity(station, *i, period, 'source'),
             lambda i: proxy.upsert(station, period, channel, *parser.obtain(station, *i, period, channel)),
             False, 4, 7200
         )))
