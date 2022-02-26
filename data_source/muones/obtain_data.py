@@ -8,7 +8,7 @@ FIELDS = {
     'Moscow': ['dt', 'c0', 'c1', 'n_v', 'pressure', 'temperature', 'temperature_ext', 'voltage']
 }
 
-def _psql_query(table, period, t_from, t_to, fields, epoch=False, count=True, cond=''):
+def _psql_query(table, period, t_from, t_to, fields, epoch=False, count=False, cond=''):
     interval = f'interval \'{period} seconds\''
     return f'''WITH periods AS
 (SELECT generate_series(to_timestamp({t_from}), to_timestamp({t_to}), {interval}) period)
@@ -17,8 +17,10 @@ FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < perio
 GROUP BY period ORDER BY period
 '''
 
-def _obtain_gmdn(station, t_from, t_to, channel):
+def _obtain_gmdn(station, t_from, t_to, channel, what):
     # FIXME: some station will not have Pres. column
+    col_name = 'Pres.' if what == 'pressure' else channel
+    is_channel = what == 'source'
     dir = next(d for d in os.listdir('tmp/gmdn') if station in d)
     dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
     result = []
@@ -29,15 +31,15 @@ def _obtain_gmdn(station, t_from, t_to, channel):
                     columns = last.split()
                     break
                 last = line
-            pres_idx = columns.index('Pres.')
-            chan_idx = columns.index(channel)
+            idx = columns.index(col_name)
             for line in file:
                 split = line.split()
                 time = datetime(*[int(i) for i in split[:4]])
-                result.append([time, float(split[chan_idx]) / 60, float(split[pres_idx])]) # /60 for ppm
+                val = (float(split[idx]) / 60) if is_channel else float(split[idx]) # /60 for ppm
+                result.append([time, val])
     return result
 
-def obtain(channel, t_from, t_to):
+def obtain(channel, t_from, t_to, column):
     station = channel.station_name
     logging.debug(f'Muones: querying raw {station}:{channel.name} {t_from}:{t_to}')
     if station == 'Moscow':
@@ -46,13 +48,13 @@ def obtain(channel, t_from, t_to):
             password = os.environ.get('MUON_MSK_PASS'),
             host = os.environ.get('MUON_MSK_HOST')) as conn:
             with conn.cursor() as cursor:
-                cursor.execute(_psql_query('muon_data', channel.period, t_from, t_to, ['dt', 'n_v', 'pressure']))
-                    # cond='AND device_id=(SELECT id FROM devices WHERE key = \'muon-pioneer\')'))
+                col = 'n_v' if column == 'source' else column
+                cursor.execute(_psql_query('muon_data', channel.period, t_from, t_to, ['dt', col]))
                 resp = cursor.fetchall()
-                return resp, ['time', 'raw_acc_cnt', 'count_raw', 'pressure']
+                return resp, column
     elif station in ['Nagoya']:
-        data = _obtain_gmdn(station, t_from, t_to, channel.name)
-        return data, ['time', 'count_corr_p', 'pressure']
+        data = _obtain_gmdn(station, t_from, t_to, channel.name, column)
+        return data, column
 
 def obtain_raw(station, t_from, t_to, period, fields=None):
     if station == 'Moscow':
@@ -62,6 +64,5 @@ def obtain_raw(station, t_from, t_to, period, fields=None):
             host = os.environ.get('MUON_MSK_HOST')) as conn:
             with conn.cursor() as cursor:
                 q = _psql_query('muon_data', period, t_from, t_to, [FIELDS["Moscow"][0]] + fields if fields else FIELDS["Moscow"], epoch=True, count=False)
-                    # cond='AND device_id=(SELECT id FROM devices WHERE key = \'muon-pioneer\')')
                 cursor.execute(q)
                 return cursor.fetchall(), [desc[0] for desc in cursor.description]

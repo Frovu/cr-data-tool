@@ -39,17 +39,17 @@ def _calculate_temperatures(channel, t_from, t_to, merge_query):
 def get_prepare_tasks(channel, fill_fn, subquery_fn):
         tasks = []
         tasks.append(('raw counts', fill_fn, (
-            lambda i: proxy.analyze_integrity(channel, *i, 'source'),
+            lambda i: proxy.analyze_integrity(channel, i, 'source'),
             lambda i: proxy.upsert(channel, *parser.obtain(channel, *i, 'source')),
-            True, 2, 10000
+            False, 1, 10000
         )))
         tasks.append(('pressure', fill_fn, (
-            lambda i: proxy.analyze_integrity(channel, *i, 'pressure'),
+            lambda i: proxy.analyze_integrity(channel, i, 'pressure'),
             lambda i: proxy.upsert(channel, *parser.obtain(channel, *i, 'pressure')),
-            True, 2, 10000
+            False, 1, 10000
         )))
         tasks.append(('air temperature', fill_fn, (
-            lambda i: proxy.analyze_integrity(channel, *i, COLUMN_TEMP),
+            lambda i: proxy.analyze_integrity(channel, i, COLUMN_TEMP),
             lambda i: proxy.upsert(channel, _calculate_temperatures(channel, *i, subquery_fn), COLUMN_TEMP, epoch=True),
             True, 4, 10000
         )))

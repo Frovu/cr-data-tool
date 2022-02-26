@@ -61,7 +61,6 @@ class Channel:
 FROM muon_channels c JOIN muon_stations s ON s.name = c.station_name
 WHERE station_name = %s AND channel_name = %s''', [station, channel])
             result = cursor.fetchone()
-        print(result)
         if not result:
             return None
         self.id, self.station_id, lat, lon = result
@@ -76,20 +75,18 @@ def analyze_integrity(channel, interval, columns):
     td, tc = _table(channel.period), _table_cond(channel.period)
     j = f'''LEFT JOIN {td} ON (ser.tm = {td}.time AND channel = {channel.id})
         LEFT JOIN {tc} ON (ser.tm = {tc}.time AND station = {channel.station_id})'''
-    q = integrity_query(*interval, channel.period, [], columns, join_overwrite=j)
-    print(q)
     with pg_conn.cursor() as cursor:
-        cursor.execute(q)
+        cursor.execute(integrity_query(*interval, channel.period, [], columns, join_overwrite=j))
         return cursor.fetchall()
 
 def select(channel, interval, columns=['count_corr'], include_time=True, order='time', where=''):
     with pg_conn.cursor() as cursor:
-        q = f'''SELECT {"EXTRACT(EPOCH FROM time)," if include_time else ""}{",".join(columns)}
+        q = f'''SELECT {"EXTRACT(EPOCH FROM c.time)," if include_time else ""}{",".join(columns)}
 FROM {_table(channel.period)} c LEFT JOIN {_table_cond(channel.period)} m
     ON (m.time = c.time AND m.station = {channel.station_id} AND c.channel = {channel.id})
-WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s)
+WHERE c.time >= to_timestamp(%s) AND c.time <= to_timestamp(%s)
 {"AND "+where if where else ""} ORDER BY {order}'''
-        cursor.execute(q, [t_from, t_to])
+        cursor.execute(q, interval)
         return cursor.fetchall(), (['time']+columns) if include_time else columns
 
 def upsert(channel, data, column, epoch=False):
@@ -99,7 +96,7 @@ def upsert(channel, data, column, epoch=False):
     fk_col, fk_val = ('channel', channel.id) if is_counts else ('station', channel.station_id)
     with pg_conn.cursor() as cursor:
         query = f'''INSERT INTO {table} (time, {fk_col}, {column}) VALUES %s
-        ON CONFLICT (time, {fk_col}) DO UPDATE SET ({column}) = (EXCLUDED.{column})'''
+        ON CONFLICT (time, {fk_col}) DO UPDATE SET {column} = EXCLUDED.{column}'''
         template = f'({"to_timestamp(%s)" if epoch else "%s"},{fk_val},%s)'
         psycopg2.extras.execute_values (cursor, query, data, template=template)
         pg_conn.commit()
