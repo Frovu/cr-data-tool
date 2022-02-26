@@ -54,12 +54,13 @@ export function input(type, callback, options = {}) {
 		const sel = document.createElement('select');
 		const channelSel = document.createElement('select');
 		sel.innerHTML = options.list.map(s =>
-			`<option value="${s.name}" ${s.name===options.selected?'selected':''}>${s.name}</option>`).join('\n');
+			`<option value="${s.name}" ${s.name===options.station?'selected':''}>${s.name}</option>`).join('\n');
 		const updateChannels = sn => {
 			const st = options.list.find(s => s.name === sn);
-			channelSel.innerHTML = st && st.channels.map(c => `<option value="${c}">${c}</option>`).join('\n');
+			channelSel.innerHTML = st && st.channels.map(c =>
+				`<option value="${c}" ${c===options.channel?'selected':''}>${c}</option>`).join('\n');
 		};
-		updateChannels(options.selected || options.list[0].name);
+		updateChannels(options.station || options.list[0].name);
 		sel.onchange = () => {
 			updateChannels(sel.value);
 			callback(sel.value, channelSel.value);

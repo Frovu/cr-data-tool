@@ -57,7 +57,7 @@ Supported only for ${sText}`)
 				params.channel = channel;
 				plotInit();
 				query.params(params);
-			}, { text: 'station:', list: stations, selected: params.station }) :
+			}, { text: 'station:', list: stations, station: params.station, channel: params.channel }) :
 			tabs.text(sText),
 		tabs.input('switch', per => {
 			params.period = per.includes('minute') ? 60 : 3600;
