@@ -12,7 +12,8 @@ from math import floor, ceil
 COLUMN_TEMP = 'T_m'
 MODEL_PERIOD = 3600
 
-def _calculate_temperatures(lat, lon, t_from, t_to, period, merge_query):
+def _calculate_temperatures(channel, t_from, t_to, merge_query):
+    lat, lon = channel.coordinates
     pa_from, pa_to = floor(t_from/MODEL_PERIOD)*MODEL_PERIOD, ceil(t_to/MODEL_PERIOD)*MODEL_PERIOD
     logging.debug(f'Muones: querying model temp ({lat}, {lon}) {t_from}:{t_to}')
     delay = .1
@@ -27,25 +28,29 @@ def _calculate_temperatures(lat, lon, t_from, t_to, period, merge_query):
             data = np.array(data[0])
             times = data[:,0]
             t_avg = data[:,1]
-            if period != MODEL_PERIOD:
+            if channel.period != MODEL_PERIOD:
                 interp = interpolate.interp1d(times, t_avg, axis=0)
-                times = np.arange(t_from, t_to+1, period)
+                times = np.arange(t_from, t_to+1, channel.period)
                 t_avg = interp(times)
             return np.column_stack((times, t_avg))
         delay += .1 if delay < 1 else 0
         time.sleep(delay)
 
-def get_prepare_tasks(station, period, channel, fill_fn, subquery_fn):
-        lat, lon = proxy.coordinates(station)
+def get_prepare_tasks(channel, fill_fn, subquery_fn):
         tasks = []
-        tasks.append(('raw data', fill_fn, (
-            lambda i: proxy.analyze_integrity(station, *i, period, 'source'),
-            lambda i: proxy.upsert(station, period, channel, *parser.obtain(station, *i, period, channel)),
-            False, 4, 7200
+        tasks.append(('raw counts', fill_fn, (
+            lambda i: proxy.analyze_integrity(channel, *i, 'source'),
+            lambda i: proxy.upsert(channel, *parser.obtain(channel, *i, 'source')),
+            True, 2, 10000
+        )))
+        tasks.append(('pressure', fill_fn, (
+            lambda i: proxy.analyze_integrity(channel, *i, 'pressure'),
+            lambda i: proxy.upsert(channel, *parser.obtain(channel, *i, 'pressure')),
+            True, 2, 10000
         )))
         tasks.append(('air temperature', fill_fn, (
-            lambda i: proxy.analyze_integrity(station, *i, period, COLUMN_TEMP),
-            lambda i: proxy.upsert(station, period, channel, _calculate_temperatures(lat, lon, *i, period, subquery_fn), ['time', COLUMN_TEMP], epoch=True),
+            lambda i: proxy.analyze_integrity(channel, *i, COLUMN_TEMP),
+            lambda i: proxy.upsert(channel, _calculate_temperatures(channel, *i, subquery_fn), COLUMN_TEMP, epoch=True),
             True, 4, 10000
         )))
         return tasks

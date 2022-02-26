@@ -37,20 +37,21 @@ def _obtain_gmdn(station, t_from, t_to, channel):
                 result.append([time, float(split[chan_idx]) / 60, float(split[pres_idx])]) # /60 for ppm
     return result
 
-def obtain(station, t_from, t_to, period, channel):
-    logging.debug(f'Muones: querying raw ({station}:{channel}/{period}) {t_from}:{t_to}')
+def obtain(channel, t_from, t_to):
+    station = channel.station_name
+    logging.debug(f'Muones: querying raw {station}:{channel.name} {t_from}:{t_to}')
     if station == 'Moscow':
         with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
             user = os.environ.get('MUON_MSK_USER'),
             password = os.environ.get('MUON_MSK_PASS'),
             host = os.environ.get('MUON_MSK_HOST')) as conn:
             with conn.cursor() as cursor:
-                cursor.execute(_psql_query('muon_data', period, t_from, t_to, ['dt', 'n_v', 'pressure']))
+                cursor.execute(_psql_query('muon_data', channel.period, t_from, t_to, ['dt', 'n_v', 'pressure']))
                     # cond='AND device_id=(SELECT id FROM devices WHERE key = \'muon-pioneer\')'))
                 resp = cursor.fetchall()
                 return resp, ['time', 'raw_acc_cnt', 'count_raw', 'pressure']
     elif station in ['Nagoya']:
-        data = _obtain_gmdn(station, t_from, t_to, channel)
+        data = _obtain_gmdn(station, t_from, t_to, channel.name)
         return data, ['time', 'count_corr_p', 'pressure']
 
 def obtain_raw(station, t_from, t_to, period, fields=None):

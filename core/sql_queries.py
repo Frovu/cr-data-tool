@@ -1,20 +1,22 @@
 
-def integrity_query(t_from, t_to, period, table, test_columns, time_column='time',
-    bad_condition=False, bad_cond_columns=[], where='', return_epoch=True):
+def integrity_query(t_from, t_to, period, tables, test_columns, time_column='time',
+    bad_condition=False, bad_cond_columns=[], join_overwrite=False, where='', return_epoch=True):
     if type(test_columns) is not list:
         test_columns = [test_columns]
+    if not join_overwrite and type(tables) is not list:
+        tables = [tables]
     not_null_cond = ' AND '.join([f'{c} IS NOT NULL' for c in test_columns])
     null_cond = ' OR '.join([f'{c} IS NULL' for c in test_columns])
+    join_tables = join_overwrite or '\n\t'.join([f'LEFT JOIN {t} ON (ser.tm = {t}.{time_column})' for t in tables])
     return f'''WITH RECURSIVE
 input (t_from, t_to, t_interval) AS (
     VALUES (to_timestamp({t_from}), to_timestamp({t_to}), interval \'{period} s\')
 ), filled AS (
     SELECT
-        ser.tm as time, {test_column}{''.join([', '+col for col in bad_cond_columns])}
+        ser.tm as time, {','.join(test_columns + bad_cond_columns)}
     FROM
         (SELECT generate_series(t_from, t_to, t_interval) tm FROM input) ser
-    LEFT JOIN {table}
-        ON (ser.tm = {table}.{time_column}{(' AND '+where) if where else ''})
+        {join_tables}
     ORDER BY time
 ), rec AS (
     SELECT
