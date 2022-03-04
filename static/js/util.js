@@ -48,6 +48,7 @@ export function constructQueryManager(url, callbacks, progDetails=true) {
 				const reason = body.info && body.info.failed;
 				el.innerHTML = 'Error';
 				if (progDetails) progEl.innerHTML = `Failed: ${reason}`;
+				return null;
 			} else if (body.status === 'accepted') {
 				el.innerHTML = 'Accepted';
 			} else {

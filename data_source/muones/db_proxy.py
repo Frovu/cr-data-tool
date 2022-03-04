@@ -83,7 +83,8 @@ def select(channel, interval, columns=['count_corr'], include_time=True, order='
     with pg_conn.cursor() as cursor:
         q = f'''SELECT {"EXTRACT(EPOCH FROM c.time)," if include_time else ""}{",".join(columns)}
 FROM {_table(channel.period)} c LEFT JOIN {_table_cond(channel.period)} m ON m.time = c.time
-WHERE c.time >= to_timestamp(%s) AND c.time <= to_timestamp(%s) AND m.station = {channel.station_id} AND c.channel = {channel.id}
+WHERE c.time >= to_timestamp(%s) AND c.time <= to_timestamp(%s)
+AND m.station = {channel.station_id} AND c.channel = {channel.id}
 {"AND "+where if where else ""} ORDER BY {order}'''
         cursor.execute(q, interval)
         return cursor.fetchall(), (['time']+columns) if include_time else columns

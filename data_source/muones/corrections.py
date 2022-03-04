@@ -41,17 +41,17 @@ def get_prepare_tasks(channel, fill_fn, subquery_fn):
         tasks.append(('raw counts', fill_fn, (
             lambda i: proxy.analyze_integrity(channel, i, 'source'),
             lambda i: proxy.upsert(channel, *parser.obtain(channel, *i, 'source')),
-            False, 1, 10000
+            False, 1, 365*24
         )))
         tasks.append(('pressure', fill_fn, (
             lambda i: proxy.analyze_integrity(channel, i, 'pressure'),
             lambda i: proxy.upsert(channel, *parser.obtain(channel, *i, 'pressure')),
-            False, 1, 10000
+            False, 1, 365*24
         )))
-        tasks.append(('air temperature', fill_fn, (
+        tasks.append(('temperature-model', fill_fn, (
             lambda i: proxy.analyze_integrity(channel, i, COLUMN_TEMP),
             lambda i: proxy.upsert(channel, _calculate_temperatures(channel, *i, subquery_fn), COLUMN_TEMP, epoch=True),
-            True, 4, 10000
+            True, 8, 365*24
         )))
         return tasks
 
@@ -78,11 +78,6 @@ def multiple_regression(data):
 
 def calc_correlation(data, fields):
     data = np.array(data, dtype=np.float)
-    # yavg = np.nanmean(data[:,1])
-    # filter = int(yavg - yavg/4)
-    # was = data.shape
-    # data = data[np.where(data[:,1] > filter)]
-    # logging.debug(f'Muones: correlation to {fields[0]} filtered: {was[0]-data.shape[0]}/{was[0]}')
     x, y = data[:,0], data[:,1]
     variation = y / np.mean(y) * 100 - 100
     lg = stats.linregress(x, variation)

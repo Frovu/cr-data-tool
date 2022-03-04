@@ -42,6 +42,8 @@ def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pr
     status, info = _get_prepare(station, t_from, t_to, period, channel, [against, what])
     if status == 'ok':
         data = proxy.select(*info, [against, what], include_time=False, where=what+' > 0', order=against)
+        if len(data[0]) < 72:
+            return 'failed', {'failed': 'No data'}
         return 'ok', corrections.calc_correlation(*data)
     return status, info
 
