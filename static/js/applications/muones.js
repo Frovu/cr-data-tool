@@ -66,9 +66,9 @@ function plotInit() {
 		{ scale: 'mb', side: 1, size: 70 },
 		{ scale: 'K', show: false }
 	];
-	const cl = info && Math.floor(info.coef_per_length/(86400/params.period));
+	const cl = info && Math.floor(info.coef_per_length/86400);
 	const c_pr = info && info.coef_pressure ? `c_pr=${info.coef_pressure.toFixed(5)} ` : '';
-	const title = info && `${params.station}:${params.channel} ${c_pr}c_tm=${info.coef_temperature.toFixed(5)} rl=${cl}d`;
+	const title = info && `${params.station}:${params.channel} ${c_pr}c_tm=${info.coef_temperature.toFixed(5)} cl=${cl}d`;
 	plot.init(axes, true, null, null, title);
 	plot.series(series);
 	if (data) plot.data(data);
@@ -93,7 +93,7 @@ Correction is performed via mass-average temperature method.<br>
 	]);
 	const stations = await fetchStations() || [];
 	const sText = stations ? stations.join() : 'Stations failed to load, refresh tab please.';
-	const periods = ['1 hour', '1 minute'];
+	// const periods = ['1 hour', '1 minute'];
 	tabs.fill('query', [
 		stations ?
 			tabs.input('station-channel', (station, channel) => {
@@ -103,10 +103,10 @@ Correction is performed via mass-average temperature method.<br>
 				query.params(params);
 			}, { text: 'station:', list: stations, station: params.station, channel: params.channel }) :
 			tabs.text(sText),
-		tabs.input('switch', per => {
-			params.period = per.includes('minute') ? 60 : 3600;
-			query.params(params);
-		}, { options: params.period===60?periods.reverse():periods, text: 'period: ' }),
+		// tabs.input('switch', per => {
+		// 	params.period = per.includes('minute') ? 60 : 3600;
+		// 	query.params(params);
+		// }, { options: params.period===60?periods.reverse():periods, text: 'period: ' }),
 		tabs.input('time', (from, to, force) => {
 			params.from = from;
 			params.to = to;

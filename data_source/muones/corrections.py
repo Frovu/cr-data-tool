@@ -56,32 +56,41 @@ def get_prepare_tasks(channel, fill_fn, subquery_fn):
         return tasks
 
 def corrected(channel, interval, recalc=True):
-    # saved_coefs, saved_len = _get_coefs()
     is_p_corrected = channel.station_name in ['Nagoya']
     columns = ['source', 'T_m'] + ([] if is_p_corrected else ['pressure'])
     where = ' AND '.join([f'{c} > 0' for c in columns])
     data = np.array(proxy.select(channel, interval, columns, where=where)[0], dtype=np.float64)
     if len(data) < 32:
         return None
+    interval_len = interval[1]-interval[0]
+    coef_recalc = not channel.coef_tm or not channel.coef_len or channel.coef_len < interval_len
+    if not coef_recalc:
+        coef_pr, coef_tm = channel.coef_pr, channel.coef_tm
+    else:
+        logging.debug(f'Muones: recalc coefs {channel.station_name}/{channel.name} <{interval_len}')
     time, raw, tm = data[:,0], data[:,1], data[:,2]
     tm = (np.mean(tm) - tm)
     if is_p_corrected:
-        lg = stats.linregress(tm, np.log(raw))
-        coef_pr, coef_tm = None, lg.slope
+        if coef_recalc:
+            lg = stats.linregress(tm, np.log(raw))
+            coef_pr, coef_tm = None, lg.slope
         corrected = raw * (1 - coef_tm * tm)
     else:
         pr = data[:,3]
         pr = (np.mean(pr) - pr)
-        regr_data = np.column_stack((pr, tm))
-        regr = LinearRegression().fit(regr_data, np.log(raw))
-        coef_pr, coef_tm = regr.coef_
+        if coef_recalc:
+            regr_data = np.column_stack((pr, tm))
+            regr = LinearRegression().fit(regr_data, np.log(raw))
+            coef_pr, coef_tm = regr.coef_
         corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm)
     proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
+    if coef_recalc:
+        channel.update_coefs(coef_pr, coef_tm, interval_len)
     res = proxy.select(channel, interval, ['corrected'] + columns, where='source > 0')
     return *res, {
         'coef_pressure': coef_pr,
         'coef_temperature': coef_tm,
-        'coef_per_length': len(raw)
+        'coef_per_length': interval_len if coef_recalc else channel.coef_len
     }
 
 def multiple_regression(data):

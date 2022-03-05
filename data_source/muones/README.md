@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS  muon_channels (
 	dir_azimuthal REAL DEFAULT 0,
 	coef_pressure REAL,
 	coef_tm REAL,
+	coef_per_len INT,
 	UNIQUE(station_name, channel_name)
 );
 INSERT INTO muon_stations(lat, lon, name, elevation_m) VALUES
