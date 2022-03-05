@@ -154,12 +154,13 @@ export function initCorr(data, label, pointPx, title, corrLine=false) {
 	}, data, parentEl);
 }
 
-export function init(axes, time=true, scales, series) {
+export function init(axes, time=true, scales, series, title) {
 	getStyle();
 	plotTime = time;
 	if (uplot) uplot.destroy();
 	uplot = new uPlot({
 		...getPlotSize(),
+		title,
 		tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
 		series: time?[{ value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC', stroke: style.text }]:
 			(series?prepareSeries(series):[]),

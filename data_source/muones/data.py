@@ -31,7 +31,10 @@ def _get_prepare(station, t_from, t_to, period, channel, columns=['corrected']):
 def get_corrected(station, t_from, t_to, period=3600, channel='V'):
     status, info = _get_prepare(station, t_from, t_to, period, channel, ['source', 'T_m', 'pressure'])
     if status == 'ok':
-        return 'ok', corrections.corrected(*info)
+        res = corrections.corrected(*info)
+        if not res:
+            return 'failed', {'failed': 'No data'}
+        return 'ok', res
     return status, info
 
 def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pressure', what='source'):

@@ -4,26 +4,26 @@ import * as plot from '../plot.js';
 
 const FIELDS = {
 	time: 'time',
-	n_v_raw: {
-		label: 'n_v_raw',
+	source: {
+		label: 'source',
 		scale: 'n',
 		color: 'rgba(60,10,150,0.5)',
 		nounit: true
 	},
-	n_v: {
-		label: 'n_v',
+	corrected: {
+		label: 'corrected',
 		scale: 'n',
 		color: 'rgba(255,10,60,1)',
 		nounit: true
 	},
 	pressure: {
-		label: 'p',
+		label: 'pressure',
 		scale: 'mb',
 		color: 'rgba(200,0,200,0.6)',
 		precision: 1
 	},
 	T_m: {
-		label: 't_mass_avg',
+		label: 'temperature',
 		scale: 'K',
 		color: 'rgba(255,155,50,1)',
 		precision: 1
@@ -34,9 +34,11 @@ const params = util.storage.getObject('muones-params') || {
 	from: Math.floor(Date.now()/1000) - 86400*3 - 86400*365,
 	to: Math.floor(Date.now()/1000) - 86400*3,
 	station: 'Moscow',
+	channel: 'V',
 	period: 3600
 };
 let data;
+let info;
 
 function receiveData(resp) {
 	const rows = resp.data, len = resp.data.length;
@@ -53,7 +55,8 @@ function receiveData(resp) {
 			data[j][i] = rows[i][idx[j]];
 		}
 	}
-	plot.data(data);
+	info = resp.info;
+	plotInit();
 }
 
 function plotInit() {
@@ -63,7 +66,8 @@ function plotInit() {
 		{ scale: 'mb', side: 1, size: 70 },
 		{ scale: 'K', show: false }
 	];
-	plot.init(axes);
+	const title = info && `${params.station}:${params.channel} c_pr=${info.coef_pressure.toFixed(5)},c_tm=${info.coef_temperature.toFixed(5)},cl=${info.coef_per_length}`;
+	plot.init(axes, true, null, null, title);
 	plot.series(series);
 	if (data) plot.data(data);
 }
@@ -81,20 +85,21 @@ async function fetchStations() {
 export async function initTabs() {
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
-Get corrected muones data.
-WIP<br>
+Temperature corrected muons data.
+Correction is performed via mass-average temperature method.<br>
 `)
 	]);
-	const stations = (await fetchStations() || []).map(s => s.name);
+	const stations = await fetchStations() || [];
 	const sText = stations ? stations.join() : 'Stations failed to load, refresh tab please.';
 	const periods = ['1 hour', '1 minute'];
 	tabs.fill('query', [
 		stations ?
-			tabs.input('station-channel', (station) => {
+			tabs.input('station-channel', (station, channel) => {
 				params.station = station;
+				params.channel = channel;
 				plotInit();
 				query.params(params);
-			}, { text: 'station:', list: stations, selected: params.station }) :
+			}, { text: 'station:', list: stations, station: params.station, channel: params.channel }) :
 			tabs.text(sText),
 		tabs.input('switch', per => {
 			params.period = per.includes('minute') ? 60 : 3600;

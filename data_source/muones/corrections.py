@@ -61,13 +61,15 @@ def corrected(channel, interval, recalc=True):
     columns = ['source', 'T_m'] + ([] if is_p_corrected else ['pressure'])
     where = ' AND '.join([f'{c} > 0' for c in columns])
     data = np.array(proxy.select(channel, interval, columns, where=where)[0], dtype=np.float64)
-    raw, tm = data[:,1], data[:,2]
+    if len(data) < 32:
+        return None
+    time, raw, tm = data[:,0], data[:,1], data[:,2]
     tm = (np.mean(tm) - tm)
     if is_p_corrected:
         lg = stats.linregress(tm, np.log(raw))
         coef_pr, coef_tm = None, lg.slope
         corrected = raw * (1 - coef_tm * tm)
-        all = np.column_stack((corrected, raw, tm))
+        all = np.column_stack((time, corrected, raw, tm))
     else:
         pr = data[:,3]
         pr = (np.mean(pr) - pr)
@@ -75,12 +77,12 @@ def corrected(channel, interval, recalc=True):
         regr = LinearRegression().fit(regr_data, np.log(raw))
         coef_pr, coef_tm = regr.coef_
         corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm)
-        all = np.column_stack((corrected, raw, tm, pr))
+        all = np.column_stack((time, corrected, raw, tm, pr))
     print(coef_tm, coef_pr)
     print(raw[:5])
     print(corrected[:5])
-    proxy.upsert(channel, np.column_stack((data[:,0], corrected)), 'corrected', epoch=True)
-    return all, ['corrected'] + columns, {
+    proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
+    return all.tolist(), ['time', 'corrected'] + columns, {
         'coef_pressure': coef_pr,
         'coef_temperature': coef_tm,
         'coef_per_length': len(all)
