@@ -28,11 +28,10 @@ def _get_prepare(station, t_from, t_to, period, channel, columns=['corrected']):
         corrections.get_prepare_tasks(ch, fill_fn, mq_fn))
     return 'accepted', None
 
-def get_corrected(station, t_from, t_to, period=3600, channel='V', recalc=True):
-    status, info = _get_prepare(station, t_from, t_to, period, channel)
+def get_corrected(station, t_from, t_to, period=3600, channel='V'):
+    status, info = _get_prepare(station, t_from, t_to, period, channel, ['source', 'T_m', 'pressure'])
     if status == 'ok':
-        # TODO: get corrected integrity and correct
-        return 'ok', proxy.select(*info, ['count_raw', 'n_v', 'pressure', 'T_m'])
+        return 'ok', corrections.corrected(*info)
     return status, info
 
 def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pressure', what='source'):

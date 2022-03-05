@@ -18,5 +18,7 @@ INSERT INTO stations(lat, lon, name, description)
 values(55.47, 37.32, 'Moscow', 'Moscow Neutron Monitor');
 INSERT INTO stations(lat, lon, name, description)
 values(61.59, 129.41, 'Yakutsk', 'Yakutsk station');
+INSERT INTO stations(lat, lon, name, description)
+values(35.2, 137.0, 'Nagoya', 'Nagoya muon telescope');
 
 ```

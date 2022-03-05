@@ -79,7 +79,7 @@ def analyze_integrity(channel, interval, columns):
         cursor.execute(integrity_query(*interval, channel.period, [], columns, join_overwrite=j))
         return cursor.fetchall()
 
-def select(channel, interval, columns=['count_corr'], include_time=True, order='time', where=''):
+def select(channel, interval, columns=['count_corr'], include_time=True, order='c.time', where=''):
     with pg_conn.cursor() as cursor:
         q = f'''SELECT {"EXTRACT(EPOCH FROM c.time)," if include_time else ""}{",".join(columns)}
 FROM {_table(channel.period)} c LEFT JOIN {_table_cond(channel.period)} m ON m.time = c.time

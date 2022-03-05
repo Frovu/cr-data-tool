@@ -55,25 +55,38 @@ def get_prepare_tasks(channel, fill_fn, subquery_fn):
         )))
         return tasks
 
-# !!! Presumes that all needed data is prepared
-def correct(*args):
-    station, t_from, t_to, period = args
-    data = np.array(proxy.select(*args, ['n_v_raw', 'pressure', 'T_m'])[0], dtype=np.float64)
-    data = data[~np.isnan(data[:,1])]
-    data = data[~np.isnan(data[:,2])]
-    n_u, p, t = data[:,1], data[:,2], data[:,3]
-    p = (np.mean(p) - p)
-    t = (np.mean(t) - t)
-    regr = multiple_regression(np.column_stack((n_u, p, t)))
-    print(regr)
-    beta, alpha = regr.coef_
-    n_c = n_u * np.exp(-1 * beta * p) * (1 - alpha * t)
-    proxy.upsert(station, period, channel, np.column_stack((data[:,0], n_c)), ['time', 'n_v'], epoch=True)
-    res = proxy.select(station, t_from, t_to, period, ['n_v_raw', 'n_v', 'pressure', 'T_m'], where='n_v_raw > 99')
-    return *res, {"a": alpha, "b": beta}
+def corrected(channel, interval, recalc=True):
+    # saved_coefs, saved_len = _get_coefs()
+    is_p_corrected = channel.station_name in ['Nagoya']
+    columns = ['source', 'T_m'] + ([] if is_p_corrected else ['pressure'])
+    where = ' AND '.join([f'{c} > 0' for c in columns])
+    data = np.array(proxy.select(channel, interval, columns, where=where)[0], dtype=np.float64)
+    raw, tm = data[:,1], data[:,2]
+    tm = (np.mean(tm) - tm)
+    if is_p_corrected:
+        lg = stats.linregress(tm, np.log(raw))
+        coef_pr, coef_tm = None, lg.slope
+        corrected = raw * (1 - coef_tm * tm)
+        all = np.column_stack((corrected, raw, tm))
+    else:
+        pr = data[:,3]
+        pr = (np.mean(pr) - pr)
+        regr_data = np.column_stack((pr, tm))
+        regr = LinearRegression().fit(regr_data, np.log(raw))
+        coef_pr, coef_tm = regr.coef_
+        corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm)
+        all = np.column_stack((corrected, raw, tm, pr))
+    print(coef_tm, coef_pr)
+    print(raw[:5])
+    print(corrected[:5])
+    proxy.upsert(channel, np.column_stack((data[:,0], corrected)), 'corrected', epoch=True)
+    return all, ['corrected'] + columns, {
+        'coef_pressure': coef_pr,
+        'coef_temperature': coef_tm,
+        'coef_per_length': len(all)
+    }
 
 def multiple_regression(data):
-    data = data[data[:,0] > 0]
     return LinearRegression().fit(data[:,1:], np.log(data[:,0]))
 
 def calc_correlation(data, fields):
