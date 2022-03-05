@@ -55,7 +55,7 @@ def get_prepare_tasks(channel, fill_fn, subquery_fn):
         )))
         return tasks
 
-def corrected(channel, interval, recalc=True):
+def corrected(channel, interval, recalc):
     is_p_corrected = channel.station_name in ['Nagoya']
     columns = ['source', 'T_m'] + ([] if is_p_corrected else ['pressure'])
     where = ' AND '.join([f'{c} > 0' for c in columns])
@@ -63,7 +63,7 @@ def corrected(channel, interval, recalc=True):
     if len(data) < 32:
         return None
     interval_len = interval[1]-interval[0]
-    coef_recalc = not channel.coef_tm or not channel.coef_len or channel.coef_len < interval_len
+    coef_recalc = recalc or not channel.coef_tm or not channel.coef_len or channel.coef_len < interval_len
     if not coef_recalc:
         coef_pr, coef_tm = channel.coef_pr, channel.coef_tm
     else:

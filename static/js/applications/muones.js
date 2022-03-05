@@ -34,6 +34,7 @@ const params = util.storage.getObject('muones-params') || {
 	from: Math.floor(Date.now()/1000) - 86400*3 - 86400*365,
 	to: Math.floor(Date.now()/1000) - 86400*3,
 	station: 'Moscow',
+	coefs: 'recalc',
 	channel: 'V',
 	period: 3600
 };
@@ -107,6 +108,10 @@ Correction is performed via mass-average temperature method.<br>
 		// 	params.period = per.includes('minute') ? 60 : 3600;
 		// 	query.params(params);
 		// }, { options: params.period===60?periods.reverse():periods, text: 'period: ' }),
+		tabs.input('switch', opt => {
+			params.coefs = opt;
+			query.params(params);
+		}, { options: ['recalc', 'saved'], text: 'coefs: ' }),
 		tabs.input('time', (from, to, force) => {
 			params.from = from;
 			params.to = to;
