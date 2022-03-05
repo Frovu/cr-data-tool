@@ -100,4 +100,4 @@ def upsert(channel, data, column, epoch=False):
         template = f'({"to_timestamp(%s)" if epoch else "%s"},{fk_val},%s)'
         psycopg2.extras.execute_values (cursor, query, data, template=template)
         pg_conn.commit()
-        logging.info(f'Upsert: {table}{("/"+channel.name) if is_counts else ""} <-[{len(data)}] {column} from {data[0][0]}')
+        logging.info(f'Upsert: muon:{channel.station_name}{("/"+channel.name) if is_counts else ""} <-[{len(data)}] {column} from {data[0][0]}')

@@ -69,7 +69,6 @@ def corrected(channel, interval, recalc=True):
         lg = stats.linregress(tm, np.log(raw))
         coef_pr, coef_tm = None, lg.slope
         corrected = raw * (1 - coef_tm * tm)
-        all = np.column_stack((time, corrected, raw, tm))
     else:
         pr = data[:,3]
         pr = (np.mean(pr) - pr)
@@ -77,15 +76,12 @@ def corrected(channel, interval, recalc=True):
         regr = LinearRegression().fit(regr_data, np.log(raw))
         coef_pr, coef_tm = regr.coef_
         corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm)
-        all = np.column_stack((time, corrected, raw, tm, pr))
-    print(coef_tm, coef_pr)
-    print(raw[:5])
-    print(corrected[:5])
     proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
-    return all.tolist(), ['time', 'corrected'] + columns, {
+    res = proxy.select(channel, interval, ['corrected'] + columns, where='source > 0')
+    return *res, {
         'coef_pressure': coef_pr,
         'coef_temperature': coef_tm,
-        'coef_per_length': len(all)
+        'coef_per_length': len(raw)
     }
 
 def multiple_regression(data):

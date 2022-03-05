@@ -24,9 +24,10 @@ def corrected():
         t_to = int(request.args.get('to', ''))
         period = int(request.args.get('period')) if request.args.get('period') else 3600
         station = request.args.get('station', '')
+        channel = request.args.get('channel', '')
         if period not in [60, 3600]:
             raise ValueError()
-        status, data = muones.get_corrected(station, t_from, t_to, period)
+        status, data = muones.get_corrected(station, t_from, t_to, period, channel)
         body = { "status": status }
         if status == 'ok':
             body["info"] = data[2]

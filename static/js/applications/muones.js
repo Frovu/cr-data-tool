@@ -66,7 +66,9 @@ function plotInit() {
 		{ scale: 'mb', side: 1, size: 70 },
 		{ scale: 'K', show: false }
 	];
-	const title = info && `${params.station}:${params.channel} c_pr=${info.coef_pressure.toFixed(5)},c_tm=${info.coef_temperature.toFixed(5)},cl=${info.coef_per_length}`;
+	const cl = info && Math.floor(info.coef_per_length/(86400/params.period));
+	const c_pr = info && info.coef_pressure ? `c_pr=${info.coef_pressure.toFixed(5)} ` : '';
+	const title = info && `${params.station}:${params.channel} ${c_pr}c_tm=${info.coef_temperature.toFixed(5)} rl=${cl}d`;
 	plot.init(axes, true, null, null, title);
 	plot.series(series);
 	if (data) plot.data(data);
