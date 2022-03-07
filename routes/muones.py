@@ -35,6 +35,8 @@ def corrected():
             body["fields"] = data[1]
             body["data"] = data[0]
             permissions.log_action('get_result', 'muones/corrected', station)
+        elif status in ['busy', 'failed'] and data:
+            body["info"] = data
         elif status == 'accepted':
             permissions.log_action('query_accepted', 'muones/corrected', station)
         return body
@@ -59,6 +61,8 @@ def raw():
             body["fields"] = data[1]
             body["data"] = data[0]
             permissions.log_action('get_result', 'muones/raw', station)
+        elif status in ['busy', 'failed'] and data:
+            body["info"] = data
         return body
     except ValueError:
         return {}, 400

@@ -46,11 +46,15 @@ def _obtain_apatity(station, t_from, t_to, channel='V', what='source', period=36
         return []
     target = 'pressure_mu' if what == 'pressure' else 'mu_dn'
     data = json.loads(res.text)
+    if not data:
+        trim = datetime.utcnow().timestamp() // period * period - period
+        stop = int(trim) if t_to > trim else t_to
+        return [(datetime.utcfromtimestamp(t), -1) for t in range(t_from, stop+1, period)]
     result = []
     for line in data:
-        time = datetime.utcfromtimestamp(int(line['timestamp']))
+        time = datetime.utcfromtimestamp(int(line['timestamp']) // period * period)
         result.append([time, line[target]])
-    logging.debug(f'Muones: got raw [{len(result)}/{(t_to-t_from)//period}] {station}:{channel} {t_from}:{t_to}')
+    logging.debug(f'Muones: got raw [{len(result)}/{(t_to-t_from)//period+1}] {station}:{channel} {t_from}:{t_to}')
     return result
 
 def obtain(channel, t_from, t_to, column):
