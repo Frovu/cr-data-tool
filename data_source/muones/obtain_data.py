@@ -3,10 +3,8 @@ import psycopg2
 import logging
 from datetime import datetime
 from core.sql_queries import integrity_query
-
-FIELDS = {
-    'Moscow': ['dt', 'c0', 'c1', 'n_v', 'pressure', 'temperature', 'temperature_ext', 'voltage']
-}
+import requests
+import json
 
 def _psql_query(table, period, t_from, t_to, fields, epoch=False, count=False, cond=''):
     interval = f'interval \'{period} seconds\''
@@ -39,6 +37,21 @@ def _obtain_gmdn(station, t_from, t_to, channel, what):
                 result.append([time, val])
     return result
 
+def _obtain_apatity(station, t_from, t_to, channel='V', what='source', period=3600):
+    url = 'https://cosmicray.pgia.ru/json/db_query_mysql.php'
+    dbn = 'full_muons' if station == 'Apatity' else 'full_muons_barentz'
+    res = requests.get(f'{url}?db={dbn}&start={t_from}&stop={t_to}&interval={period//60}')
+    if res.status_code != 200:
+        logging.warning(f'Muones: failed raw -{res.status_cod}- {station}:{channel} {t_from}:{t_to}')
+        return []
+    target = 'pressure_mu' if what == 'pressure' else 'mu_dn'
+    data = json.loads(res.text)
+    result = []
+    for line in data:
+        result.append([int(line['timestamp']), line[target]])
+    logging.debug(f'Muones: got raw [{len(result)}/{(t_to-t_from)//period}] {station}:{channel} {t_from}:{t_to}')
+    return result
+
 def obtain(channel, t_from, t_to, column):
     station = channel.station_name
     logging.debug(f'Muones: querying raw {station}:{channel.name} {t_from}:{t_to}')
@@ -55,6 +68,9 @@ def obtain(channel, t_from, t_to, column):
     elif station in ['Nagoya']:
         data = _obtain_gmdn(station, t_from, t_to, channel.name, column)
         return data, column
+    elif station in ['Apatity', 'Barentsburg']:
+        data = _obtain_apatity(station, t_from, t_to, channel.name, column)
+        return data, column
 
 def obtain_raw(station, t_from, t_to, period, fields=None):
     if station == 'Moscow':
@@ -62,7 +78,8 @@ def obtain_raw(station, t_from, t_to, period, fields=None):
             user = os.environ.get('MUON_MSK_USER'),
             password = os.environ.get('MUON_MSK_PASS'),
             host = os.environ.get('MUON_MSK_HOST')) as conn:
+            fl = ['dt', 'c0', 'c1', 'n_v', 'pressure', 'temperature', 'temperature_ext', 'voltage']
             with conn.cursor() as cursor:
-                q = _psql_query('muon_data', period, t_from, t_to, [FIELDS["Moscow"][0]] + fields if fields else FIELDS["Moscow"], epoch=True, count=False)
+                q = _psql_query('muon_data', period, t_from, t_to, [fl[0]] + fields if fields else fl, epoch=True, count=False)
                 cursor.execute(q)
                 return cursor.fetchall(), [desc[0] for desc in cursor.description]
