@@ -20,13 +20,15 @@ const FIELDS = {
 		label: 'pressure',
 		scale: 'mb',
 		color: 'rgba(200,0,200,0.6)',
-		precision: 1
+		precision: 1,
+		show: false
 	},
 	T_m: {
 		label: 'temperature',
 		scale: 'K',
 		color: 'rgba(255,155,50,1)',
-		precision: 1
+		precision: 1,
+		show: false
 	},
 };
 const URL = 'api/muones';
