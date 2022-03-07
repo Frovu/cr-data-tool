@@ -2,6 +2,7 @@ from core.sequence_filler import SequenceFiller, fill_fn
 import data_source.muones.db_proxy as proxy
 import data_source.muones.obtain_data as parser
 import data_source.muones.corrections as corrections
+from datetime import datetime
 from math import floor, ceil
 
 scheduler = SequenceFiller()
@@ -14,6 +15,8 @@ def station(lat, lon):
 
 def _get_prepare(station, t_from, t_to, period, channel, columns=['corrected']):
     token = station + channel + str(period)
+    trim_future = datetime.now().timestamp()
+    t_to = t_to if t_to < trim_future else trim_future
     interv = (floor(t_from / period) * period, ceil(t_to / period) * period)
     is_done, info = scheduler.status((token, *interv))
     if is_done == False:
@@ -52,5 +55,7 @@ def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pr
 def get_raw(station, t_from, t_to, period=3600):
     if station not in ['Moscow']:
         return 'unknown', None
+    trim_future = datetime.now().timestamp()
+    t_to = t_to if t_to < trim_future else trim_future
     t_from, t_to = period * floor(t_from / period), period * ceil(t_to / period)
     return 'ok', parser.obtain_raw(station, t_from, t_to, period)
