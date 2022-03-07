@@ -48,7 +48,8 @@ def _obtain_apatity(station, t_from, t_to, channel='V', what='source', period=36
     data = json.loads(res.text)
     result = []
     for line in data:
-        result.append([int(line['timestamp']), line[target]])
+        time = datetime.utcfromtimestamp(int(line['timestamp']))
+        result.append([time, line[target]])
     logging.debug(f'Muones: got raw [{len(result)}/{(t_to-t_from)//period}] {station}:{channel} {t_from}:{t_to}')
     return result
 
