@@ -12,6 +12,8 @@ plt.rcParams['figure.facecolor'] = 'darkgrey'
 url = 'https://crst.izmiran.ru/crdt'
 url = 'http://localhost:5000'
 
+session = None
+
 def _login():
     session = requests.Session()
     login = os.environ.get('CRDT_LOGIN')
@@ -24,7 +26,9 @@ def _login():
     res = session.get(f'{url}/api/auth/login')
     return session
 
-def _obtain_coef(dt_from, dt_to, station, channel, session):
+def _obtain_coef(dt_from, dt_to, station, channel):
+    global session
+    session = session or _login()
     tfr, tto = [int(d.replace(tzinfo=timezone.utc).timestamp()) for d in (dt_from, dt_to)]
     par = f'from={tfr}&to={tto}&station={station}&channel={channel}&against=Tm&only=coef'
     uri = f'{url}/api/muones/correlation?{par}'
@@ -42,20 +46,24 @@ def _obtain_coef(dt_from, dt_to, station, channel, session):
         else:
             return dt_from, data.get('coef'), data.get('error')
 
-def plot(station: str, channel: str,
+def obtain(station: str, channel: str,
 dt_from: datetime, dt_to: datetime, period: timedelta=timedelta(days=365)):
-    session = _login()
     periods = [dt_from+timedelta(n) for n in range(0, (dt_to-dt_from).days, period.days)]
-    _func = lambda start: _obtain_coef(start, start+period, station, channel, session)
+    _func = lambda start: _obtain_coef(start, start+period, station, channel)
     with ThreadPoolExecutor(max_workers=4) as executor:
         data = np.array(list(executor.map(_func, periods)))
-    print(data)
-    time, coef, err = data[:,0], data[:,1], data[:,2]
-    fig, ax = plt.subplots()
-    ax.errorbar(time, coef, err, fmt='c-', ecolor='red')
-    plt.show()
+    return data[:,0], data[:,1], data[:,2]
 
 if __name__ == '__main__':
-    tfr = datetime(1995, 1, 5)
-    tto = datetime(2012, 1, 5)
-    plot('Nagoya', 'V', tfr, tto)
+    tfr = datetime(1992, 1, 5)
+    tto = datetime(2015, 1, 5)
+    fig, ax = plt.subplots()
+    channels = ['V', 'N', 'W', 'NW']
+    colors = ['#00FFFF', '#00FFAA', '#00AAFF', '#00AAAA']
+    for channel in channels:
+        times, coef, err = obtain('Nagoya', channel, tfr, tto, timedelta(days=700))
+        color = colors[channels.index(channel)]
+        ax.errorbar(times, coef, err, fmt=f'-', color=color, ecolor='magenta', label=f't_coef :{channel}')
+    legend = plt.legend()
+    plt.setp(legend.get_texts(), color='grey')
+    plt.show()

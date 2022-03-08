@@ -40,7 +40,6 @@ app = Flask(__name__,
             static_url_path='',
             static_folder='static',)
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_FILE_THRESHOLD'] = 32
 Session(app)
 bcrypt = Bcrypt(app)
