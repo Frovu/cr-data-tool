@@ -33,7 +33,7 @@ def dump_one(type, year_url, gz=False, retry=1):
 def dump(type):
     page = requests.get(f'{URL}/{type}.php')
     year_re = re.compile(rf'href="{type}/([a-zA-Z0-9/\.]+)"')
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         for year_url in year_re.findall(page.text):
             executor.submit(dump_one, type, year_url)
 
