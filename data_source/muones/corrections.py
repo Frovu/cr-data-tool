@@ -56,7 +56,7 @@ def get_prepare_tasks(channel, fill_fn, subquery_fn):
         return tasks
 
 def corrected(channel, interval, recalc):
-    is_p_corrected = channel.station_name in ['Nagoya']
+    is_p_corrected = channel.station_name in [] # FIXME:
     columns = ['source', 'T_m'] + ([] if is_p_corrected else ['pressure'])
     where = ' AND '.join([f'{c} > 0' for c in columns])
     data = np.array(proxy.select(channel, interval, columns, where=where)[0], dtype=np.float64)

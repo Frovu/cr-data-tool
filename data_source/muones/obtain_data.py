@@ -15,6 +15,25 @@ FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < perio
 GROUP BY period ORDER BY period
 '''
 
+def _obtain_nagoya(t_from, t_to, what):
+    dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
+    year, month = dt_from.year, dt_from.month
+    dir = f'tmp/Nagoya/{what}'
+    result = []
+    while year < dt_to.year or (year == dt_to.year and month <= dt_to.month):
+        fpath = f'{dir}/{year%100:02}{month:02}.txt'
+        if os.path.exists(fpath):
+            with open(fpath) as file:
+                for line in file:
+                    date, time, value = line.split()
+                    time = datetime.strptime(date+'T'+time, '%Y-%m-%dT%H:%M:%S+00') # meh
+                    result.append((time, float(value)))
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
+    return result
+
 def _obtain_gmdn(station, t_from, t_to, channel, what):
     # FIXME: some station will not have Pres. column
     col_name = 'Pres.' if what == 'pressure' else channel
@@ -23,7 +42,10 @@ def _obtain_gmdn(station, t_from, t_to, channel, what):
     dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
     result = []
     for year in range(dt_from.year, dt_to.year + 1):
-        with open(f'tmp/gmdn/{dir}/{year}.txt') as file:
+        fpath = f'tmp/gmdn/{dir}/{year}.txt'
+        if not os.path.exists(fpath):
+            continue
+        with open(fpath) as file:
             for line in file:
                 if '*'*32 in line:
                     columns = last.split()
@@ -70,9 +92,12 @@ def obtain(channel, t_from, t_to, column):
                 cursor.execute(_psql_query('muon_data', channel.period, t_from, t_to, ['dt', col]))
                 resp = cursor.fetchall()
                 return resp, column
-    elif station in ['Nagoya']:
-        data = _obtain_gmdn(station, t_from, t_to, channel.name, column)
-        return data, column
+    elif station == 'Nagoya':
+        what = column if column == 'pressure' else channel.name
+        return _obtain_nagoya(t_from, t_to, what), column
+    # elif station in ['Nagoya']:
+    #     data = _obtain_gmdn(station, t_from, t_to, channel.name, column)
+    #     return data, column
     elif station in ['Apatity', 'Barentsburg']:
         data = _obtain_apatity(station, t_from, t_to, channel.name, column)
         return data, column
