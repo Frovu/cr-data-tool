@@ -96,7 +96,7 @@ def corrected(channel, interval, recalc):
 def multiple_regression(data):
     return LinearRegression().fit(data[:,1:], np.log(data[:,0]))
 
-def calc_correlation(data, fields):
+def calc_correlation(data, fields, only):
     data = np.array(data, dtype=np.float)
     x, y = data[:,0], data[:,1]
     variation = y / np.mean(y) * 100 - 100
@@ -105,8 +105,11 @@ def calc_correlation(data, fields):
     return {
         'slope': lg.slope,
         'error': lg.stderr,
-        'x': x.tolist(),
-        'y': variation.tolist(),
+        'x': np.round(x, 4).tolist(),
+        'y': np.round(variation, 4).tolist(),
         'rx': rrange.tolist(),
         'ry': (lg.intercept + lg.slope * rrange).tolist()
+    } if only != 'coef' else {
+        'coef': lg.slope,
+        'error': lg.stderr
     }

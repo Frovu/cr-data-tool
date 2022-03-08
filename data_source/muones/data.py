@@ -40,7 +40,7 @@ def get_corrected(station, t_from, t_to, period=3600, channel='V', recalc=False)
         return 'ok', res
     return status, info
 
-def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pressure', what='source'):
+def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pressure', what='source', only=None):
     if against == 'Tm': against = 'T_m'
     if against not in ['T_m', 'pressure']:
         return 'unknown', None
@@ -49,7 +49,7 @@ def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pr
         data = proxy.select(*info, [against, what], include_time=False, where=what+' > 0', order=against)
         if len(data[0]) < 72:
             return 'failed', {'failed': 'No data'}
-        return 'ok', corrections.calc_correlation(*data)
+        return 'ok', corrections.calc_correlation(*data, only)
     return status, info
 
 def get_raw(station, t_from, t_to, period=3600):

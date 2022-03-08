@@ -76,13 +76,14 @@ def correlation():
         t_from = int(request.args.get('from', ''))
         t_to = int(request.args.get('to', ''))
         period = int(request.args.get('period')) if request.args.get('period') else 3600
-        against = request.args.get('against') or 'pressure'
+        against = request.args.get('against', '') or 'Tm'
         station = request.args.get('station', '')
         channel = request.args.get('channel', '')
+        only = request.args.get('only', '')
         if period not in [60, 3600] or against not in ['pressure', 'Tm']:
             raise ValueError()
         status, data = muones.get_correlation(station, t_from, t_to, period,
-            against=against, channel=channel)
+            against=against, channel=channel, only=only)
         body = { "status": status }
         if status == 'ok':
             permissions.log_action('get_result', 'muones/correlation', station)
