@@ -13,22 +13,24 @@ import time
 _GFS_URL = 'https://nomads.ncep.noaa.gov'
 _GFS_QUERY_VARS = '&var_TMP=on' + ''.join([f'&lev_{str(lvl)}_mb=on' for lvl in LEVELS])
 
-def _download(filename, latlon, fcst_date, fcst_hour, source='gfs', retry=2):
+def _download(session, filename, latlon, fcst_date, fcst_hour, source='gfs', retry=2):
     if source != 'gfs': source = 'gdas'
     hh, yyyymmdd = f'{fcst_date.hour:02}', fcst_date.strftime("%Y%m%d")
     query = f'/cgi-bin/filter_{source}_0p25.pl?'
     query += f'file={source}.t{hh}z.pgrb2.0p25.f{fcst_hour:03}'
     query += f'&dir=%2F{source}.{yyyymmdd}%2F{hh}%2Fatmos'
     query += f'&subregion=&leftlon={latlon[1][0]}&rightlon={latlon[1][1]}&bottomlat={latlon[0][0]}&toplat={latlon[0][1]}'
-    logging.debug(f'Query GFS {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
     try:
-        res = requests.get(f'{_GFS_URL}{query}{_GFS_QUERY_VARS}', stream=True, timeout=10)
+        res = session.get(f'{_GFS_URL}{query}{_GFS_QUERY_VARS}', stream=True, timeout=10)
         if res.status_code == 200:
+            # logging.debug(f'OK GFS {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
             with open(filename, 'wb') as f:
                 for chunk in res.iter_content(chunk_size=None):
                     f.write(chunk)
             return filename
-        logging.debug(f'Failed GFS [{res.status_code}] {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
+        if res.status_code != 302:
+            logging.debug(f'Failed GFS [{res.status_code}] {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
+
     except requests.exceptions.ConnectionError as e:
         if retry < 1: raise e
         logging.debug(f'GFS ConnectionError, retrying {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
@@ -52,7 +54,7 @@ def _tries_list(dtime, depth=8, PER_H=6):
     return tries
 
 # grid_margin determines size of queried subregion of coordinates (required for spline interp)
-def _calc_one_hour(timestamp, lat, lon, progress, grid_margin=2):
+def _calc_one_hour(timestamp, lat, lon, progress, session, grid_margin=2):
     result = np.empty(2 + len(LEVELS))
     latlon = ( (lat - grid_margin, lat + grid_margin),
                (lon - grid_margin, lon + grid_margin) )
@@ -60,7 +62,7 @@ def _calc_one_hour(timestamp, lat, lon, progress, grid_margin=2):
     fname = dtime.strftime(f'tmp/gfs.{lat}.{lon}.%Y%m%d.%H.grb2')
     try:
         for args in _tries_list(dtime):
-            if _download(fname, latlon, *args):
+            if _download(session, fname, latlon, *args):
                 result[0] = timestamp # date
                 result[1] = args[0].replace(tzinfo=timezone.utc).timestamp() # forecast date
                 grbs = pygrib.open(fname)
@@ -88,6 +90,6 @@ def _calc_one_hour(timestamp, lat, lon, progress, grid_margin=2):
 def obtain(lat, lon, t_from, t_to, progress, PERIOD=3600):
     times = [t for t in range(t_from, t_to + 1, PERIOD)]
     progress[0], progress[1] = 0, len(times)
-    with ThreadPoolExecutor(max_workers=32) as e:
-        result = np.array(list(e.map(lambda t: _calc_one_hour(t, lat, lon, progress), times)))
+    with ThreadPoolExecutor(max_workers=32) as e, requests.Session() as session:
+        result = np.array(list(e.map(lambda t: _calc_one_hour(t, lat, lon, progress, session), times)))
     return result[result[:,0] > 1] # 6.92261220099555e-310 was here sometimes for some reason

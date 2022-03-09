@@ -9,8 +9,8 @@ import logging as log
 
 HOUR = 3600
 MODEL_PERIOD = 6 * HOUR
-MODEL_LAG_H = 72 # assume NCEP/NCAR reanalysis data for that time back is always available
-FORECAST_ALLOW_FUTURE = 4 * 24 * HOUR
+MODEL_LAG_H = 96 # assume NCEP/NCAR reanalysis data for that time back is always available
+FORECAST_ALLOW_FUTURE = 2 * 24 * HOUR
 MODEL_LAG = (MODEL_LAG_H * HOUR) // MODEL_PERIOD * MODEL_PERIOD
 MODEL_EPOCH = np.datetime64('1948-01-01').astype(int)
 SPLINE_INDENT = 2 # additional periods on edges for spline evaluation
