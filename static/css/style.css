@@ -167,7 +167,7 @@ input:disabled, button:disabled, select:disabled {
 	font-family: var(--font);
 }
 .u-title {
-	margin-top: 2px;
+	padding-top: 2px;
 	font-size: 15px;
 }
 

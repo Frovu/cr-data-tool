@@ -44,7 +44,7 @@ function prepareAxes(axes) {
 		return Object.assign(a, {
 			font: style.font.replace('14px', '12px'),
 			stroke: style.text,
-			ticks: { stroke: style.grid, width: 1 },
+			ticks: { stroke: style.grid, width: 1, size: 5 },
 			grid: { stroke: style.grid, width: 1 },
 			values: (u, vals) => vals.map(v => (a.transform?a.transform(v):v).toFixed(a.precision||0) + (a.nounit ? '' : ''+a.scale))
 		});
