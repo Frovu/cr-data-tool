@@ -22,7 +22,7 @@ def _download_model(progress, year):
     log.info(f'Downloading file: {fname}')
     ftp.cwd('Datasets/ncep.reanalysis/pressure')
     progress[1] += ftp.size(fname)
-    with open(os.path.join('tmp', fname), 'wb') as file:
+    with open(os.path.join('tmp/ncep', fname), 'wb') as file:
         def write(data):
            file.write(data)
            progress[0] += len(data)

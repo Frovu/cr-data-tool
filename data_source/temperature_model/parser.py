@@ -5,12 +5,14 @@ from data_source.temperature_model.download import Downloader, filename
 from datetime import datetime, timedelta, timezone
 from netCDF4 import Dataset, num2date, date2index
 
-if not os.path.exists('tmp'):
-    os.makedirs('tmp')
+PATH = 'tmp/ncep'
+
+if not os.path.exists(PATH):
+    os.makedirs(PATH)
 downloader = Downloader()
 
 def _extract_from_file(fname, dt_from, dt_to):
-    data = Dataset(os.path.join('tmp', fname), 'r')
+    data = Dataset(os.path.join(PATH, fname), 'r')
     assert "NMC reanalysis" in data.title
     log.debug(f"Reading: {fname} from {dt_from} to {dt_to}")
     times = data.variables["time"]
