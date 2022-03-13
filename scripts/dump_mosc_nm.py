@@ -9,10 +9,13 @@ def obtain(interval):
     uri = f'{url}y1={a.year}&m1={a.month}&d1={a.day}&h1={a.hour}&y2={b.year}&m2={b.month}&d2={b.day}&h2={b.hour}&mn2=59&res=1_hour'
     res = requests.get(uri)
     result = []
-    for line in res.text.splitlines()[7:]:
+    splitlines = res.text.splitlines()
+    idx = splitlines.index('*'*57) + 1
+    for line in splitlines[idx:]:
         if '*'*32 in line: break
         date, time, value = line.split()
         time = datetime.strptime(date+'T'+time, '%Y.%m.%dT%H:%M')
-        result.append((time, (float(value)/9600-1)*100))
+        value = float(value)/9600
+        result.append((time, (value-1)*100 if value>0 else None))
     result = np.array(result)
     return result[:,0], result[:,1]
