@@ -1,3 +1,4 @@
+import data_source.gsm.expected as gsm
 import data_source.muones.db_proxy as proxy
 import data_source.muones.obtain_data as parser
 import data_source.temperature_model.temperature as temperature
@@ -70,19 +71,22 @@ def corrected(channel, interval, recalc):
         logging.debug(f'Muones: recalc coefs {channel.station_name}/{channel.name} <{interval_len}')
     time, raw, tm = data[:,0], data[:,1], data[:,2]
     tm = (np.mean(tm) - tm)
-    if is_p_corrected:
-        if coef_recalc:
-            lg = stats.linregress(tm, np.log(raw))
-            coef_pr, coef_tm = None, lg.slope
-        corrected = raw * (1 - coef_tm * tm)
-    else:
-        pr = data[:,3]
-        pr = (np.mean(pr) - pr)
-        if coef_recalc:
-            regr_data = np.column_stack((pr, tm))
-            regr = LinearRegression().fit(regr_data, np.log(raw))
-            coef_pr, coef_tm = regr.coef_
-        corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm)
+    # if is_p_corrected:
+    #     if coef_recalc:
+    #         lg = stats.linregress(tm, np.log(raw))
+    #         coef_pr, coef_tm = None, lg.slope
+    #     corrected = raw * (1 - coef_tm * tm)
+    # else:
+    pr = data[:,3]
+    pr = (np.mean(pr) - pr)
+    gsm_r = np.column_stack(gsm.get_variation(channel, interval))
+    v_exp = gsm_r[np.in1d(gsm_r[:,0], time),1]
+    if coef_recalc:
+        regr_data = np.column_stack((pr, tm, v_exp))
+        regr = LinearRegression().fit(regr_data, np.log(raw))
+        print(regr.coef_)
+        coef_pr, coef_tm, coef_v = regr.coef_
+    corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm) / (1 + coef_v * v_exp)
     proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
     if coef_recalc:
         channel.update_coefs(coef_pr, coef_tm, interval_len)
@@ -90,6 +94,7 @@ def corrected(channel, interval, recalc):
     return *res, {
         'coef_pressure': coef_pr,
         'coef_temperature': coef_tm,
+        'coef_variation': coef_v,
         'coef_per_length': interval_len if coef_recalc else channel.coef_len
     }
 
