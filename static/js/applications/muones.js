@@ -13,7 +13,13 @@ const FIELDS = {
 	corrected: {
 		label: 'corrected',
 		scale: 'n',
-		color: 'rgba(255,10,60,1)',
+		color: 'rgba(255,100,60,1)',
+		nounit: true
+	},
+	corrected_v: {
+		label: 'corrected_v',
+		scale: 'n',
+		color: 'rgba(255,10,60,0.8)',
 		nounit: true
 	},
 	pressure: {
@@ -22,6 +28,13 @@ const FIELDS = {
 		color: 'rgba(200,0,200,0.6)',
 		precision: 1,
 		show: false
+	},
+	v_expected: {
+		label: 'v_gsm',
+		scale: '%',
+		color: 'rgba(0,255,200,0.6)',
+		precision: 1,
+		show: true
 	},
 	T_m: {
 		label: 'temperature',
@@ -66,12 +79,13 @@ function plotInit() {
 	const series = Object.values(FIELDS).filter(f => f !== 'time');
 	const axes = [
 		{ scale: 'n' , nounit: true },
+		{ scale: '%' , side: 1 },
 		{ scale: 'mb', side: 1, size: 70 },
 		{ scale: 'K', show: false }
 	];
 	const cl = info && Math.floor(info.coef_per_length/86400);
-	const c_pr = info && info.coef_pressure ? `c_pr=${info.coef_pressure.toFixed(5)} ` : '';
-	const title = info && `${params.station}:${params.channel} ${c_pr}c_tm=${info.coef_temperature.toFixed(5)} cl=${cl}d`;
+	const c_pr = info && info.coef_pressure ? `c_pr=${info.coef_pressure.toFixed(4)} ` : '';
+	const title = info && `${params.station}:${params.channel} ${c_pr}c_tm=${info.coef_temperature.toFixed(4)} c_v=${info.coef_variation.toFixed(4)} cl=${cl}d`;
 	plot.init(axes, true, null, null, title);
 	plot.series(series);
 	if (data) plot.data(data);
