@@ -5,7 +5,9 @@ import numpy as np
 # C0, C10, A11, Ph11
 GSM_COEF = dict({
     'Moscow': (0.7360, 0.0989, 0.5990, 58.20),
-    'Nagoya': (0.6620, 0.1196, 0.4984, 53.30)
+    'Nagoya': (0.6620, 0.1196, 0.4984, 53.30),
+    'Apatity': (0.7900, 0.3950, 0.6220, 43.58),
+    'Barentsburg': (0.7900, 0.3950, 0.6220, 43.58)
 })
 
 def get_variation(channel, interval, period=3600):

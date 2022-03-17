@@ -42,10 +42,12 @@ def get_corrected(station, t_from, t_to, period=3600, channel='V', recalc=False)
 
 def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pressure', what='source', only=None):
     if against == 'Tm': against = 'T_m'
-    if against not in ['T_m', 'pressure']:
+    if against not in ['T_m', 'pressure', 'all']:
         return 'unknown', None
-    status, info = _get_prepare(station, t_from, t_to, period, channel, [against, what])
+    status, info = _get_prepare(station, t_from, t_to, period, channel, ['source', 'T_m', 'pressure'])
     if status == 'ok':
+        if against == 'all':
+            return 'ok', corrections.calc_coefs(*info)
         data = proxy.select(*info, [against, what], include_time=False, where=what+' > 0', order=against)
         if len(data[0]) < 72:
             return 'failed', {'failed': 'No data'}
