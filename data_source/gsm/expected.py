@@ -11,10 +11,11 @@ GSM_COEF = dict({
 })
 
 def get_variation(channel, interval, period=3600):
-    a10, x, y, z = gsm.get(interval)
+    gsm_result = gsm.get(interval)
     time = np.arange(interval[0], interval[1]+1, period)
-    if time.shape != a10.shape:
+    if not gsm_result or time.shape != gsm_result[0].shape:
         return None, None
+    a10, x, y, z = gsm_result
     # logging.debug(f'GSM: rotating planet')
     time_of_day = (time + period / 2) % 86400
     phi = 2 * np.pi * time_of_day / 86400 # planet rotation

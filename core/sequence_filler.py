@@ -34,6 +34,11 @@ class SequenceFiller(Scheduler):
     def __init__(self, ttl=60):
         super().__init__(ttl=ttl)
 
+    def query_tasks(self, key, tasks):
+        q = IntervalQuery(self.executor, key[1], key[2])
+        q.append_tasks(tasks)
+        return self.query(key, q)
+
     def merge_query(self, token, t_from, t_to, q):
         sq = self.get((token, t_from, t_to))
         return sq and sq.append_tasks(q.tasks)

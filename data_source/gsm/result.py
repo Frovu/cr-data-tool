@@ -16,5 +16,5 @@ def _select(interval, what):
 def get(interval, what=None):
     if not what:
         res = _select(interval, 'A10,Ax,Ay,Az')
-        return [res[:,i] for i in range(4)]
+        return [res[:,i] for i in range(4)] if len(res) else None
     return _select(interval, what)
