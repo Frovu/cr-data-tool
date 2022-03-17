@@ -94,6 +94,8 @@ def calc_coefs(channel, interval):
     columns = ['source', 'T_m', 'pressure']
     where = ' AND '.join([f'{c} > 0' for c in columns])
     data = np.array(proxy.select(channel, interval, columns, where=where)[0], dtype=np.float64)
+    if len(data) < 32:
+        return {}
     time, raw, tm_src, pr_src = data[:,0], data[:,1], data[:,2], data[:,3]
     tm, pr = (np.mean(tm_src) - tm_src), (np.mean(pr_src) - pr_src)
     gsm_r = np.column_stack(gsm.get_variation(channel, interval))
