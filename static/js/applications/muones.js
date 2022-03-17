@@ -13,13 +13,13 @@ const FIELDS = {
 	corrected: {
 		label: 'corrected',
 		scale: 'n',
-		color: 'rgba(255,100,60,1)',
+		color: 'rgba(255,10,60,1)',
 		nounit: true
 	},
 	corrected_v: {
 		label: 'corrected_v',
 		scale: 'n',
-		color: 'rgba(255,10,60,0.8)',
+		color: 'rgba(255,100,60,0.8)',
 		nounit: true
 	},
 	pressure: {

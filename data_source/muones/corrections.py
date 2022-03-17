@@ -68,22 +68,24 @@ def corrected(channel, interval, recalc):
 
     time, raw, tm_src, pr_src = data[:,0], data[:,1], data[:,2], data[:,3]
     tm, pr = (np.mean(tm_src) - tm_src), (np.mean(pr_src) - pr_src)
-    gsm_r = np.column_stack(gsm.get_variation(channel, interval))
-    v_exp = gsm_r[np.in1d(gsm_r[:,0], time),1]
+    gsm_result = np.column_stack(gsm.get_variation(channel, interval))
+    with_v = None not in gsm_result
+    v_exp = with_v and gsm_result[np.in1d(gsm_result[:,0], time),1]
     if coef_recalc:
         logging.debug(f'Muones: recalc coefs {channel.station_name}/{channel.name} <{interval_len}')
-        regr_data = np.column_stack((pr, tm, v_exp))
+        regr_data = np.column_stack((pr, tm, v_exp) if with_v else (pr, tm))
         regr = LinearRegression().fit(regr_data, np.log(raw))
-        coef_pr, coef_tm, coef_v = regr.coef_
+        coef_pr, coef_tm, coef_v = regr.coef_ if with_v else (*regr.coef_, 0.0)
         channel.update_coefs(coef_pr, coef_tm, interval_len)
     else:
         coef_pr, coef_tm, coef_v = channel.coef_pr, channel.coef_tm, 0.0
     corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm)
-    corrected_v = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm) / (1 + coef_v * v_exp)
+    corrected_v = with_v and raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm) / (1 + coef_v * v_exp)
 
     proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
-    result = np.column_stack([time, corrected, corrected_v, raw, pr_src, tm_src, v_exp]).tolist()
-    return result, ['time', 'corrected', 'corrected_v', 'source', 'pressure', 'T_m', 'v_expected'], {
+    result = [time, corrected, raw, pr_src, tm_src] + ([corrected_v, v_exp] if with_v else [])
+    fields = ['time', 'corrected', 'source', 'pressure', 'T_m'] + (['corrected_v', 'v_expected'] if with_v else [])
+    return np.column_stack(result).tolist(), fields, {
         'coef_pressure': coef_pr,
         'coef_temperature': coef_tm,
         'coef_variation': coef_v,

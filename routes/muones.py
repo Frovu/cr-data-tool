@@ -41,6 +41,7 @@ def corrected():
             permissions.log_action('query_accepted', 'muones/corrected', station)
         return body
     except ValueError:
+        print(traceback.format_exc())
         return {}, 400
     except Exception:
         logging.error(f'exc in muones/corrected: {traceback.format_exc()}')
