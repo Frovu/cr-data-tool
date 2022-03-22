@@ -49,7 +49,13 @@ def _fill_interval(interval, lat, lon, mq):
     t_from = MODEL_PERIOD * (floor(interval[0] / MODEL_PERIOD) - SPLINE_INDENT)
     t_to   = MODEL_PERIOD * ( ceil(interval[1] / MODEL_PERIOD) + SPLINE_INDENT)
     log.info(f"NCEP/NCAR: Obtaining ({lat},{lon}) {t_from}:{t_to}")
-    times_6h, data = parser.obtain(t_from, t_to, mq)
+    try:
+        times_6h, data = parser.obtain(t_from, t_to, mq)
+    except Exception as e:
+        if 'too short' in str(e):
+            log.warning(f"NCEP/NCAR: Falling back to forecast {t_from}:{t_to}")
+            return _fill_with_forecast([0, 1], t_from, t_to, lat, lon)
+        return None
     log.debug(f"NCEP/NCAR: Retrieved [{data.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
     approximated = _approximate_for_point(data, lat, lon)
     log.debug(f"NCEP/NCAR: Approximated ({lat},{lon}) {t_from}:{t_to}")
@@ -76,7 +82,8 @@ def _bound_query(t_from, t_to):
     end_trim = now + FORECAST_ALLOW_FUTURE
     if t_from - MODEL_PERIOD * SPLINE_INDENT < MODEL_EPOCH: t_from = MODEL_EPOCH
     if t_to > end_trim: t_to = end_trim
-    forecast_from = now - MODEL_LAG + HOUR if now - MODEL_LAG < t_to else None
+    model_end = parser.get_hopeless() or now - MODEL_LAG
+    forecast_from = model_end + HOUR if model_end < t_to else None
     if forecast_from and forecast_from < t_from: forecast_from = t_from
     return t_from, t_to, forecast_from
 

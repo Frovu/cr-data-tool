@@ -7,6 +7,8 @@ from netCDF4 import Dataset, num2date, date2index
 
 PATH = 'tmp/ncep'
 
+hopeless = None
+
 if not os.path.exists(PATH):
     os.makedirs(PATH)
 downloader = Downloader()
@@ -32,13 +34,23 @@ def _obtain_year(dt_from, dt_to, merge_query):
         if end < dt_to:
             log.warning(f'File end reached for {fname}: {end}, expected {dt_to}')
             raise Exception(f'EOF {fname}')
+        elif datetime.now().year == year:
+            hopeless = None
     except:
         log.debug(f'Failed to read {fname}, downloading..')
         query = downloader.download(year)
         merge_query(query)
         query.await_result()
         res = _extract_from_file(fname, dt_from, dt_to)
+        now, end = datetime.now(), datetime.utcfromtimestamp(res[0][-1])
+        if now.year == year and end < dt_to:
+            hopeless = (now, end)
+            raise Exception(f'file too short {fname}')
     return res
+
+def get_hopeless():
+    if hopeless and datetime.now()-hopeless[0] < timedelta(days=1):
+        return hopeless[1].replace(tzinfo=timezone.utc).timestamp()
 
 # inclusive, presumes period to be aligned
 def obtain(t_from, t_to, mq):
