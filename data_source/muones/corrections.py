@@ -70,25 +70,30 @@ def corrected(channel, interval, recalc):
     tm, pr = (np.mean(tm_src) - tm_src), (np.mean(pr_src) - pr_src)
     gsm_result = np.column_stack(gsm.get_variation(channel, interval))
     with_v = None not in gsm_result
-    v_exp = with_v and gsm_result[np.in1d(gsm_result[:,0], time),1]
+    v_gsm = with_v and gsm_result[np.in1d(gsm_result[:,0], time),1:]
+    v_isotropic, v_anisotropic = with_v and v_gsm[:,0], with_v and v_gsm[:,1]
     if coef_recalc:
-        logging.debug(f'Muones: recalc coefs {channel.station_name}/{channel.name} <{interval_len}')
-        regr_data = np.column_stack((pr, tm, v_exp) if with_v else (pr, tm))
+        regr_data = np.column_stack((pr, tm, v_isotropic, v_anisotropic+1) if with_v else (pr, tm))
         regr = LinearRegression().fit(regr_data, np.log(raw))
-        coef_pr, coef_tm, coef_v = regr.coef_ if with_v else (*regr.coef_, 0.0)
+        coef_pr, coef_tm, coef_v0, coef_v1 = regr.coef_ if with_v else (*regr.coef_, 0, 0)
         channel.update_coefs(coef_pr, coef_tm, interval_len)
+        logging.debug(f'Muon coef: {channel.station_name}/{channel.name} = {regr.coef_}')
     else:
-        coef_pr, coef_tm, coef_v = channel.coef_pr, channel.coef_tm, 0.0
+        coef_pr, coef_tm, coef_v0, coef_v1 = channel.coef_pr, channel.coef_tm, 0, 0
     corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm)
-    corrected_v = with_v and raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm) / (1 + coef_v * v_exp)
+    corrected_v = with_v and raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm) \
+        / (1 + coef_v0 * v_isotropic) / (1 + coef_v1 * v_anisotropic)
+    print(v_isotropic[:10])
+    print(v_anisotropic[:10])
 
-    proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
-    result = [time, corrected, raw, pr_src, tm_src] + ([corrected_v, v_exp] if with_v else [])
+    v_expected = v_isotropic + v_anisotropic
+    # FIXME: proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
+    result = [time, corrected, raw, pr_src, tm_src] + ([corrected_v, v_expected] if with_v else [])
     fields = ['time', 'corrected', 'source', 'pressure', 'T_m'] + (['corrected_v', 'v_expected'] if with_v else [])
     return np.column_stack(result).tolist(), fields, {
         'coef_pressure': coef_pr,
         'coef_temperature': coef_tm,
-        'coef_variation': coef_v,
+        'coef_variation': coef_v1,
         'coef_per_length': interval_len if coef_recalc else channel.coef_len
     }
 

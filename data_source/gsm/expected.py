@@ -28,7 +28,6 @@ def get_variation(channel, interval, period=3600):
     Cx = -1 * a11 * np.cos(p11_station)
     Cy = -1 * a11 * np.sin(p11_station)
     Cz = -1 * c10
-    # logging.debug(f'GSM: expected variation')
-    v = a10 * c0 + (x * Cx + y * Cy + z * Cz)
-    # logging.debug(f'GSM: done')
-    return time, v
+    isotropic = a10 * c0
+    anisotropic = x * Cx + y * Cy + z * Cz
+    return time, isotropic, anisotropic
