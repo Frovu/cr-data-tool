@@ -36,6 +36,13 @@ const FIELDS = {
 		precision: 1,
 		show: true
 	},
+	v_expected1: {
+		label: 'v_gsm_isotropic',
+		scale: '%',
+		color: 'rgba(0,255,100,0.6)',
+		precision: 1,
+		show: true
+	},
 	T_m: {
 		label: 'temperature',
 		scale: 'K',
@@ -85,7 +92,7 @@ function plotInit() {
 	];
 	const cl = info && Math.floor(info.coef_per_length/86400);
 	const c_pr = info && info.coef_pressure ? `c_pr=${info.coef_pressure.toFixed(4)} ` : '';
-	const title = info && `${params.station}:${params.channel} ${c_pr}c_tm=${info.coef_temperature.toFixed(4)} c_v=${info.coef_variation.toFixed(4)} cl=${cl}d`;
+	const title = info && `${params.station}:${params.channel} ${c_pr}c_tm=${info.coef_temperature.toFixed(4)} c_v=${info.coef_v0.toFixed(4)};${info.coef_v1.toFixed(4)} cl=${cl}d`;
 	plot.init(axes, true, null, null, title);
 	plot.series(series);
 	if (data) plot.data(data);
