@@ -81,12 +81,10 @@ def corrected(channel, interval, recalc):
     else:
         coef_pr, coef_tm, coef_v0, coef_v1 = channel.coef_pr, channel.coef_tm, 0, 0
     corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm)
-    corrected_v = with_v and raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm) \
-        / (1 + coef_v0 * v_isotropic + coef_v1 * v_anisotropic)
+    corrected_v = corrected / (1 + coef_v0 * v_isotropic + coef_v1 * v_anisotropic)
 
-    v_expected = v_isotropic + v_anisotropic
     # FIXME: proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
-    result = [time, corrected, raw, pr_src, tm_src] + ([corrected_v, v_expected, v_anisotropic] if with_v else [])
+    result = [time, corrected, raw, pr_src, tm_src] + ([corrected_v, v_isotropic, v_anisotropic] if with_v else [])
     fields = ['time', 'corrected', 'source', 'pressure', 'T_m'] + (['corrected_v', 'v_expected', 'v_expected1'] if with_v else [])
     return np.column_stack(result).tolist(), fields, {
         'coef_pressure': coef_pr,
