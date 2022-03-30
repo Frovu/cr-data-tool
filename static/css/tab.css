@@ -83,12 +83,12 @@ button.submit.ongoing {
 .switch-input {
 	display: block;
 	margin-top: 2px;
-	margin-bottom: 2px;
-	padding: 1px !important;
-	width: 50%;
+	margin-bottom: 4px;
+	/* padding: 1px !important; */
+	width: fit-content;
 	max-height: 48px;
 }
-.switch-input:hover {
+.switch-input:hover button {
 	background-color: var(--color-active);
 }
 
