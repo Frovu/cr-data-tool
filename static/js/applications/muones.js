@@ -5,22 +5,22 @@ import * as plot from '../plot.js';
 const FIELDS = {
 	time: 'time',
 	source: {
+		isChannel: true,
 		label: 'source',
 		scale: 'n',
-		color: 'rgba(60,10,150,0.5)',
-		nounit: true
+		color: 'rgba(60,10,150,0.5)'
 	},
 	corrected: {
+		isChannel: true,
 		label: 'corrected',
 		scale: 'n',
-		color: 'rgba(255,10,60,1)',
-		nounit: true
+		color: 'rgba(255,10,60,1)'
 	},
 	corrected_v: {
+		isChannel: true,
 		label: 'corrected_v',
 		scale: 'n',
-		color: 'rgba(255,100,60,0.8)',
-		nounit: true
+		color: 'rgba(255,100,60,0.8)'
 	},
 	pressure: {
 		label: 'pressure',
@@ -31,7 +31,7 @@ const FIELDS = {
 	},
 	v_expected: {
 		label: 'v_gsm',
-		scale: '%',
+		scale: '% ',
 		color: 'rgba(0,255,200,0.6)',
 		precision: 1,
 		show: true
@@ -41,7 +41,7 @@ const FIELDS = {
 		scale: '%',
 		color: 'rgba(0,255,100,0.6)',
 		precision: 1,
-		show: true
+		show: false
 	},
 	T_m: {
 		label: 'temperature',
@@ -60,8 +60,9 @@ const params = util.storage.getObject('muones-params') || {
 	channel: 'V',
 	period: 3600
 };
-let data;
+let data = [];
 let info;
+let viewMode = 'counts';
 
 function receiveData(resp) {
 	const rows = resp.data, len = resp.data.length;
@@ -82,20 +83,37 @@ function receiveData(resp) {
 	plotInit();
 }
 
+function countsToVariation(data) {
+	const newData = Object.assign([], data);
+	for (const i of [1, 2, 3]) {
+		const avg = data[i].reduce((a,b) => (a+b)) / data[i].length;
+		newData[i] = data[i].map(c => (c / avg - 1) * 100);
+	}
+	return newData;
+}
+
 function plotInit() {
-	const series = Object.values(FIELDS).filter(f => f !== 'time');
 	const axes = [
-		{ scale: 'n' , nounit: true },
-		{ scale: '%' , side: 1 },
+		{ scale: 'n' , nounit: true, show: viewMode === 'counts' },
+		{ scale: '%' , side: viewMode === 'counts' ? 1 : 3, show: viewMode === 'variation' },
+		{ scale: '% ' , side: 1, show: viewMode === 'counts' },
 		{ scale: 'mb', side: 1, size: 70 },
-		{ scale: 'K', show: false }
+		{ scale: 'K', side: 1 }
 	];
 	const cl = info && Math.floor(info.coef_per_length/86400);
 	const c_pr = info && info.coef_pressure ? `c_pr=${info.coef_pressure.toFixed(4)} ` : '';
 	const title = info && `${params.station}:${params.channel} ${c_pr}c_tm=${info.coef_temperature.toFixed(4)} c_v=${info.coef_v0.toFixed(4)};${info.coef_v1.toFixed(4)} cl=${cl}d`;
 	plot.init(axes, true, null, null, title);
+	const series = Object.values(FIELDS).filter(f => f !== 'time');
+	for (const s of series) {
+		if (s.isChannel) {
+			s.scale = viewMode === 'counts' ? 'n' : '%';
+			s.precision = viewMode === 'counts' ? 0 : 2;
+			s.nounit = viewMode === 'counts';
+		}
+	}
 	plot.series(series);
-	if (data) plot.data(data);
+	if (data.length) plot.data(viewMode === 'counts' ? data : countsToVariation(data));
 }
 const query = util.constructQueryManager(URL, {
 	data: receiveData,
@@ -123,7 +141,6 @@ Correction is performed via mass-average temperature method.<br>
 			tabs.input('station-channel', (station, channel) => {
 				params.station = station;
 				params.channel = channel;
-				plotInit();
 				query.params(params);
 			}, { text: 'station:', list: stations, station: params.station, channel: params.channel }) :
 			tabs.text(sText),
@@ -142,6 +159,10 @@ Correction is performed via mass-average temperature method.<br>
 			if (force)
 				query.fetch(params);
 		}, { from: params.from, to: params.to }),
+		tabs.input('switch', opt => {
+			viewMode = opt;
+			plotInit(data);
+		}, { options: ['variation', 'counts'], text: 'view: ' }),
 		query.el
 	]);
 	query.fetch(params);
