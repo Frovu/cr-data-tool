@@ -10,17 +10,17 @@ const FIELDS = {
 		scale: 'n',
 		color: 'rgba(60,10,150,0.5)'
 	},
-	corrected: {
-		isChannel: true,
-		label: 'corrected',
-		scale: 'n',
-		color: 'rgba(255,10,60,1)'
-	},
 	corrected_v: {
 		isChannel: true,
 		label: 'corrected_v',
 		scale: 'n',
 		color: 'rgba(255,100,60,0.8)'
+	},
+	corrected: {
+		isChannel: true,
+		label: 'corrected',
+		scale: 'n',
+		color: 'rgba(255,10,60,1)'
 	},
 	pressure: {
 		label: 'pressure',
@@ -151,7 +151,7 @@ Correction is performed via mass-average temperature method.<br>
 		tabs.input('switch', opt => {
 			params.coefs = opt;
 			query.params(params);
-		}, { options: ['recalc', 'saved'], text: 'coefs: ' }),
+		}, { options: [params.coefs, params.coefs === 'recalc' ? 'saved' : 'recalc'], text: 'coefs: ' }),
 		tabs.input('time', (from, to, force) => {
 			params.from = from;
 			params.to = to;
