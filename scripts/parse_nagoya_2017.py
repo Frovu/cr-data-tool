@@ -29,6 +29,10 @@ def parse(year):
                 for date, count in np.column_stack((dates, counts)):
                     dt = datetime.strftime(date, '%Y-%m-%d %H:%M:%S+00')
                     f.write(f'{dt}{round(count,2):>12.2f}\n')
+        with open(f'{SRC}/pressure/{fname}', 'w') as f:
+            for date, count in np.column_stack((dates, data[:,-1])):
+                dt = datetime.strftime(date, '%Y-%m-%d %H:%M:%S+00')
+                f.write(f'{dt}{round(count,2):>12.2f}\n')
 
 if __name__ == '__main__':
     parse(2017)
