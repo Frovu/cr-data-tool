@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS muon_stations (
 	elevation_m REAL,
 	description TEXT
 );
-CREATE TABLE IF NOT EXISTS  muon_channels (
+CREATE TABLE IF NOT EXISTS muon_channels (
 	id SERIAL PRIMARY KEY,
 	station_name TEXT NOT NULL,
 	channel_name TEXT NOT NULL,
@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS  muon_channels (
 	dir_azimuthal REAL DEFAULT 0,
 	coef_pressure REAL,
 	coef_tm REAL,
+	mean_pressure REAL,
+	mean_tm REAL,
 	coef_per_len INT,
 	UNIQUE(station_name, channel_name)
 );

@@ -9,7 +9,6 @@ class Task:
             self.prog = [0, 0, '', False]
             args = (self.prog,) + args
         self.future = executor.submit(func, *args)
-        print('start', self.future.running(), self.future.done())
 
     def failed(self):
         return self.progress and self.prog[3]
