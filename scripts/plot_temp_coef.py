@@ -33,20 +33,20 @@ def _obtain_coef(dt_from, dt_to, station, channel, single):
             print(f'{dt_from}: {status} {body.get("info") or ""}')
             time.sleep(3)
         else:
-            return dt_from, data.get('coef' if single else 'coef_temperature'), data.get('error') if single else 0
+            return dt_from, data.get('coef' if single else 'coef_temperature') or np.nan, data.get('error') if single else 0
 
 def obtain(station: str, channel: str, dt_from: datetime, dt_to: datetime,
 period: timedelta=timedelta(days=365), single: bool=False):
     print(f'obtaining {station}/{channel}')
     periods = [dt_from+timedelta(n) for n in range(0, (dt_to-dt_from).days, period.days)]
     _func = lambda start: _obtain_coef(start, start+period, station, channel, single)
-    with ThreadPoolExecutor(max_workers=12) as executor:
+    with ThreadPoolExecutor(max_workers=16) as executor:
         data = np.array(list(executor.map(_func, periods)))
     return data[:,0], data[:,1], data[:,2]
 
 if __name__ == '__main__':
     tfr = datetime(1986, 5, 5)
-    tto = datetime(2013, 1, 5)
+    tto = datetime(2013, 6, 5)
     fig, ax = plt.subplots()
     channels = ['V', 'NW', 'N2']
     colors = ['#00FFFF', '#00FF88', '#00AAFF', '#00AAAA']
