@@ -9,6 +9,7 @@ class Task:
             self.prog = [0, 0, '', False]
             args = (self.prog,) + args
         self.future = executor.submit(func, *args)
+        print('start', self.future.running(), self.future.done())
 
     def failed(self):
         return self.progress and self.prog[3]
@@ -73,8 +74,8 @@ class Query:
         return [t.result() for t in self.tasks]
 
 class Scheduler:
-    def __init__(self, workers=4, ttl=10):
-        self.ttl = ttl
+    def __init__(self, workers=4, ttl=60):
+        self.ttl = 0 # FIXME: remove ttl completely if not needed
         self.queries = dict()
         self.cache = dict()
         self.executor = ThreadPoolExecutor(max_workers=workers)

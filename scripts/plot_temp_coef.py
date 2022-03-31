@@ -1,6 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import requests, json
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 import numpy as np
 import time
 import os
@@ -28,7 +30,7 @@ def _obtain_coef(dt_from, dt_to, station, channel, single):
         status, data = body['status'], body.get('data')
         assert status != 'failed'
         if status != 'ok':
-            print(f'{dt_from}: {status}')
+            print(f'{dt_from}: {status} {body.get("info") or ""}')
             time.sleep(3)
         else:
             return dt_from, data.get('coef' if single else 'coef_temperature'), data.get('error') if single else 0
@@ -38,7 +40,7 @@ period: timedelta=timedelta(days=365), single: bool=False):
     print(f'obtaining {station}/{channel}')
     periods = [dt_from+timedelta(n) for n in range(0, (dt_to-dt_from).days, period.days)]
     _func = lambda start: _obtain_coef(start, start+period, station, channel, single)
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=12) as executor:
         data = np.array(list(executor.map(_func, periods)))
     return data[:,0], data[:,1], data[:,2]
 
