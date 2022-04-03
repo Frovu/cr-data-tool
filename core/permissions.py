@@ -35,7 +35,7 @@ def _check(uid, flag, target_required):
 
 def check(flag, target=None):
     uid = session.get("uid")
-    return uid and _check(flag, target)
+    return uid and _check(uid, flag, target)
 
 def require(flag, target=None):
     def decorator(func):

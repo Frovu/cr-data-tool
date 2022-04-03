@@ -24,18 +24,21 @@ def corrected():
         t_to = int(request.args.get('to', ''))
         period = int(request.args.get('period')) if request.args.get('period') else 3600
         station = request.args.get('station', '')
-        channel = request.args.get('channel', '')
+        channel = request.args.get('channel', '') or 'V'
         coefs = request.args.get('coefs', '') or 'saved'
         if period not in [60, 3600]:
             raise ValueError()
         if coefs == 'retain':
-            
+            if not permissions.check('ADMIN', 'MUONS'):
+                return {}, 403
         status, data = muones.get_corrected(station, t_from, t_to, period, channel, coefs)
         body = { "status": status }
         if status == 'ok':
             body["info"] = data[2]
             body["fields"] = data[1]
             body["data"] = data[0]
+            if coefs == 'retain':
+                permissions.log_action('update_coefs', 'muones/corrected', station)
             permissions.log_action('get_result', 'muones/corrected', station)
         elif status in ['busy', 'failed'] and data:
             body["info"] = data
@@ -43,7 +46,6 @@ def corrected():
             permissions.log_action('query_accepted', 'muones/corrected', station)
         return body
     except ValueError:
-        print(traceback.format_exc())
         return {}, 400
     except Exception:
         logging.error(f'exc in muones/corrected: {traceback.format_exc()}')

@@ -76,8 +76,8 @@ def corrected(channel, interval, coefs_action):
         regr_data = np.column_stack((pr, tm, v_isotropic, v_anisotropic+1) if with_v else (pr, tm))
         regr = LinearRegression().fit(regr_data, np.log(raw))
         coef_pr, coef_tm, coef_v0, coef_v1 = regr.coef_ if with_v else (*regr.coef_, 0, 0)
+        interval_len = interval[1] - interval[0]
         if coef_retain:
-            interval_len = interval[1] - interval[0]
             channel.update_coefs(coef_pr, coef_tm, pr_mean, tm_mean, interval_len)
 
     corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm)
