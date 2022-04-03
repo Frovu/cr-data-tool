@@ -51,6 +51,26 @@ def corrected():
         logging.error(f'exc in muones/corrected: {traceback.format_exc()}')
         return {}, 500
 
+@bp.route('/clean', methods=['POST'])
+@permissions.require('DELETE_DATA', 'MUONS')
+def erase():
+    try:
+        station = request.values.get('station', '')
+        channel = request.values.get('channel', '') or 'V'
+        t_from = int(request.values.get('from', ''))
+        t_to = int(request.values.get('to', ''))
+        period = int(request.values.get('period')) if request.values.get('period') else 3600
+        ch = muones.proxy.channel(station, channel, period)
+        muones.proxy.clear(ch)
+        permissions.log_action('delete_data', 'muons', f'{station}/{channel}')
+        return {}
+    except ValueError:
+        print(traceback.format_exc())
+        return {}, 400
+    except Exception as e:
+        logging.error(f'ERROR in muons/delete {e}')
+        return {}, 500
+
 @bp.route('/raw')
 def raw():
     try:

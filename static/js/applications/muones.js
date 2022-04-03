@@ -138,19 +138,23 @@ Correction is performed via mass-average temperature method.<br>
 	]);
 	const stations = await fetchStations() || [];
 	const sText = stations ? stations.join() : 'Stations failed to load, refresh tab please.';
+	const cleanBtn = tabs.input('query', () => {}, {
+		url: `${URL}/clean`, text: 'clean', params: params, method: 'POST'
+	});
 	const admin = document.createElement('details');
 	admin.innerHTML = '<summary><u>Advanced</u> (Admin)</summary><p>';
 	const retainCoefs = tabs.input('checkbox', val => {
 		params.coefs = val ? 'retain' : coefsTmp;
 		query.params(params);
 	}, { text: ' write coefs' });
-	admin.append(retainCoefs);
+	admin.append(retainCoefs, document.createElement('p'), cleanBtn.elem);
 	// const periods = ['1 hour', '1 minute'];
 	tabs.fill('query', [
 		stations ?
 			tabs.input('station-channel', (station, channel) => {
 				params.station = station;
 				params.channel = channel;
+				cleanBtn.setParams(params);
 				query.params(params);
 			}, { text: 'station:', list: stations, station: params.station, channel: params.channel }) :
 			tabs.text(sText),
@@ -161,6 +165,7 @@ Correction is performed via mass-average temperature method.<br>
 		tabs.input('time', (from, to, force) => {
 			params.from = from;
 			params.to = to;
+			cleanBtn.setParams(params);
 			query.params(params);
 			if (force)
 				query.fetch(params);
