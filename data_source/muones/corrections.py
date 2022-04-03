@@ -56,19 +56,18 @@ def get_prepare_tasks(channel, fill_fn, subquery_fn):
         )))
         return tasks
 
-def corrected(channel, interval, recalc):
-    is_p_corrected = channel.station_name in [] # FIXME:
-    columns = ['source', 'T_m'] + ([] if is_p_corrected else ['pressure'])
+def corrected(channel, interval, coefs_action):
+    columns = ['source', 'T_m', 'pressure']
     where = ' AND '.join([f'{c} > 0' for c in columns])
     data = np.array(proxy.select(channel, interval, columns, where=where)[0], dtype=np.float64)
     if len(data) < 32:
         return None
-    interval_len = interval[1]-interval[0]
-    coef_recalc = recalc or not channel.coef_tm or not channel.coef_len or channel.coef_len < interval_len
-
     time, raw, tm_src, pr_src = data[:,0], data[:,1], data[:,2], data[:,3]
+    coef_retain = coefs_action == 'retain'
+    coef_recalc = coef_retain or not channel.coef_len or coefs_action == 'recalc'
     tm_mean, pr_mean = (np.mean(tm_src), np.mean(pr_src)) if coef_recalc else (channel.mean_tm, channel.mean_pr)
     tm, pr = (tm_mean - tm_src), (pr_mean - pr_src)
+    coef_pr, coef_tm, coef_v0, coef_v1 = channel.coef_pr, channel.coef_tm, 0, 0
     if coef_recalc:
         gsm_result = np.column_stack(gsm.get_variation(channel, interval))
         with_v = None not in gsm_result
@@ -77,16 +76,18 @@ def corrected(channel, interval, recalc):
         regr_data = np.column_stack((pr, tm, v_isotropic, v_anisotropic+1) if with_v else (pr, tm))
         regr = LinearRegression().fit(regr_data, np.log(raw))
         coef_pr, coef_tm, coef_v0, coef_v1 = regr.coef_ if with_v else (*regr.coef_, 0, 0)
-        channel.update_coefs(coef_pr, coef_tm, pr_mean, tm_mean, interval_len)
-        logging.debug(f'Muon coef: {channel.station_name}/{channel.name} = {regr.coef_}')
-    else:
-        coef_pr, coef_tm, coef_v0, coef_v1 = channel.coef_pr, channel.coef_tm, 0, 0
-    print(tm_mean, pr_mean, coef_tm, coef_pr)
+        if coef_retain:
+            interval_len = interval[1] - interval[0]
+            channel.update_coefs(coef_pr, coef_tm, pr_mean, tm_mean, interval_len)
+
     corrected = raw * np.exp(-1 * coef_pr * pr) * (1 - coef_tm * tm)
-    if coef_recalc:
+    if coef_recalc and with_v:
         corrected_v = corrected / (1 + coef_v0 * v_isotropic + coef_v1 * v_anisotropic)
 
-    # FIXME: proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
+    if coef_retain:
+        proxy.clear(channel, 'corrected')
+    if not coef_recalc or coef_retain:
+        proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
     result = [time, np.round(corrected, 2), raw, pr_src, np.round(tm_src, 2)] \
         + ([np.round(corrected_v, 2), v_isotropic, v_anisotropic] if coef_recalc and with_v else [])
     fields = ['time', 'corrected', 'source', 'pressure', 'T_m'] \

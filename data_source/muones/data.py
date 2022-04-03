@@ -31,10 +31,10 @@ def _get_prepare(station, t_from, t_to, period, channel, columns=['corrected']):
         corrections.get_prepare_tasks(ch, fill_fn, mq_fn))
     return 'accepted', None
 
-def get_corrected(station, t_from, t_to, period=3600, channel='V', recalc=False):
+def get_corrected(station, t_from, t_to, period=3600, channel='V', coefs):
     status, info = _get_prepare(station, t_from, t_to, period, channel, ['source', 'T_m', 'pressure'])
     if status == 'ok':
-        res = corrections.corrected(*info, recalc)
+        res = corrections.corrected(*info, coefs)
         if not res:
             return 'failed', {'failed': 'No data'}
         return 'ok', res

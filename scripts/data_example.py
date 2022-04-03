@@ -4,7 +4,6 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 url = 'https://crst.izmiran.ru/crdt'
-url = 'http://localhost:5000'
 
 def obtain_data(station: str, dt_from: datetime, dt_to: datetime, channel: str='V'):
     tfr, tto = [int(d.replace(tzinfo=timezone.utc).timestamp()) for d in (dt_from, dt_to)]
@@ -25,7 +24,7 @@ def obtain_data(station: str, dt_from: datetime, dt_to: datetime, channel: str='
             return body.get('data'), body.get('fields') # body['info'] should contain coefficients
 
 if __name__ == '__main__':
-    dt_from = datetime(2022, 3, 5)
+    dt_from = datetime(2021, 1, 5)
     dt_to = datetime(2022, 4, 5)
     data, fields = obtain_data('Apatity', dt_from, dt_to)
 

@@ -107,3 +107,13 @@ def upsert(channel, data, column, epoch=False):
         psycopg2.extras.execute_values (cursor, query, data, template=template)
         pg_conn.commit()
         logging.info(f'Upsert: muon:{channel.station_name}{("/"+channel.name) if is_counts else ""} <-[{len(data)}] {column} from {data[0][0]}')
+
+def clear(channel, column):
+    is_counts = column in ['source', 'corrected']
+    table = _table(channel.period) if is_counts else _table_cond(channel.period)
+    fk_col, fk_val = ('channel', channel.id) if is_counts else ('station', channel.station_id)
+    with pg_conn.cursor() as cursor:
+        query = f'UPDATE {table} SET {column} = NULL WHERE {fk_col} = {fk_val}'
+        cursor.execute(query)
+        pg_conn.commit()
+        logging.info(f'Clear: muon:{channel.station_name}/{channel.name} {column}')
