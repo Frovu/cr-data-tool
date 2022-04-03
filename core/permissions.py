@@ -33,6 +33,10 @@ def _check(uid, flag, target_required):
         return 'OVERRIDE' in targets or target_required in targets
     return len(targets) > 0
 
+def check(flag, target=None):
+    uid = session.get("uid")
+    return uid and _check(flag, target)
+
 def require(flag, target=None):
     def decorator(func):
         def wrapper():

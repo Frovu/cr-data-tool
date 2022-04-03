@@ -60,6 +60,9 @@ const params = util.storage.getObject('muones-params') || {
 	channel: 'V',
 	period: 3600
 };
+if (params.coefs === 'retain')
+	params.coefs = 'recalc';
+let coefsTmp = params.coefs;
 let data = [];
 let info;
 let viewMode = 'counts';
@@ -135,6 +138,13 @@ Correction is performed via mass-average temperature method.<br>
 	]);
 	const stations = await fetchStations() || [];
 	const sText = stations ? stations.join() : 'Stations failed to load, refresh tab please.';
+	const admin = document.createElement('details');
+	admin.innerHTML = '<summary><u>Advanced</u> (Admin)</summary><p>';
+	const retainCoefs = tabs.input('checkbox', val => {
+		params.coefs = val ? 'retain' : coefsTmp;
+		query.params(params);
+	}, { text: ' write coefs' });
+	admin.append(retainCoefs);
 	// const periods = ['1 hour', '1 minute'];
 	tabs.fill('query', [
 		stations ?
@@ -148,10 +158,6 @@ Correction is performed via mass-average temperature method.<br>
 		// 	params.period = per.includes('minute') ? 60 : 3600;
 		// 	query.params(params);
 		// }, { options: params.period===60?periods.reverse():periods, text: 'period: ' }),
-		tabs.input('switch', opt => {
-			params.coefs = opt;
-			query.params(params);
-		}, { options: [params.coefs, params.coefs === 'recalc' ? 'saved' : 'recalc'], text: 'coefs: ' }),
 		tabs.input('time', (from, to, force) => {
 			params.from = from;
 			params.to = to;
@@ -163,8 +169,15 @@ Correction is performed via mass-average temperature method.<br>
 			viewMode = opt;
 			plotInit(data);
 		}, { options: ['variation', 'counts'], text: 'view: ' }),
+		tabs.input('switch', opt => {
+			coefsTmp = opt;
+			params.coefs = opt;
+			query.params(params);
+		}, { options: [params.coefs, params.coefs === 'recalc' ? 'saved' : 'recalc'], text: 'coefs: ' }),
+		admin,
 		query.el
 	]);
+
 	query.fetch(params);
 }
 

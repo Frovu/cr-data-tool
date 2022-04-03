@@ -130,6 +130,12 @@ export function input(type, callback, options = {}) {
 		span.innerHTML = options.text || '';
 		span.append(elem);
 		return span;
+	} else if (type === 'checkbox') {
+		elem = document.createElement('label');
+		const box = document.createElement('input');
+		box.type = 'checkbox';
+		elem.onclick = () => { callback(box.checked); };
+		elem.append(box, options.text);
 	} else if (type === 'text') {
 		const div = document.createElement('div');
 		div.classList.add('text-input');

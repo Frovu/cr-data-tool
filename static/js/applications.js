@@ -19,7 +19,7 @@ const hierarchy = {
 	muon: ['muon', 'muonRaw', 'muonCorr', 'pressure'],
 	temperature: ['temperature', 'tempHeight'],
 };
-const publicApps = ['temperature'];
+const publicApps = ['muon', 'temperature'];
 
 const DEFAULT = 'temperature';
 const DONT_SAVE = ['info-tab', 'graph-tab'];
