@@ -141,13 +141,20 @@ Correction is performed via mass-average temperature method.<br>
 	const cleanBtn = tabs.input('query', () => {}, {
 		url: `${URL}/clean`, text: 'clean', params: params, method: 'POST'
 	});
+	const despikeBtn = tabs.input('query', resp => {
+		console.log(`despike done: ${resp.count} points`);
+		despikeBtn.innerHTML = `=${resp.count || NaN}`;
+		setTimeout(() => { despikeBtn.innerHTML = 'despike'; }, 3000);
+	}, {
+		url: `${URL}/despike`, text: 'despike', params: params, method: 'POST'
+	});
 	const admin = document.createElement('details');
 	admin.innerHTML = '<summary><u>Advanced</u> (Admin)</summary><p>';
 	const retainCoefs = tabs.input('checkbox', val => {
 		params.coefs = val ? 'retain' : coefsTmp;
 		query.params(params);
 	}, { text: ' write coefs' });
-	admin.append(retainCoefs, document.createElement('p'), cleanBtn.elem);
+	admin.append(retainCoefs, document.createElement('p'), cleanBtn.elem, despikeBtn.elem);
 	// const periods = ['1 hour', '1 minute'];
 	tabs.fill('query', [
 		stations ?

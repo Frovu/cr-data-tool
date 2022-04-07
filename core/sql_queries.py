@@ -55,9 +55,11 @@ def remove_spikes(table, channel, threshold=0.02):
         time, source,
         LEAD(source) OVER (ORDER BY time) AS next,
         LAG(source) OVER (ORDER BY time) AS prev
-    FROM {table} WHERE channel = {channel})
-    UPDATE data SET source = -1, corrected = NULL
+    FROM {table} WHERE channel = {channel}
+    ), spikes AS (SELECT time FROM data
         WHERE cur > 0 AND ((prev < 0 AND next < 0)
         OR (prev < 0 AND next > 0 AND ABS(cur / next - 1) > {threshold})
         OR (next < 0 AND prev > 0 AND ABS(cur / prev - 1) > {threshold})
-        OR (prev > 0 AND next > 0 AND ABS(next/ prev - 1) < {threshold} AND ABS(cur / next - 1) > {threshold}))'''
+        OR (prev > 0 AND next > 0 AND ABS(next/ prev - 1) < {threshold} AND ABS(cur / next - 1) > {threshold})))
+    UPDATE {table} t SET source = -1, corrected = NULL
+    FROM spikes s WHERE t.time = s.time AND channel = {channel}'''

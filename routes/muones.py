@@ -76,9 +76,10 @@ def despike():
         channel = request.values.get('channel', '') or 'V'
         period = int(request.values.get('period')) if request.values.get('period') else 3600
         ch = muones.proxy.channel(station, channel, period)
-        muones.proxy.despike(ch)
+        count = muones.proxy.despike(ch)
+        print(count)
         permissions.log_action('despike', 'muons', f'{station}/{channel}')
-        return {}
+        return { 'count': count }
     except ValueError:
         return {}, 400
     except Exception as e:
