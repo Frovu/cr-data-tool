@@ -1,7 +1,7 @@
 import os
 import psycopg2
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from core.sql_queries import integrity_query
 import requests
 import json
@@ -15,8 +15,7 @@ FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < perio
 GROUP BY period ORDER BY period
 '''
 
-def _obtain_nagoya(t_from, t_to, what):
-    dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
+def _obtain_nagoya(dt_from, dt_to, what):
     year, month = dt_from.year, dt_from.month
     dir = f'tmp/Nagoya/{what}'
     result = []
@@ -34,12 +33,11 @@ def _obtain_nagoya(t_from, t_to, what):
             year += 1
     return result
 
-def _obtain_gmdn(station, t_from, t_to, channel, what):
+def _obtain_gmdn(station, dt_from, dt_to, what):
     # FIXME: some station will not have Pres. column
-    col_name = 'Pres.' if what == 'pressure' else channel
-    is_channel = what == 'source'
+    is_channel = what != 'pressure'
+    col_name = what if is_channel else 'Pres.'
     dir = next(d for d in os.listdir('tmp/gmdn') if station in d)
-    dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
     result = []
     for year in range(dt_from.year, dt_to.year + 1):
         fpath = f'tmp/gmdn/{dir}/{year}.txt'
@@ -94,10 +92,15 @@ def obtain(channel, t_from, t_to, column):
                 return resp, column
     elif station == 'Nagoya':
         what = column if column == 'pressure' else channel.name
-        return _obtain_nagoya(t_from, t_to, what), column
-    # elif station in ['Nagoya']:
-    #     data = _obtain_gmdn(station, t_from, t_to, channel.name, column)
-    #     return data, column
+        dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
+        result = _obtain_gmdn(station, dt_from, dt_to, what)
+        if not result:
+            return _obtain_nagoya(dt_from, dt_to, what), column
+        if result[0][0] > dt_from:
+            result = _obtain_nagoya(dt_from, result[0][0]-timedelta(hours=1), what) + result
+        if result[-1][0] < dt_to:
+            result = result + _obtain_nagoya(result[-1][0]+timedelta(hours=1), dt_to, what)
+        return result, column
     elif station in ['Apatity', 'Barentsburg']:
         data = _obtain_apatity(station, t_from, t_to, channel.name, column)
         return data, column
