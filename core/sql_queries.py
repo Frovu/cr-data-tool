@@ -48,3 +48,16 @@ def aggregate_periods(t_from, t_to, period, table, select, time_column='time', c
     FROM (periods LEFT JOIN {table} ON (period <= {time_column} AND {time_column} < period + {interval})) as agg
     {condition and ('WHERE ' + condition)}
     GROUP BY period ORDER BY period'''
+
+def remove_spikes(table, channel, threshold=0.02):
+    return f'''WITH data(time, cur, next, prev) AS (
+    SELECT
+        time, source,
+        LEAD(source) OVER (ORDER BY time) AS next,
+        LAG(source) OVER (ORDER BY time) AS prev
+    FROM {table} WHERE channel = {channel})
+    UPDATE data SET source = -1, corrected = NULL
+        WHERE cur > 0 AND ((prev < 0 AND next < 0)
+        OR (prev < 0 AND next > 0 AND ABS(cur / next - 1) > {threshold})
+        OR (next < 0 AND prev > 0 AND ABS(cur / prev - 1) > {threshold})
+        OR (prev > 0 AND next > 0 AND ABS(next/ prev - 1) < {threshold} AND ABS(cur / next - 1) > {threshold}))'''
