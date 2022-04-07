@@ -117,8 +117,8 @@ export function input(type, callback, options = {}) {
 		elem.append('from', from, 'to', to, footer);
 	} else if (type === 'switch') {
 		elem = document.createElement('button');
-		elem.innerHTML = options.options[0];
-		let current = 0;
+		elem.innerHTML = options.active || options.options[0];
+		let current = options.active ? options.options.indexOf(options.active) : 0;
 		elem.addEventListener('click', () => {
 			current = ++current >= options.options.length ? 0 : current;
 			const opt = options.options[current];

@@ -88,7 +88,7 @@ function receiveData(resp) {
 
 function countsToVariation(data) {
 	const newData = Object.assign([], data);
-	for (const i of [1, 2, 3]) {
+	for (const i of info.coef_v0 ? [1, 2, 3] : [1, 3]) {
 		const avg = data[i].reduce((a,b) => (a+b)) / data[i].length;
 		newData[i] = data[i].map(c => (c / avg - 1) * 100);
 	}
@@ -173,12 +173,12 @@ Correction is performed via mass-average temperature method.<br>
 		tabs.input('switch', opt => {
 			viewMode = opt;
 			plotInit(data);
-		}, { options: ['variation', 'counts'], text: 'view: ' }),
+		}, { options: ['variation', 'counts'], active: viewMode, text: 'view: ' }),
 		tabs.input('switch', opt => {
 			coefsTmp = opt;
 			params.coefs = opt;
 			query.params(params);
-		}, { options: [params.coefs, params.coefs === 'recalc' ? 'saved' : 'recalc'], text: 'coefs: ' }),
+		}, { options: ['saved', 'recalc'], active: params.coefs, text: 'coefs: ' }),
 		admin,
 		query.el
 	]);
