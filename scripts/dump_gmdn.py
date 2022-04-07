@@ -16,7 +16,8 @@ def dump_one(type, year_url, gz=False, retry=1):
             os.makedirs(directory)
         fp = f'{directory}/{year}.txt{".gz" if gz else ""}'
         if os.path.isfile(fp):
-            print(f'found {station}/{year}')
+            print(f'found local {station}/{year}')
+            return
         print(f'downloading {station}/{year}')
         res = requests.get(f'{URL}/{type}/{year_url}', stream=True)
         if res.status_code == 200:
@@ -32,8 +33,8 @@ def dump_one(type, year_url, gz=False, retry=1):
 
 def dump(type):
     page = requests.get(f'{URL}/{type}.php')
-    year_re = re.compile(rf'href="{type}/([a-zA-Z0-9/\.]+)"')
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    year_re = re.compile(rf'<a href=["\']{type}/([a-zA-Z0-9/\.]+)["\']')
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
         for year_url in year_re.findall(page.text):
             executor.submit(dump_one, type, year_url)
 
