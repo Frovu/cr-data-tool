@@ -170,17 +170,17 @@ export function input(type, callback, options = {}) {
 				body: options.method === 'POST' ? param : null,
 				method
 			});
+			elem.innerHTML = res.status;
 			if (res.status === 200) {
 				callback(await res.json());
 			} else {
 				elem.classList.add('error');
-				console.log(await res.json().catch(()=>{}));
+				console.log(target, res.status, await res.json().catch(()=>{}));
 			}
-			elem.innerHTML = res.status;
 			setTimeout(() => {
 				elem.classList.remove('error');
 				elem.innerHTML = text;
-			}, 1500);
+			}, 2000);
 		};
 		return {
 			elem,

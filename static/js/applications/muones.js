@@ -143,8 +143,7 @@ Correction is performed via mass-average temperature method.<br>
 	});
 	const despikeBtn = tabs.input('query', resp => {
 		console.log(`despike done: ${resp.count} points`);
-		despikeBtn.innerHTML = `=${resp.count || NaN}`;
-		setTimeout(() => { despikeBtn.innerHTML = 'despike'; }, 3000);
+		despikeBtn.elem.innerHTML = `=${resp.count || NaN}`;
 	}, {
 		url: `${URL}/despike`, text: 'despike', params: params, method: 'POST'
 	});
