@@ -1,4 +1,4 @@
-from data_source.muones.db_proxy import pg_conn, remove_spikes
+from data_source.muones.db_proxy import pg_conn, remove_spikes, _table
 from threading import Timer
 
 SESSION_TIMEOUT = 5 * 60
@@ -29,6 +29,14 @@ def despike_auto(uid, channel=None):
         cursor.execute(remove_spikes(_table(channel.period), channel and channel.id))
         rowcount = cursor.rowcount
     return True, rowcount
+
+def despike_manual(uid, channel=None, timestamp):
+    if not _in_edit_session(uid):
+        return False
+    with pg_conn.cursor() as cursor:
+        cursor.execute(f''''UPDATE {_table(channel.period)} SET source = -1, corrected = NULL
+        WHERE time = to_timestamp({timestamp}){('AND channel = '+str(channel.id)) if channel else ''}''')
+    return True
 
 def close_session(uid, commit=False):
     if active_uid == uid:
