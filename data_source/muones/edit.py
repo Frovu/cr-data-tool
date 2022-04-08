@@ -51,14 +51,14 @@ def despike_manual(uid, station, channel, period, timestamp):
         rowcount = cursor.rowcount
     return True, rowcount
 
-def close_session(uid, commit=False):
+def close_session(uid, rollback):
     global active_uid, active_timer
     authorized = active_uid == uid
     if authorized:
-        if commit:
-            pg_conn.commit()
-        else:
+        if rollback:
             pg_conn.rollback()
+        else:
+            pg_conn.commit()
         active_timer.cancel()
         _close_session()
     return authorized

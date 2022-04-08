@@ -90,7 +90,7 @@ def muon_fix():
 @permissions.require('DELETE_DATA', 'MUONS')
 @route_shielded
 def muon_commit_edit():
-    rollback = request.values.get('rollback')
+    rollback = request.values.get('rollback', False)
     if not edit.close_session(session.get('uid'), rollback):
         return { 'message': 'not in a session'}, 400
     permissions.log_action('commit_edit', 'muons', f'{"rollback" if rollback else "commit"}')

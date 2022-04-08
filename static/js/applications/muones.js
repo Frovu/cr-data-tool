@@ -108,10 +108,12 @@ async function plotClick(idx) {
 		method: 'POST'
 	});
 	if (res.status == 200) {
+		const body = await res.json();
+		console.log(body.count ? 'done' : 'nothing changed');
 		for (let i=1; i<data.length; ++i)
 			data[i][idx] = null;
 		inTransaction = true;
-		plot.data(viewMode === 'counts' ? data : countsToVariation(data));
+		plot.data(viewMode === 'counts' ? data : countsToVariation(data), false);
 		commitBtn.elem.classList.add('active');
 	} else {
 		console.log('failed:', res.status);
@@ -224,12 +226,16 @@ Correction is performed via mass-average temperature method.<br>
 		})
 	});
 	commitBtn = tabs.input('query', () => {
+		if (inTransaction)
+			query.fetch(params);
 		inTransaction = false;
 		commitBtn.elem.classList.remove('active');
 	}, {
 		url: `${URL}/commit`, text: 'commit', method: 'POST'
 	});
 	const rollbackBtn = tabs.input('query', () => {
+		if (inTransaction)
+			query.fetch(params);
 		inTransaction = false;
 		commitBtn.elem.classList.remove('active');
 	}, {
