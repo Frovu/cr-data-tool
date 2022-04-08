@@ -153,26 +153,22 @@ When query parameters are changed, the button becomes highlighted.`)
 		const stationParams = { name: s.name, lat: s.lat, lon: s.lon, description: s.desc || '' };
 		const eraseParams = { lat: params.lat, lon: params.lon, from: params.from, to: params.to };
 		const eraseBtn = tabs.input('query', () => {}, {
-			url: `${URL}/delete`, text: 'Erase', params: eraseParams
+			url: `${URL}/delete`, text: 'Erase', params: () => eraseParams
 		});
 		const editBtn = tabs.input('query', () => {}, {
-			url: `${URL}/stations`, text: 'Edit/Create', params: stationParams, method: 'POST'
+			url: `${URL}/stations`, text: 'Edit/Create', params: () => stationParams, method: 'POST'
 		});
 		const stName = tabs.input('text', val => {
 			stationParams.name = val;
-			editBtn.setParams(stationParams);
 		}, { value: s.name, label: 'Name:' });
 		const stLat = tabs.input('text', val => {
 			stationParams.lat = val;
-			editBtn.setParams(stationParams);
 		}, { value: s.lat, label: 'lat=' });
 		const stLon = tabs.input('text', val => {
 			stationParams.lon = val;
-			editBtn.setParams(stationParams);
 		}, { value: s.lon, label: 'lon=' });
 		const stDesc = tabs.input('text', val => {
 			stationParams.description = val;
-			editBtn.setParams(stationParams);
 		}, { value: s.desc, label: 'Description:', width: 256 });
 		stationEdit.append(stName, stLat, stLon, tabs.text('<p>'), stDesc, tabs.text('<p>'), editBtn.elem);
 		stationEdit.classList.add('station-input');
@@ -185,13 +181,10 @@ When query parameters are changed, the button becomes highlighted.`)
 				stLon.children[1].value = stationParams.lon = lon;
 				stName.children[1].value = stationParams.name = name;
 				stDesc.children[1].value = stationParams.description = desc;
-				editBtn.setParams(stationParams);
-				eraseBtn.setParams(eraseParams);
 			}, { text: 'station', list: stations, lat: eraseParams.lat, lon: eraseParams.lon }),
 			tabs.input('time', (from, to) => {
 				eraseParams.from = from;
 				eraseParams.to = to;
-				eraseBtn.setParams(eraseParams);
 			}, { from: eraseParams.from, to: eraseParams.to }),
 			eraseBtn.elem,
 			tabs.text('<p>Note: To perform this action you should be authorized and have certain permission.</p><p>'),

@@ -24,7 +24,7 @@ def _in_edit_session(uid):
 
 def _channel_condition(station, channel):
     if channel.lower() == 'all':
-        return f'ANY (SELECT id FROM muon_channels WHERE station_name = {station})'
+        return f'IN (SELECT id FROM muon_channels WHERE station_name = {station})'
     else:
         return f'(SELECT id FROM muon_channels WHERE station_name = {station} AND channel_name = {channel})'
 
@@ -41,7 +41,7 @@ def despike_manual(uid, station, channel, period, timestamp):
         return False, 0
     with pg_conn.cursor() as cursor:
         cursor.execute(f''''UPDATE {_table(period)} SET source = -1, corrected = NULL
-        WHERE time = to_timestamp({timestamp}) AND channel = {}''')
+        WHERE time = to_timestamp({timestamp}) AND channel = {_channel_condition(station, channel)}''')
         rowcount = cursor.rowcount
     return True, rowcount
 

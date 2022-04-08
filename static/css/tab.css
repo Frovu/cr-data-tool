@@ -15,7 +15,7 @@
 }
 
 .query {
-	margin: 2em 0.5em 0.5em 0;
+	/* margin: 2em 0.5em 0.5em 0; */
 	display: block;
 	text-align: right;
 }
@@ -29,7 +29,7 @@
 }
 
 button.submit {
-	margin-left: 1em;
+	margin: 4px;
 	display: inline-block;
 	width: 128px;
 	transition: 500ms;

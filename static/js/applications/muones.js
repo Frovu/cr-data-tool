@@ -66,6 +66,8 @@ let coefsTmp = params.coefs;
 let data = [];
 let info;
 let viewMode = 'counts';
+let allChannels = false;
+let editMode = false;
 
 function receiveData(resp) {
 	const rows = resp.data, len = resp.data.length;
@@ -138,41 +140,25 @@ Correction is performed via mass-average temperature method.<br>
 	]);
 	const stations = await fetchStations() || [];
 	const sText = stations ? stations.join() : 'Stations failed to load, refresh tab please.';
-	const cleanBtn = tabs.input('query', () => {}, {
-		url: `${URL}/clean`, text: 'clean', params: params, method: 'POST'
-	});
-	const despikeBtn = tabs.input('query', resp => {
-		console.log(`despike done: ${resp.count} points`);
-		despikeBtn.elem.innerHTML = `=${resp.count || NaN}`;
-		query.fetch(params);
-	}, {
-		url: `${URL}/despike`, text: 'despike', params: params, method: 'POST'
-	});
 	const admin = document.createElement('details');
 	admin.innerHTML = '<summary><u>Advanced</u> (Admin)</summary><p>';
 	const retainCoefs = tabs.input('checkbox', val => {
 		params.coefs = val ? 'retain' : coefsTmp;
 		query.params(params);
-	}, { text: ' write coefs' });
-	admin.append(retainCoefs, document.createElement('p'), cleanBtn.elem, despikeBtn.elem);
+	}, { text: 'write coefs' });
+	admin.append(retainCoefs);
 	// const periods = ['1 hour', '1 minute'];
 	tabs.fill('query', [
 		stations ?
 			tabs.input('station-channel', (station, channel) => {
 				params.station = station;
 				params.channel = channel;
-				cleanBtn.setParams(params);
 				query.params(params);
-			}, { text: 'station:', list: stations, station: params.station, channel: params.channel }) :
+			}, { text: 'experiment:', list: stations, station: params.station, channel: params.channel }) :
 			tabs.text(sText),
-		// tabs.input('switch', per => {
-		// 	params.period = per.includes('minute') ? 60 : 3600;
-		// 	query.params(params);
-		// }, { options: params.period===60?periods.reverse():periods, text: 'period: ' }),
 		tabs.input('time', (from, to, force) => {
 			params.from = from;
 			params.to = to;
-			cleanBtn.setParams(params);
 			query.params(params);
 			if (force)
 				query.fetch(params);
@@ -189,7 +175,52 @@ Correction is performed via mass-average temperature method.<br>
 		admin,
 		query.el
 	]);
+
+	const allChannelsBox = tabs.input('checkbox', val => {
+		allChannels = val;
+	}, { text: 'all channels' });
+	const cleanBtn = tabs.input('query', () => {}, {
+		url: `${URL}/clean`, text: 'clean', method: 'POST',
+		params: () => new Object({
+			channel: allChannels ? 'all' : params.channel,
+			station: params.station,
+			period: params.period
+		})
+	});
+	const despikeBtn = tabs.input('query', resp => {
+		console.log(`despike done: ${resp.count} points`);
+		despikeBtn.elem.innerHTML = `=${resp.count || NaN}`;
+		query.fetch(params);
+	}, {
+		url: `${URL}/despike`, text: 'auto despike', method: 'POST',
+		params: () => new Object({
+			channel: allChannels ? 'all' : params.channel,
+			station: params.station,
+			period: params.period
+		})
+	});
+	const commit = tabs.input('query', () => {}, {
+		url: `${URL}/commit`, text: 'commit', method: 'POST'
+	});
+	const rollback = tabs.input('query', () => {}, {
+		url: `${URL}/commit`, text: 'rollback', method: 'POST', params: { rollback: 'rollback'}
+	});
+	const editSwitch = tabs.input('switch', opt => {
+		editMode = opt === 'edit';
+		editSwitch.children[0].classList[editMode?'add':'remove']('invalid');
+	}, { options: ['view', 'edit'], active: editMode, text: 'mode: ' });
+	const div = document.createElement('div');
+	div.style.textAlign = 'right';
+	div.append(commit.elem, rollback.elem);
 	tabs.fill('tools', [
+		cleanBtn.elem,
+		despikeBtn.elem,
+		document.createElement('p'),
+		allChannelsBox,
+		document.createElement('p'),
+		document.createElement('p'),
+		editSwitch,
+		div
 		// TODO:
 		// rename stations to expiriments
 		// despike on all channels
