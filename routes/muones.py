@@ -55,8 +55,7 @@ def muon_erase():
     station = request.values.get('station')
     channel = request.values.get('channel', 'V')
     period = int(request.values.get('period', 3600))
-    ch = muones.proxy.channel(station, channel, period)
-    muones.proxy.clear(ch)
+    edit.clear(station, channel, period)
     permissions.log_action('delete_data', 'muons', f'{station}/{channel}')
     return {}
 

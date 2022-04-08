@@ -106,20 +106,14 @@ def upsert(channel, data, column, epoch=False):
         template = f'({"to_timestamp(%s)" if epoch else "%s"},{fk_val},%s)'
         psycopg2.extras.execute_values (cursor, query, data, template=template)
         pg_conn.commit()
-        logging.info(f'Upsert: muon:{channel.station_name}{("/"+channel.name) if is_counts else ""} <-[{len(data)}] {column} from {data[0][0]}')
+    logging.info(f'Upsert: muon:{channel.station_name}{("/"+channel.name) if is_counts else ""} <-[{len(data)}] {column} from {data[0][0]}')
 
-def clear(channel, column=None):
-    if column:
-        is_counts = column in ['source', 'corrected']
-        table = _table(channel.period) if is_counts else _table_cond(channel.period)
-        fk_col, fk_val = ('channel', channel.id) if is_counts else ('station', channel.station_id)
-        with pg_conn.cursor() as cursor:
-            query = f'UPDATE {table} SET {column} = NULL WHERE {fk_col} = {fk_val}'
-            cursor.execute(query)
-            pg_conn.commit()
-    else:
-        with pg_conn.cursor() as cursor:
-            cursor.execute(f'DELETE FROM {_table(channel.period)} WHERE channel = {channel.id}')
-            cursor.execute(f'DELETE FROM {_table_cond(channel.period)} WHERE station = {channel.station_id}')
-            pg_conn.commit()
-    logging.info(f'Clear: muon:{channel.station_name}/{channel.name} {column or "all"}')
+def clear(channel, column):
+    is_counts = column in ['source', 'corrected']
+    table = _table(channel.period) if is_counts else _table_cond(channel.period)
+    fk_col, fk_val = ('channel', channel.id) if is_counts else ('station', channel.station_id)
+    with pg_conn.cursor() as cursor:
+        query = f'UPDATE {table} SET {column} = NULL WHERE {fk_col} = {fk_val}'
+        cursor.execute(query)
+        pg_conn.commit()
+    logging.info(f'Clear: muon:{channel.station_name}/{channel.name} {column}')
