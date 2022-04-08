@@ -88,7 +88,7 @@ button.submit.ongoing {
 	width: fit-content;
 	max-height: 48px;
 }
-.switch-input:hover button {
+.switch-input:hover button, button.subquery:hover  {
 	background-color: var(--color-active);
 }
 

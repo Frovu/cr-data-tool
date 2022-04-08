@@ -135,7 +135,7 @@ export function input(type, callback, options = {}) {
 		const box = document.createElement('input');
 		box.type = 'checkbox';
 		elem.onclick = () => { callback(box.checked); };
-		elem.append(box, options.text);
+		elem.append(box, ' ', options.text);
 	} else if (type === 'text') {
 		const div = document.createElement('div');
 		div.classList.add('text-input');
@@ -155,14 +155,17 @@ export function input(type, callback, options = {}) {
 		}
 		return div;
 	} else if (type === 'query') {
-		let target = options.url, params = options.params || {};
+		const getParams = typeof options.params === 'function' ? options.params : () => options.params;
+		let target = options.url;
 		const text = options.text || 'Query';
 		elem = document.createElement('button');
 		elem.classList.add('submit');
+		elem.classList.add('subquery');
 		elem.innerHTML = text;
 		elem.onclick = async () => {
 			elem.innerHTML = '...';
 			const method = options.method || 'GET';
+			const params = getParams();
 			const keys = Object.keys(params);
 			const param = keys.length ? keys.map(k => `${k}=${encodeURIComponent(params[k])}`).join('&') : '';
 			const res = await fetch(target + (method === 'GET' ? '?'+param : ''), {
@@ -184,7 +187,6 @@ export function input(type, callback, options = {}) {
 		};
 		return {
 			elem,
-			setParams: p => params = p,
 			fetch: elem.onclick
 		};
 	}

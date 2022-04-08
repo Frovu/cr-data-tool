@@ -152,7 +152,7 @@ input, button, select {
 input:focus {
 	outline: none;
 }
-input.invalid {
+input.invalid, button.invalid, select.invalid {
 	border: 2px var(--color-invalid) solid;
 }
 input:disabled, button:disabled, select:disabled {
