@@ -155,7 +155,8 @@ export function input(type, callback, options = {}) {
 		}
 		return div;
 	} else if (type === 'query') {
-		const getParams = typeof options.params === 'function' ? options.params : () => options.params;
+		const optParams = options.params || {};
+		const getParams = typeof optParams === 'function' ? optParams : () => optParams;
 		let target = options.url;
 		const text = options.text || 'Query';
 		elem = document.createElement('button');

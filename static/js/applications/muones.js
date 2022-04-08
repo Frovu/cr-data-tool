@@ -64,10 +64,11 @@ if (params.coefs === 'retain')
 	params.coefs = 'recalc';
 let coefsTmp = params.coefs;
 let data = [];
-let info;
+let info, commitBtn, resetTools;
 let viewMode = 'counts';
 let allChannels = false;
 let editMode = false;
+let inTransaction = false;
 
 function receiveData(resp) {
 	const rows = resp.data, len = resp.data.length;
@@ -97,6 +98,26 @@ function countsToVariation(data) {
 	return newData;
 }
 
+async function plotClick(idx) {
+	if (!editMode) return;
+	const tstmp = data[0][idx];
+	console.log('removing point at', new Date(tstmp*1000).toISOString());
+	const res = await fetch(`${URL}/fix`, {
+		headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+		body: `station=${encodeURIComponent(params.station)}&channel=${allChannels?'all':params.channel}&period=${params.period}&timestamp=${tstmp}`,
+		method: 'POST'
+	});
+	if (res.status == 200) {
+		for (let i=1; i<data.length; ++i)
+			data[i][idx] = null;
+		inTransaction = true;
+		plot.data(viewMode === 'counts' ? data : countsToVariation(data));
+		commitBtn.elem.classList.add('active');
+	} else {
+		console.log('failed:', res.status);
+	}
+}
+
 function plotInit() {
 	const axes = [
 		{ scale: 'n' , nounit: true, show: viewMode === 'counts' },
@@ -108,7 +129,7 @@ function plotInit() {
 	const cl = info && Math.floor(info.coef_per_length/86400);
 	const c_pr = info && info.coef_pressure ? `c_pr=${info.coef_pressure.toFixed(4)} ` : '';
 	const title = info && `${params.station}:${params.channel} ${c_pr}c_tm=${info.coef_temperature.toFixed(4)} c_v=${info.coef_v0.toFixed(4)};${info.coef_v1.toFixed(4)} cl=${cl}d`;
-	plot.init(axes, true, null, null, title);
+	plot.init(axes, true, null, null, title, plotClick);
 	const series = Object.values(FIELDS).filter(f => f !== 'time');
 	for (const s of series) {
 		if (s.isChannel) {
@@ -122,7 +143,10 @@ function plotInit() {
 }
 const query = util.constructQueryManager(URL, {
 	data: receiveData,
-	params: p => util.storage.setObject('muones-params', p)
+	params: p => {
+		resetTools();
+		util.storage.setObject('muones-params', p);
+	}
 });
 
 async function fetchStations() {
@@ -199,10 +223,16 @@ Correction is performed via mass-average temperature method.<br>
 			period: params.period
 		})
 	});
-	const commit = tabs.input('query', () => {}, {
+	commitBtn = tabs.input('query', () => {
+		inTransaction = false;
+		commitBtn.elem.classList.remove('active');
+	}, {
 		url: `${URL}/commit`, text: 'commit', method: 'POST'
 	});
-	const rollback = tabs.input('query', () => {}, {
+	const rollbackBtn = tabs.input('query', () => {
+		inTransaction = false;
+		commitBtn.elem.classList.remove('active');
+	}, {
 		url: `${URL}/commit`, text: 'rollback', method: 'POST', params: { rollback: 'rollback'}
 	});
 	const editSwitch = tabs.input('switch', opt => {
@@ -211,7 +241,7 @@ Correction is performed via mass-average temperature method.<br>
 	}, { options: ['view', 'edit'], active: editMode, text: 'mode: ' });
 	const div = document.createElement('div');
 	div.style.textAlign = 'right';
-	div.append(commit.elem, rollback.elem);
+	div.append(commitBtn.elem, rollbackBtn.elem);
 	tabs.fill('tools', [
 		cleanBtn.elem,
 		despikeBtn.elem,
@@ -221,12 +251,18 @@ Correction is performed via mass-average temperature method.<br>
 		document.createElement('p'),
 		editSwitch,
 		div
-		// TODO:
-		// rename stations to expiriments
-		// despike on all channels
-		// manual despike for all channels
-		// continue to plot temp coefs
 	]);
+
+	resetTools = () => {
+		if (inTransaction)
+			rollbackBtn.fetch();
+		editMode = false;
+		inTransaction = false;
+		editSwitch.children[0].innerHTML = 'view';
+		editSwitch.children[0].classList.remove('invalid');
+		allChannelsBox.checked = false;
+		allChannels = false;
+	};
 
 	query.fetch(params);
 }

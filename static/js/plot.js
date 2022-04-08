@@ -154,7 +154,7 @@ export function initCorr(data, label, pointPx, title, corrLine=false) {
 	}, data, parentEl);
 }
 
-export function init(axes, time=true, scales, series, title) {
+export function init(axes, time=true, scales, series, title, clickCallback) {
 	getStyle();
 	plotTime = time;
 	if (uplot) uplot.destroy();
@@ -172,6 +172,22 @@ export function init(axes, time=true, scales, series, title) {
 		cursor: {
 			drag: { dist: 12 },
 			points: { size: 6, fill: (self, i) => self.series[i]._stroke }
+		},
+		hooks: {
+			ready: clickCallback ? [u => {
+				let clickX, clickY;
+				u.over.addEventListener('mousedown', e => {
+					clickX = e.clientX;
+					clickY = e.clientY;
+				});
+				u.over.addEventListener('mouseup', e => {
+					if (e.clientX == clickX && e.clientY == clickY) {
+						const dataIdx = u.cursor.idx;
+						if (dataIdx != null)
+							clickCallback(dataIdx);
+					}
+				});
+			}] : []
 		}
 	}, null, parentEl);
 }
