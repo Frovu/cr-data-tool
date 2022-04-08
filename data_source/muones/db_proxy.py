@@ -123,10 +123,3 @@ def clear(channel, column=None):
             cursor.execute(f'DELETE FROM {_table_cond(channel.period)} WHERE station = {channel.station_id}')
             pg_conn.commit()
     logging.info(f'Clear: muon:{channel.station_name}/{channel.name} {column or "all"}')
-
-def despike(channel):
-    with pg_conn.cursor() as cursor:
-        cursor.execute(remove_spikes(_table(channel.period), channel.id))
-        rowcount = cursor.rowcount
-        pg_conn.commit()
-    return rowcount

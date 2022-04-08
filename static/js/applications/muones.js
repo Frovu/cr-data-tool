@@ -144,6 +144,7 @@ Correction is performed via mass-average temperature method.<br>
 	const despikeBtn = tabs.input('query', resp => {
 		console.log(`despike done: ${resp.count} points`);
 		despikeBtn.elem.innerHTML = `=${resp.count || NaN}`;
+		query.fetch(params);
 	}, {
 		url: `${URL}/despike`, text: 'despike', params: params, method: 'POST'
 	});
@@ -187,6 +188,13 @@ Correction is performed via mass-average temperature method.<br>
 		}, { options: ['saved', 'recalc'], active: params.coefs, text: 'coefs: ' }),
 		admin,
 		query.el
+	]);
+	tabs.fill('tools', [
+		// TODO:
+		// rename stations to expiriments
+		// despike on all channels
+		// manual despike for all channels
+		// continue to plot temp coefs
 	]);
 
 	query.fetch(params);

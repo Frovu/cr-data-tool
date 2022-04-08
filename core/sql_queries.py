@@ -49,7 +49,7 @@ def aggregate_periods(t_from, t_to, period, table, select, time_column='time', c
     {condition and ('WHERE ' + condition)}
     GROUP BY period ORDER BY period'''
 
-def remove_spikes(table, channel, threshold=0.02):
+def remove_spikes(table, channel, threshold=0.01):
     return f'''WITH data(time, cur, next, prev) AS (
     SELECT
         time, source,
