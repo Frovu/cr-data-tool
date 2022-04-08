@@ -79,7 +79,7 @@ def muon_fix():
     station = request.values.get('station')
     channel = request.values.get('channel', 'V')
     period = int(request.values.get('period', 3600))
-    timestamp = int(request.args.get('from', ''))
+    timestamp = int(request.values.get('timestamp', ''))
     status, count = edit.despike_manual(session.get('uid'), station, channel, period, timestamp)
     if not status:
         return { 'message': 'another session is active'}, 409

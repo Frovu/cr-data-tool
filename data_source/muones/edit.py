@@ -6,6 +6,7 @@ active_uid = None
 active_timer = None
 
 def _close_session():
+    global active_uid, active_timer
     active_uid = None
     active_timer = None
 
@@ -14,6 +15,7 @@ def _timeout():
     _close_session()
 
 def _in_edit_session(uid):
+    global active_uid, active_timer
     if active_uid == uid:
         active_timer.cancel()
     elif active_uid:
@@ -24,15 +26,16 @@ def _in_edit_session(uid):
 
 def _channel_condition(station, channel):
     if channel.lower() == 'all':
-        return f'IN (SELECT id FROM muon_channels WHERE station_name = {station})'
+        return f'IN (SELECT id FROM muon_channels WHERE station_name = %s)', (station,)
     else:
-        return f'(SELECT id FROM muon_channels WHERE station_name = {station} AND channel_name = {channel})'
+        return f'(SELECT id FROM muon_channels WHERE station_name = %s AND channel_name = %s)', (station, channel)
 
 def despike_auto(uid, station, channel, period):
     if not _in_edit_session(uid):
         return False, 0
     with pg_conn.cursor() as cursor:
-        cursor.execute(remove_spikes(_table(period), _channel_condition(station, channel)))
+        cond, vals = _channel_condition(station, channel)
+        cursor.execute(remove_spikes(_table(period), cond), vals)
         rowcount = cursor.rowcount
     return True, rowcount
 
@@ -40,23 +43,26 @@ def despike_manual(uid, station, channel, period, timestamp):
     if not _in_edit_session(uid):
         return False, 0
     with pg_conn.cursor() as cursor:
-        cursor.execute(f''''UPDATE {_table(period)} SET source = -1, corrected = NULL
-        WHERE time = to_timestamp({timestamp}) AND channel = {_channel_condition(station, channel)}''')
+        cond, vals = _channel_condition(station, channel)
+        cursor.execute(f'''UPDATE {_table(period)} SET source = -1, corrected = NULL
+        WHERE time = to_timestamp({timestamp}) AND channel = {cond}''', vals)
         rowcount = cursor.rowcount
     return True, rowcount
 
 def close_session(uid, commit=False):
+    global active_uid, active_timer
     if active_uid == uid:
         if commit:
             pg_conn.commit()
         else:
             pg_conn.rollback()
+        active_timer.cancel()
         _close_session()
     return active_uid == uid
 
 def clear(station, channel, period):
-    channel_cond = _channel_condition(station, channel)
+    cond, vals = _channel_condition(station, channel)
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'DELETE FROM {_table(period)} WHERE channel = {channel_cond}')
-        cursor.execute(f'DELETE FROM {_table_cond(period)} WHERE station = {channel_cond}')
+        cursor.execute(f'DELETE FROM {_table(period)} WHERE channel = {cond}', vals)
+        cursor.execute(f'DELETE FROM {_table_cond(period)} WHERE station = {cond}', vals)
         pg_conn.commit()
