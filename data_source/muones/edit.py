@@ -28,16 +28,16 @@ def _in_edit_session(uid):
 
 def _channel_condition(station, channel):
     if channel.lower() == 'all':
-        return f'IN (SELECT id FROM muon_channels WHERE station_name = %s)', (station,)
+        return f'IN (SELECT id FROM muon_channels WHERE station_name = %s)', [station]
     else:
-        return f'(SELECT id FROM muon_channels WHERE station_name = %s AND channel_name = %s)', (station, channel)
+        return f'(SELECT id FROM muon_channels WHERE station_name = %s AND channel_name = %s)', [station, channel]
 
 def despike_auto(uid, station, channel, period):
     if not _in_edit_session(uid):
         return False, 0
     with pg_conn.cursor() as cursor:
         cond, vals = _channel_condition(station, channel)
-        cursor.execute(remove_spikes(_table(period), cond), vals)
+        cursor.execute(remove_spikes(_table(period), cond), vals+vals)
         rowcount = cursor.rowcount
     return True, rowcount
 

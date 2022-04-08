@@ -146,7 +146,6 @@ function plotInit() {
 const query = util.constructQueryManager(URL, {
 	data: receiveData,
 	params: p => {
-		resetTools();
 		util.storage.setObject('muones-params', p);
 	}
 });
@@ -179,6 +178,7 @@ Correction is performed via mass-average temperature method.<br>
 			tabs.input('station-channel', (station, channel) => {
 				params.station = station;
 				params.channel = channel;
+				resetTools();
 				query.params(params);
 			}, { text: 'experiment:', list: stations, station: params.station, channel: params.channel }) :
 			tabs.text(sText),
@@ -216,6 +216,8 @@ Correction is performed via mass-average temperature method.<br>
 	const despikeBtn = tabs.input('query', resp => {
 		console.log(`despike done: ${resp.count} points`);
 		despikeBtn.elem.innerHTML = `=${resp.count || NaN}`;
+		inTransaction = true;
+		commitBtn.elem.classList.add('active');
 		query.fetch(params);
 	}, {
 		url: `${URL}/despike`, text: 'auto despike', method: 'POST',
@@ -226,17 +228,19 @@ Correction is performed via mass-average temperature method.<br>
 		})
 	});
 	commitBtn = tabs.input('query', () => {
-		if (inTransaction)
+		if (inTransaction) {
+			inTransaction = false;
 			query.fetch(params);
-		inTransaction = false;
+		}
 		commitBtn.elem.classList.remove('active');
 	}, {
 		url: `${URL}/commit`, text: 'commit', method: 'POST'
 	});
 	const rollbackBtn = tabs.input('query', () => {
-		if (inTransaction)
+		if (inTransaction) {
+			inTransaction = false;
 			query.fetch(params);
-		inTransaction = false;
+		}
 		commitBtn.elem.classList.remove('active');
 	}, {
 		url: `${URL}/commit`, text: 'rollback', method: 'POST', params: { rollback: 'rollback'}
