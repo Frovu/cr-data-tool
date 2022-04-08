@@ -40,12 +40,12 @@ def muon_corrected():
         body["fields"] = data[1]
         body["data"] = data[0]
         if coefs == 'retain':
-            permissions.log_action('update_coefs', 'muones/corrected', station)
-        permissions.log_action('get_result', 'muones/corrected', station)
+            permissions.log_action('update_coefs', 'muones/corrected', f'{station}/{channel}')
+        permissions.log_action('get_result', 'muones/corrected', f'{station}/{channel}')
     elif status in ['busy', 'failed'] and data:
         body["info"] = data
     elif status == 'accepted':
-        permissions.log_action('query_accepted', 'muones/corrected', station)
+        permissions.log_action('query_accepted', 'muones/corrected', f'{station}/{channel}')
     return body
 
 @bp.route('/clean', methods=['POST'])

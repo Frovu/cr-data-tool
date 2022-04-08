@@ -50,16 +50,16 @@ def aggregate_periods(t_from, t_to, period, table, select, time_column='time', c
     GROUP BY period ORDER BY period'''
 
 def remove_spikes(table, channel, threshold=0.01):
-    return f'''WITH data(time, cur, next, prev) AS (
+    return f'''WITH data(time, channel, cur, next, prev) AS (
     SELECT
-        time, source,
-        LEAD(source) OVER (ORDER BY time) AS next,
-        LAG(source) OVER (ORDER BY time) AS prev
+        time, channel, source,
+        LEAD(source) OVER (PARTITION BY channel ORDER BY time) AS next,
+        LAG(source) OVER (PARTITION BY channel ORDER BY time) AS prev
     FROM {table} WHERE channel = {channel}
-    ), spikes AS (SELECT time FROM data
-        WHERE cur > 0 AND ((prev < 0 AND next < 0)
-        OR (prev < 0 AND next > 0 AND ABS(cur / next - 1) > {threshold})
-        OR (next < 0 AND prev > 0 AND ABS(cur / prev - 1) > {threshold})
+    ), spikes AS (SELECT time, channel FROM data
+        WHERE cur > 0 AND ((prev <= 0 AND next <= 0)
+        OR (prev <= 0 AND next > 0 AND ABS(cur / next - 1) > {threshold})
+        OR (next <= 0 AND prev > 0 AND ABS(cur / prev - 1) > {threshold})
         OR (prev > 0 AND next > 0 AND ABS(next/ prev - 1) < {threshold} AND ABS(cur / next - 1) > {threshold})))
     UPDATE {table} t SET source = -1, corrected = NULL
-    FROM spikes s WHERE t.time = s.time AND channel = {channel}'''
+    FROM spikes s WHERE t.time = s.time AND t.channel = s.channel'''

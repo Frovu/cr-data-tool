@@ -270,7 +270,7 @@ Correction is performed via mass-average temperature method.<br>
 		inTransaction = false;
 		editSwitch.children[0].innerHTML = 'view';
 		editSwitch.children[0].classList.remove('invalid');
-		allChannelsBox.checked = false;
+		allChannelsBox.firstChild.checked = false;
 		allChannels = false;
 	};
 
