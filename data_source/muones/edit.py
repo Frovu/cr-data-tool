@@ -1,7 +1,8 @@
 from data_source.muones.db_proxy import pg_conn, remove_spikes, _table, _table_cond
 from threading import Timer
+import logging
 
-SESSION_TIMEOUT = 5 * 60
+SESSION_TIMEOUT = 3 * 60
 active_uid = None
 active_timer = None
 
@@ -11,6 +12,7 @@ def _close_session():
     active_timer = None
 
 def _timeout():
+    logging.info(f'Edit session timed out for uid={active_uid}')
     pg_conn.rollback()
     _close_session()
 
@@ -51,14 +53,15 @@ def despike_manual(uid, station, channel, period, timestamp):
 
 def close_session(uid, commit=False):
     global active_uid, active_timer
-    if active_uid == uid:
+    authorized = active_uid == uid
+    if authorized:
         if commit:
             pg_conn.commit()
         else:
             pg_conn.rollback()
         active_timer.cancel()
         _close_session()
-    return active_uid == uid
+    return authorized
 
 def clear(station, channel, period):
     cond, vals = _channel_condition(station, channel)
