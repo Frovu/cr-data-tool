@@ -155,6 +155,9 @@ input:focus {
 input.invalid, button.invalid, select.invalid {
 	border: 2px var(--color-invalid) solid;
 }
+button.invalid {
+	box-shadow: 0 0 10px 3px var(--color-invalid);
+}
 input:disabled, button:disabled, select:disabled {
 	background-color: var(--color-disabled);
 }
