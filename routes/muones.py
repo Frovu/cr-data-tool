@@ -1,6 +1,7 @@
 import data_source.muones.data as muones
+import data_source.muones.edit as edit
 import data_source.stations_meteo.pressure as meteo
-from flask import Blueprint, request
+from flask import Blueprint, request, session
 from datetime import datetime
 from core import permissions
 from core.utils import route_shielded
@@ -23,9 +24,9 @@ def stations():
 def muon_corrected():
     t_from = int(request.args.get('from', ''))
     t_to = int(request.args.get('to', ''))
-    period = int(request.args.get('period')) if request.args.get('period') else 3600
-    station = request.args.get('station', '')
-    channel = request.args.get('channel', '') or 'V'
+    station = request.values.get('station')
+    channel = request.values.get('channel', 'V')
+    period = int(request.values.get('period', 3600))
     coefs = request.args.get('coefs', '') or 'saved'
     if period not in [60, 3600]:
         raise ValueError()
@@ -51,9 +52,9 @@ def muon_corrected():
 @permissions.require('DELETE_DATA', 'MUONS')
 @route_shielded
 def muon_erase():
-    station = request.values.get('station', '')
-    channel = request.values.get('channel', '') or 'V'
-    period = int(request.values.get('period')) if request.values.get('period') else 3600
+    station = request.values.get('station')
+    channel = request.values.get('channel', 'V')
+    period = int(request.values.get('period', 3600))
     ch = muones.proxy.channel(station, channel, period)
     muones.proxy.clear(ch)
     permissions.log_action('delete_data', 'muons', f'{station}/{channel}')
@@ -62,22 +63,47 @@ def muon_erase():
 @bp.route('/despike', methods=['POST'])
 @permissions.require('DELETE_DATA', 'MUONS')
 @route_shielded
-def despike():
-    station = request.values.get('station', '')
-    channel = request.values.get('channel', '') or 'V'
-    period = int(request.values.get('period')) if request.values.get('period') else 3600
-    ch = muones.proxy.channel(station, channel, period)
-    count = muones.proxy.despike(ch)
+def muon_despike():
+    station = request.values.get('station')
+    channel = request.values.get('channel', 'V')
+    period = int(request.values.get('period', 3600))
+    status, count = edit.despike_auto(session.get('uid'), station, channel, period)
+    if not status:
+        return { 'message': 'another session is active'}, 409
     permissions.log_action('despike', 'muons', f'{station}/{channel}')
     return { 'count': count }
 
+@bp.route('/fix', methods=['POST'])
+@permissions.require('DELETE_DATA', 'MUONS')
+@route_shielded
+def muon_fix():
+    station = request.values.get('station')
+    channel = request.values.get('channel', 'V')
+    period = int(request.values.get('period', 3600))
+    timestamp = int(request.args.get('from', ''))
+    status, count = edit.despike_manual(session.get('uid'), station, channel, period, timestamp)
+    if not status:
+        return { 'message': 'another session is active'}, 409
+    permissions.log_action('fix', 'muons', f'{station}/{channel}')
+    return { 'count': count }
+
+@bp.route('/commit', methods=['POST'])
+@permissions.require('DELETE_DATA', 'MUONS')
+@route_shielded
+def muon_commit_edit():
+    rollback = request.values.get('station')
+    if not edit.close_session(session.get('uid'), rollback):
+        return { 'message': 'not in a session'}, 400
+    permissions.log_action('commit_edit', 'muons', f'{rollback or "commit"}')
+    return { }
+
 @bp.route('/raw')
 @route_shielded
-def raw():
+def muon_raw():
     t_from = int(request.args.get('from', ''))
     t_to = int(request.args.get('to', ''))
-    period = int(request.args.get('period')) if request.args.get('period') else 3600
-    station = request.args.get('station', '')
+    period = int(request.values.get('period', 3600))
+    station = request.args.get('station')
     if period not in [60, 3600]:
         raise ValueError()
     status, data = muones.get_raw(station, t_from, t_to, period)
@@ -92,7 +118,7 @@ def raw():
 
 @bp.route('/correlation')
 @route_shielded
-def correlation():
+def muon_correlation():
     t_from = int(request.args.get('from', ''))
     t_to = int(request.args.get('to', ''))
     period = int(request.args.get('period')) if request.args.get('period') else 3600
