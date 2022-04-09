@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from math import floor, ceil
 import logging as log
 
-scheduler = SequenceFiller(ttl=15)
+scheduler = SequenceFiller(ttl=0)
 completed_query_chache = dict()
 PERIOD = 3600
 

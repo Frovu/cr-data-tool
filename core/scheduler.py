@@ -95,7 +95,6 @@ class Scheduler:
             if self.ttl:
                 self.cache[key] = query
                 timer = Timer(self.ttl, self._dispose, key)
-                timer.start()
         return done, query.result() if done else info
 
     def query_tasks(self, key, tasks):
