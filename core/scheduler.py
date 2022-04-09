@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from threading import Timer
 import time
 
 class Task:
@@ -74,7 +75,7 @@ class Query:
 
 class Scheduler:
     def __init__(self, workers=4, ttl=60):
-        self.ttl = 0 # FIXME: remove ttl completely if not needed
+        self.ttl = ttl
         self.queries = dict()
         self.cache = dict()
         self.executor = ThreadPoolExecutor(max_workers=workers)
@@ -83,7 +84,6 @@ class Scheduler:
         return self.queries.get(key)
 
     def _dispose(self, key):
-        time.sleep(self.ttl)
         del self.cache[key]
 
     def status(self, key):
@@ -94,7 +94,8 @@ class Scheduler:
             del self.queries[key]
             if self.ttl:
                 self.cache[key] = query
-                self.executor.submit(self._dispose, key)
+                timer = Timer(self.ttl, self._dispose, key)
+                timer.start()
         return done, query.result() if done else info
 
     def query_tasks(self, key, tasks):
