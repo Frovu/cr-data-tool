@@ -5,7 +5,7 @@ import data_source.muones.corrections as corrections
 from datetime import datetime
 from math import floor, ceil
 
-scheduler = SequenceFiller()
+scheduler = SequenceFiller(ttl=0)
 
 def stations():
     return proxy.stations()
