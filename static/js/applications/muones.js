@@ -251,6 +251,11 @@ Correction is performed via mass-average temperature method.<br>
 	});
 	const editSwitch = tabs.input('switch', opt => {
 		editMode = opt === 'edit';
+		if (!editMode) {
+			commitBtn.elem.classList.remove('active');
+			if (inTransaction)
+				rollbackBtn.fetch();
+		}
 		editSwitch.children[0].classList[editMode?'add':'remove']('invalid');
 	}, { options: ['view', 'edit'], active: editMode, text: 'mode: ' });
 	const div = document.createElement('div');
@@ -270,10 +275,11 @@ Correction is performed via mass-average temperature method.<br>
 	resetTools = () => {
 		if (inTransaction)
 			rollbackBtn.fetch();
-		editMode = false;
 		inTransaction = false;
+		editMode = false;
 		editSwitch.children[0].innerHTML = 'view';
 		editSwitch.children[0].classList.remove('invalid');
+		commitBtn.elem.classList.remove('active');
 		allChannelsBox.firstChild.checked = false;
 		allChannels = false;
 	};

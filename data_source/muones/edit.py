@@ -2,7 +2,7 @@ from data_source.muones.db_proxy import pg_conn, remove_spikes, _table, _table_c
 from threading import Timer
 import logging
 
-SESSION_TIMEOUT = 3 * 60
+SESSION_TIMEOUT = 5 * 60
 active_uid = None
 active_timer = None
 
@@ -24,6 +24,7 @@ def _in_edit_session(uid):
         return False
     active_uid = uid
     active_timer = Timer(SESSION_TIMEOUT, _timeout)
+    active_timer.start()
     return True
 
 def _channel_condition(station, channel):
