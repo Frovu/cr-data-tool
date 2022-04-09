@@ -232,6 +232,8 @@ Correction is performed via mass-average temperature method.<br>
 			inTransaction = false;
 			query.fetch(params);
 		}
+		editSwitch.children[0].innerHTML = 'view';
+		editSwitch.children[0].classList.remove('invalid');
 		commitBtn.elem.classList.remove('active');
 	}, {
 		url: `${URL}/commit`, text: 'commit', method: 'POST'
@@ -241,6 +243,8 @@ Correction is performed via mass-average temperature method.<br>
 			inTransaction = false;
 			query.fetch(params);
 		}
+		editSwitch.children[0].innerHTML = 'view';
+		editSwitch.children[0].classList.remove('invalid');
 		commitBtn.elem.classList.remove('active');
 	}, {
 		url: `${URL}/commit`, text: 'rollback', method: 'POST', params: { rollback: 'rollback'}

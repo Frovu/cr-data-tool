@@ -118,10 +118,10 @@ export function input(type, callback, options = {}) {
 	} else if (type === 'switch') {
 		elem = document.createElement('button');
 		elem.innerHTML = options.active || options.options[0];
-		let current = options.active ? options.options.indexOf(options.active) : 0;
 		elem.addEventListener('click', () => {
-			current = ++current >= options.options.length ? 0 : current;
-			const opt = options.options[current];
+			const cur = options.options.indexOf(elem.innerHTML);
+			const next = (cur + 1 < options.options.length) ? cur + 1 : 0;
+			const opt = options.options[next];
 			elem.innerHTML = opt;
 			callback(opt);
 		});
