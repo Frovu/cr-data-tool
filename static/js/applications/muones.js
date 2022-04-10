@@ -55,7 +55,7 @@ const URL = 'api/muones';
 const params = util.storage.getObject('muones-params') || {
 	from: Math.floor(Date.now()/1000) - 86400*3 - 86400*365,
 	to: Math.floor(Date.now()/1000) - 86400*3,
-	station: 'Moscow',
+	station: 'Apatity',
 	coefs: 'recalc',
 	channel: 'V',
 	period: 3600

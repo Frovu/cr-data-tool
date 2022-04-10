@@ -23,13 +23,17 @@ CREATE TABLE IF NOT EXISTS muon_channels (
 	UNIQUE(station_name, channel_name)
 );
 INSERT INTO muon_stations(lat, lon, name, elevation_m) VALUES
-(55.47, 37.32, 'Moscow', 190),
+(55.47, 37.32, 'Moscow-pioneer', 190),
+(55.47, 37.32, 'Moscow-CARPET', 190),
+(55.47, 37.32, 'Moscow-CUBE', 190),
 (67.57, 33.39, 'Apatity', 181),
 (78.06, 14.22, 'Barentsburg', 70),
 (35.2, 137.0, 'Nagoya', 77)
 ON CONFLICT(name) DO NOTHING;
 INSERT INTO muon_channels(station_name, channel_name, dir_vertical, dir_azimuthal) VALUES
-('Moscow', 'V' , 0, 0),
+('Moscow-pioneer', 'V' , 0, 0),
+('Moscow-CARPET', 'V' , 0, 0),
+('Moscow-CUBE', 'V' , 0, 0),
 ('Apatity', 'V' , 0, 0),
 ('Barentsburg', 'V' , 0, 0),
 ('Nagoya', 'V' , 0, 0),

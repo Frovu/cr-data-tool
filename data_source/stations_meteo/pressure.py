@@ -40,7 +40,7 @@ def _fetch_fcrl(t_from, t_to):
         _parse_fcrl_one(mon_from.year, mon_from.month)
         mon_from += timedelta(days=31)
 
-def _fetch_muon(t_from, t_to, station='Moscow', period=3600):
+def _fetch_muon(t_from, t_to, station='Moscow-pioneer', period=3600):
     if _integrity(t_from, t_to, 'muon_pioneer'):
         return
     logging.debug(f'P: fetching muon {t_from}:{t_to}')

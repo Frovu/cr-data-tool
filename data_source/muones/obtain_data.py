@@ -80,7 +80,7 @@ def _obtain_apatity(station, t_from, t_to, channel='V', what='source', period=36
 def obtain(channel, t_from, t_to, column):
     station = channel.station_name
     logging.debug(f'Muones: querying raw {station}:{channel.name} {t_from}:{t_to}')
-    if station == 'Moscow':
+    if station == 'Moscow-pioneer':
         with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
             user = os.environ.get('MUON_MSK_USER'),
             password = os.environ.get('MUON_MSK_PASS'),
@@ -106,7 +106,7 @@ def obtain(channel, t_from, t_to, column):
         return data, column
 
 def obtain_raw(station, t_from, t_to, period, fields=None):
-    if station == 'Moscow':
+    if station == 'Moscow-pioneer':
         with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
             user = os.environ.get('MUON_MSK_USER'),
             password = os.environ.get('MUON_MSK_PASS'),

@@ -55,7 +55,7 @@ def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pr
     return status, info
 
 def get_raw(station, t_from, t_to, period=3600):
-    if station not in ['Moscow']:
+    if station not in ['Moscow-pioneer']:
         return 'unknown', None
     trim_future = datetime.now().timestamp()
     t_to = t_to if t_to < trim_future else trim_future

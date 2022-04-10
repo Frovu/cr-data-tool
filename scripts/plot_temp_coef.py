@@ -14,7 +14,7 @@ plt.rcParams['figure.facecolor'] = 'darkgrey'
 url = 'https://crst.izmiran.ru/crdt'
 # url = 'http://localhost:5000'
 
-PERIOD = 500 # days
+PERIOD = 365*2 # days
 session = requests.Session()
 
 def _obtain_coef(dt_from, dt_to, station, channel, single):
@@ -45,21 +45,30 @@ period: timedelta=timedelta(days=365), single: bool=False):
     return data[:,0], data[:,1], data[:,2]
 
 if __name__ == '__main__':
-    tfr = datetime(1986, 5, 5)
-    tto = datetime(2013, 6, 5)
+    tfr = datetime(1986, 4, 1)
+    tto = datetime(2018, 12, 31)
     fig, ax = plt.subplots()
-    channels = ['V', 'NW', 'N2']
-    colors = ['#00FFFF', '#00FF88', '#00AAFF', '#00AAAA']
+    channels = ['N', 'N2', 'N3']
+    colors = ['#00FFAA', '#00AAFF', '#ccFF00', '#55FF00']
 
-    times, coef, err = obtain('Nagoya', 'V', tfr, tto, timedelta(days=PERIOD), single=True)
-    coef /= -100
-    err /= -100
-    ax.errorbar(times, coef, err, fmt=f'-', color='#FFAA00', ecolor='magenta', label=f't_coef :V (single)')
-
-    for channel in channels:
+    def _plot_one(channel):
         times, coef, err = obtain('Nagoya', channel, tfr, tto, timedelta(days=PERIOD))
         color = colors[channels.index(channel)]
         ax.errorbar(times, coef, err, fmt=f'-', color=color, ecolor='magenta', label=f't_coef :{channel}')
+
+    start = time.time()
+    # with ThreadPoolExecutor(max_workers=4) as executor:
+    #     executor.map(_plot_one, channels)
+    for c in channels:
+        _plot_one(c)
+    print('done in', round(time.time() - start, 2), 'seconds')
+
+    # times, coef, err = obtain('Nagoya', 'V', tfr, tto, timedelta(days=PERIOD), single=True)
+    # coef /= -100
+    # err /= -100
+    # ax.errorbar(times, coef, err, fmt=f'-', color='#FFAA00', ecolor='magenta', label=f't_coef :V (single)')
+
     legend = plt.legend()
+    plt.title(f'period={PERIOD} days')
     plt.setp(legend.get_texts(), color='grey')
     plt.show()
