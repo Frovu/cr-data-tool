@@ -50,7 +50,8 @@ def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pr
     if status == 'ok':
         if against == 'all':
             return 'ok', corrections.calc_coefs(*info)
-        data = proxy.select(*info, [against, what], include_time=False, where=what+' > 0', order=against)
+        data = proxy.select(*info, [against, what], include_time=False,
+            where=f'{what} > 0 AND {against} > 0', order=against)
         if len(data[0]) < 72:
             return 'failed', {'failed': 'No data'}
         return 'ok', corrections.calc_correlation(*data, only)
