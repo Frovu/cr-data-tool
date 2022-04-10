@@ -5,7 +5,7 @@ from flask import Blueprint, request
 from datetime import datetime
 from core import permissions
 from core.utils import route_shielded
-import logging
+import logging, numpy
 
 bp = Blueprint('temperature', __name__, url_prefix='/api/temperature')
 
@@ -32,7 +32,7 @@ def get():
         return body
     permissions.log_action('get_result', 'temperature', f'{lat},{lon}')
     body["fields"] = data[1]
-    body["data"] = data[0]
+    body["data"] = numpy.round(numpy.array(data[0]), 2).tolist()
     return body
 
 @bp.route('/stations', methods=['GET'])

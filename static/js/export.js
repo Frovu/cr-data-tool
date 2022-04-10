@@ -34,8 +34,15 @@ export function exportTab(urlBase, params, filename='crdt-data') {
 	let data, fields, fname = filename;
 	const el = document.createElement('div');
 	const textEl = document.createElement('button');
-	textEl.onclick = () => exportToFile(data, fields, fname, true);
+	textEl.onclick = () => {
+		textEl.innerHTML = 'formatting...';
+		setTimeout(() => {
+			exportToFile(data, fields, fname, true);
+			textEl.innerHTML = 'download .txt';
+		});
+	};
 	textEl.innerHTML = 'download .txt';
+	textEl.classList.add('subquery');
 	const urlEl = document.createElement('p');
 	el.append(textEl, urlEl);
 	return {
