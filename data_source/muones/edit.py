@@ -68,5 +68,5 @@ def clear(station, channel, period):
     cond, vals = _channel_condition(station, channel)
     with pg_conn.cursor() as cursor:
         cursor.execute(f'DELETE FROM {_table(period)} WHERE channel = {cond}', vals)
-        cursor.execute(f'DELETE FROM {_table_cond(period)} WHERE station = {cond}', vals)
+        cursor.execute(f'DELETE FROM {_table_cond(period)} WHERE station = (SELECT id FROM muon_stations WHERE name = %s)', [station])
         pg_conn.commit()

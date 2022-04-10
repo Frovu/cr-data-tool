@@ -112,27 +112,27 @@ def _obtain_gdrive(station, t_from, t_to, channel='V', what='source'):
             else:
                 logging.warning(f'gdrive: time not found {title}')
                 continue
-            unit = title.split('.')[2]
-            if unit == '60m':
-                divisor = 60
-            elif unit == '05m':
-                divisor = 60
-            elif unit == '01m':
-                divisor = 1
-            elif unit == 'hz':
-                divisor = 1 / 60
+            if what == 'source':
+                unit = title.split('.')[2]
+                if unit == '60m':
+                    divisor = 60
+                elif unit == '05m':
+                    divisor = 60
+                elif unit == '01m':
+                    divisor = 1
+                elif unit == 'hz':
+                    divisor = 1 / 60
+                else:
+                    logging.warning(f'gdrive: unknown unit {title}')
+                    continue
             else:
-                logging.warning(f'gdrive: unknown unit {title}')
-                continue
+                divisor = 1
             for line in gdrive.stdout:
                 split = line.split()
                 result.append((get_time(split), float(split[target_idx]) / divisor))
-
         except Exception as e:
             logging.warning(f'gdrive: failed {station}.{year} - {e}')
-
     return result
-
 
 def obtain(channel, t_from, t_to, column):
     station = channel.station_name
