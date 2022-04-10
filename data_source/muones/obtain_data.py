@@ -1,10 +1,8 @@
-import os
-import psycopg2
-import logging
 from datetime import datetime, timedelta
 from core.sql_queries import integrity_query
-import requests
-import json
+import psycopg2, logging, os
+import requests, json
+from subprocess import Popen, PIPE, check_output
 
 def _psql_query(table, period, t_from, t_to, fields, epoch=False, count=False, cond=''):
     interval = f'interval \'{period} seconds\''
@@ -77,6 +75,65 @@ def _obtain_apatity(station, t_from, t_to, channel='V', what='source', period=36
     logging.debug(f'Muones: got raw [{len(result)}/{(t_to-t_from)//period+1}] {station}:{channel} {t_from}:{t_to}')
     return result
 
+def _obtain_gdrive(station, t_from, t_to, channel='V', what='source'):
+    dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
+    result = []
+    for year in range(dt_from.year, dt_to.year + 1):
+        try:
+            list = check_output(['gdrive', 'list', '-q', f'title contains \'{station}.{year}\' and mimeType != \'application/vnd.google-apps.folder\''], text=True)
+            list = list.splitlines()
+            if len(list) < 2:
+                logging.debug(f'gdrive: not found {station}.{year}')
+                continue
+            id, title = list[1].split()[:2]
+            logging.debug(f'gdrive: downloading {title} ({id})')
+            gdrive = Popen(['gdrive', 'download', '-s', '-i', id], stdout=PIPE, text=True)
+            for line in gdrive.stdout:
+                if '*'*64 in line:
+                    break
+            columns = gdrive.stdout.readline().lower().split()
+            target = channel if what == 'source' else what
+            if not target.lower() in columns:
+                logging.warning(f'gdrive: no such column ({target}) {title}')
+                continue
+            target_idx = columns.index(target.lower())
+            if 'timestamp' in columns:
+                t_idx = columns.index('timestamp')
+                get_time = lambda sp: datetime.utcfromtimestamp(sp[t_idx])
+            elif 'datetime' in columns:
+                templ, t_idx = '%Y-%m-%dT%H:%M:%S', columns.index('timestamp')
+                get_time = lambda sp: datetime.strptime(sp[t_idx].slice(0, len(templ)), templ)
+            elif 'date' in columns and 'time' in columns:
+                d_idx, t_idx = columns.index('date'), columns.index('time')
+                get_time = lambda sp: datetime.strptime(date+'T'+time, '%Y-%m-%dT%H:%M:%S')
+            elif 'dt' in columns:
+                base, t_idx = datetime(year, 1, 1), columns.index('dt')
+                get_time = lambda sp: base + timedelta(days=float(sp[t_idx]))
+            else:
+                logging.warning(f'gdrive: time not found {title}')
+                continue
+            unit = title.split('.')[2]
+            if unit == '60m':
+                divisor = 60
+            elif unit == '05m':
+                divisor = 60
+            elif unit == '01m':
+                divisor = 1
+            elif unit == 'hz':
+                divisor = 1 / 60
+            else:
+                logging.warning(f'gdrive: unknown unit {title}')
+                continue
+            for line in gdrive.stdout:
+                split = line.split()
+                result.append((get_time(split), float(split[target_idx]) / divisor))
+
+        except Exception as e:
+            logging.warning(f'gdrive: failed {station}.{year} - {e}')
+
+    return result
+
+
 def obtain(channel, t_from, t_to, column):
     station = channel.station_name
     logging.debug(f'Muones: querying raw {station}:{channel.name} {t_from}:{t_to}')
@@ -101,6 +158,9 @@ def obtain(channel, t_from, t_to, column):
         if result[-1][0] < dt_to:
             result = result + _obtain_nagoya(result[-1][0]+timedelta(hours=1), dt_to, what)
         return result, column
+    elif station == 'Moscow-CARPET':
+        data = _obtain_gdrive(station.split('-')[1], t_from, t_to, channel.name, column)
+        return data, column
     elif station in ['Apatity', 'Barentsburg']:
         data = _obtain_apatity(station, t_from, t_to, channel.name, column)
         return data, column
