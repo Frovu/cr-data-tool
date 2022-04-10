@@ -40,7 +40,7 @@ for _period in PERIODS:
 
 def stations():
     with pg_conn.cursor() as cursor:
-        cursor.execute(f'SELECT name, lat, lon, (SELECT array_agg(channel_name) AS channels FROM muon_channels WHERE station_name = name) FROM muon_stations')
+        cursor.execute(f'SELECT name, lat, lon, (SELECT array_agg(channel_name ORDER BY id) AS channels FROM muon_channels WHERE station_name = name) FROM muon_stations ORDER BY id')
         result = []
         for s in cursor.fetchall():
             result.append({'name': s[0], 'lat': float(s[1]), 'lon': float(s[2]), 'channels': s[3]})
