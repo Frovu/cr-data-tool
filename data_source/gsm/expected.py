@@ -40,8 +40,8 @@ def get_variation(channel, interval, period=3600):
     # logging.debug(f'GSM: rotating planet')
     time_of_day = (time + period / 2) % 86400
     phi = 2 * np.pi * time_of_day / 86400 # planet rotation
-    x = x * np.cos(phi)      + y * np.sin(phi)
-    y = x * np.sin(phi) * -1 + y * np.cos(phi)
+    x_station = x * np.cos(phi)      + y * np.sin(phi)
+    y_station = x * np.sin(phi) * -1 + y * np.cos(phi)
     # logging.debug(f'GSM: station coefs')
     c0, c10, a11, p11 = GSM_COEF[(channel.station_name, channel.name)]
     lat, lon = channel.coordinates
@@ -50,5 +50,5 @@ def get_variation(channel, interval, period=3600):
     Cy = -1 * a11 * np.sin(p11_station)
     Cz = -1 * c10
     isotropic = a10 * c0
-    anisotropic = x * Cx + y * Cy + z * Cz
+    anisotropic = x_station * Cx + y_station * Cy + z * Cz
     return time, isotropic, anisotropic
