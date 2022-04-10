@@ -16,35 +16,31 @@ function textTable(data, fields) {
 	return text;
 }
 
-function exportToFile(data, fields, filename, download=false) {
+function downloadFile(data, fields, filename) {
 	const dataUrl = 'data:,' + encodeURIComponent(textTable(data, fields));
-	if (download) {
-		const a = document.createElement('a');
-		a.href = dataUrl;
-		a.download = filename + '.txt';
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-	} else {
-		window.open(dataUrl, '_blank');
-	}
+	const a = document.createElement('a');
+	a.href = dataUrl;
+	a.download = filename + '.txt';
+	document.body.appendChild(a);
+	a.click();
+	document.body.removeChild(a);
 }
 
-export function exportTab(urlBase, params, filename='crdt-data') {
+export function exportTab(urlBase, params, filename='crdt-export') {
 	let data, fields, fname = filename;
 	const el = document.createElement('div');
-	const textEl = document.createElement('button');
-	textEl.onclick = () => {
-		textEl.innerHTML = 'formatting...';
+	const downloadBtn = document.createElement('button');
+	downloadBtn.onclick = () => {
+		downloadBtn.innerHTML = 'formatting...';
 		setTimeout(() => {
-			exportToFile(data, fields, fname, true);
-			textEl.innerHTML = 'download .txt';
+			downloadFile(data, fields, fname, true);
+			downloadBtn.innerHTML = 'download .txt';
 		});
 	};
-	textEl.innerHTML = 'download .txt';
-	textEl.classList.add('subquery');
+	downloadBtn.innerHTML = 'download .txt';
+	downloadBtn.classList.add('subquery');
 	const urlEl = document.createElement('p');
-	el.append(textEl, urlEl);
+	el.append(downloadBtn, urlEl);
 	return {
 		setData: (d, f) => {
 			data = d;
@@ -53,7 +49,7 @@ export function exportTab(urlBase, params, filename='crdt-data') {
 		setParams: p => {
 			params = p;
 			const url = urlBase +'?'+ Object.keys(p).map(k => `${k}=${p[k]}`).join('&');
-			urlEl.innerHTML = `Every dataset is also available <a href="${url}">via API<a>`;
+			urlEl.innerHTML = `Every dataset is also available <a target="_blank" href="${url}">via API<a> (JSON)`;
 		},
 		el
 	};
