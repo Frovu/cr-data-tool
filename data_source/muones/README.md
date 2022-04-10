@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS muon_stations (
 	name TEXT UNIQUE,
 	lat NUMERIC,
 	lon NUMERIC,
+	since TIMESTAMP,
 	elevation_m REAL,
 	description TEXT
 );
@@ -22,13 +23,13 @@ CREATE TABLE IF NOT EXISTS muon_channels (
 	coef_per_len INT,
 	UNIQUE(station_name, channel_name)
 );
-INSERT INTO muon_stations(lat, lon, name, elevation_m) VALUES
-(55.47, 37.32, 'Moscow-pioneer', 190),
-(55.47, 37.32, 'Moscow-CARPET', 190),
-(55.47, 37.32, 'Moscow-CUBE', 190),
-(67.57, 33.39, 'Apatity', 181),
-(78.06, 14.22, 'Barentsburg', 70),
-(35.2, 137.0, 'Nagoya', 77)
+INSERT INTO muon_stations(lat, lon, name, since, elevation_m) VALUES
+(55.47, 37.32, 'Moscow-pioneer', '2020-08-26', 190),
+(55.47, 37.32, 'Moscow-CUBE', '2019-01-01', 190),
+(55.47, 37.32, 'Moscow-CARPET', '2019-01-01', 190),
+(67.57, 33.39, 'Apatity', '2020-11-26', 181),
+(78.06, 14.22, 'Barentsburg', '2021-10-03', 70),
+(35.2, 137.0, 'Nagoya', '1986-04-01', 77)
 ON CONFLICT(name) DO NOTHING;
 INSERT INTO muon_channels(station_name, channel_name, dir_vertical, dir_azimuthal) VALUES
 ('Moscow-pioneer', 'V' , 0, 0),

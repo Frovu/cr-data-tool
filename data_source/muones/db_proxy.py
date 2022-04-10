@@ -57,13 +57,13 @@ class Channel:
         if not PERIODS.get(period):
             return None
         with pg_conn.cursor() as cursor:
-            cursor.execute(f'''SELECT c.id, s.id, lat, lon, coef_pressure, coef_tm, mean_pressure, mean_tm, coef_per_len
+            cursor.execute(f'''SELECT EXTRACT(EPOCH from since), c.id, s.id, lat, lon, coef_pressure, coef_tm, mean_pressure, mean_tm, coef_per_len
 FROM muon_channels c JOIN muon_stations s ON s.name = c.station_name
 WHERE station_name = %s AND channel_name = %s''', [station, channel])
             result = cursor.fetchone()
         if not result:
             return None
-        self.id, self.station_id, lat, lon, self.coef_pr, self.coef_tm, self.mean_pr, self.mean_tm, self.coef_len = result
+        self.since, self.id, self.station_id, lat, lon, self.coef_pr, self.coef_tm, self.mean_pr, self.mean_tm, self.coef_len = result
         self.station_name, self.name = station, channel
         self.period, self.coordinates = period, (float(lat), float(lon))
         return self
