@@ -72,6 +72,7 @@ let inTransaction = false;
 
 function receiveData(resp) {
 	const rows = resp.data, len = resp.data.length;
+	exprt.setData(resp.data, resp.fields);
 	const fields = Object.keys(FIELDS);
 	const idx = Array(fields.length);
 	resp.fields.forEach((field, i) => {
@@ -143,10 +144,14 @@ function plotInit() {
 	plot.series(series);
 	if (data.length) plot.data(viewMode === 'counts' ? data : countsToVariation(data));
 }
+
+
+const exprt = tabs.exportTab(URL, params);
 const query = util.constructQueryManager(URL, {
 	data: receiveData,
 	params: p => {
 		util.storage.setObject('muones-params', p);
+		exprt.setParams(p);
 	}
 });
 
@@ -232,6 +237,7 @@ Correction is performed via mass-average temperature method.<br>
 			inTransaction = false;
 			query.fetch(params);
 		}
+		editMode = false;
 		editSwitch.children[0].innerHTML = 'view';
 		editSwitch.children[0].classList.remove('invalid');
 		commitBtn.elem.classList.remove('active');
@@ -243,6 +249,7 @@ Correction is performed via mass-average temperature method.<br>
 			inTransaction = false;
 			query.fetch(params);
 		}
+		editMode = false;
 		editSwitch.children[0].innerHTML = 'view';
 		editSwitch.children[0].classList.remove('invalid');
 		commitBtn.elem.classList.remove('active');
@@ -283,6 +290,7 @@ Correction is performed via mass-average temperature method.<br>
 		allChannelsBox.firstChild.checked = false;
 		allChannels = false;
 	};
+	tabs.fill('export', [exprt.el]);
 
 	query.fetch(params);
 }

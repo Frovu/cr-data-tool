@@ -1,8 +1,23 @@
+function textTable(data, fields) {
+	if (!data) return 'no data';
+	const len = data[0].length;
+	const colLen = data[0].map((v, i) => fields[i].length < (String(v).length + 4) ? String(v).length + 4 : fields[i].length + 1);
+	const paddings = colLen.map(l => ' '.repeat(l));
+	const lineLen = colLen.reduce((a, b) => a + b, 0);
+	let text = fields.map((f, i) => (f + paddings[i]).slice(0, colLen[i])).join('') + '\r\n';
+	text += '-'.repeat(lineLen) + '\r\n';
+	data.forEach(line => {
+		for (let i = 0; i < len; ++i) {
+			const val = line[i].toString() + paddings[i];
+			text += val.slice(0, colLen[i]);
+		}
+		text += '\r\n';
+	});
+	return text;
+}
+
 function exportToFile(data, fields, filename, download=false) {
-	let text = fields.join('\t');
-	for (const r of data)
-		text += '\n' + r.join('\t');
-	const dataUrl = 'data:,' + encodeURIComponent(text);
+	const dataUrl = 'data:,' + encodeURIComponent(textTable(data, fields));
 	if (download) {
 		const a = document.createElement('a');
 		a.href = dataUrl;
