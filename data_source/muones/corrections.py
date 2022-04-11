@@ -73,7 +73,7 @@ def corrected(channel, interval, coefs_action):
         with_v = None not in gsm_result
         v_gsm = with_v and gsm_result[np.in1d(gsm_result[:,0], time),1:]
         v_isotropic, v_anisotropic = with_v and v_gsm[:,0], with_v and v_gsm[:,1]
-        regr_data = np.column_stack((pr, tm, v_isotropic, v_anisotropic+1) if with_v else (pr, tm))
+        regr_data = np.column_stack((pr, tm, v_isotropic, v_anisotropic) if with_v else (pr, tm))
         regr = LinearRegression().fit(regr_data, np.log(raw))
         coef_pr, coef_tm, coef_v0, coef_v1 = regr.coef_ if with_v else (*regr.coef_, 0, 0)
         interval_len = interval[1] - interval[0]
@@ -108,14 +108,18 @@ def calc_coefs(channel, interval):
         return {}
     time, raw, tm_src, pr_src = data[:,0], data[:,1], data[:,2], data[:,3]
     tm, pr = (np.mean(tm_src) - tm_src), (np.mean(pr_src) - pr_src)
-    gsm_r = np.column_stack(gsm.get_variation(channel, interval))
-    v_exp = gsm_r[np.in1d(gsm_r[:,0], time),1]
-    regr = LinearRegression().fit(np.column_stack((pr, tm, v_exp)), np.log(raw))
-    coef_pr, coef_tm, coef_v = regr.coef_
+    gsm_result = np.column_stack(gsm.get_variation(channel, interval))
+    with_v = None not in gsm_result
+    v_gsm = with_v and gsm_result[np.in1d(gsm_result[:,0], time),1:]
+    v_isotropic, v_anisotropic = with_v and v_gsm[:,0], with_v and v_gsm[:,1]
+    regr_data = np.column_stack((pr, tm, v_isotropic, v_anisotropic) if with_v else (pr, tm))
+    regr = LinearRegression().fit(regr_data, np.log(raw))
+    coef_pr, coef_tm, coef_v0, coef_v1 = regr.coef_ if with_v else (*regr.coef_, 0, 0)
     return {
         'coef_pressure': coef_pr,
         'coef_temperature': coef_tm,
-        'coef_variation': coef_v
+        'coef_gsm': coef_v0,
+        'coef_gsm_anisotropic': coef_v1
     }
 
 def calc_correlation(data, fields, only):

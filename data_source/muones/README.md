@@ -29,7 +29,7 @@ INSERT INTO muon_stations(lat, lon, name, since, elevation_m) VALUES
 (55.47, 37.32, 'Moscow-CARPET', '2019-01-01', 190),
 (67.57, 33.39, 'Apatity', '2020-11-26', 181),
 (78.06, 14.22, 'Barentsburg', '2021-10-03', 70),
-(35.2, 137.0, 'Nagoya', '1986-04-01', 77)
+(35.2, 137.0, 'Nagoya', '1986-04-22', 77)
 ON CONFLICT(name) DO NOTHING;
 INSERT INTO muon_channels(station_name, channel_name, dir_vertical, dir_azimuthal) VALUES
 ('Moscow-pioneer', 'V' , 0, 0),
