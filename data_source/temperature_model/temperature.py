@@ -6,6 +6,7 @@ import data_source.temperature_model.proxy as proxy
 import data_source.temperature_model.gfs_parser as gfs
 from math import floor, ceil
 import logging as log
+LEVELS = proxy.LEVELS
 
 HOUR = 3600
 MODEL_PERIOD = 6 * HOUR
@@ -42,7 +43,7 @@ def _interpolate_time(times, data):
     return new_times, result
 
 def _t_mass_average(data):
-    diff = np.abs(np.diff(proxy.LEVELS)) / np.max(proxy.LEVELS)
+    diff = np.abs(np.diff(LEVELS)) / np.max(LEVELS)
     return np.array([np.sum(diff * ((x[:-1] + x[1:]) / 2)) for x in data])
 
 def _fill_interval(interval, lat, lon, mq):
