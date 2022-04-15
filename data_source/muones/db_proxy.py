@@ -100,12 +100,17 @@ def upsert(channel, data, column, epoch=False):
     is_counts = column in ['source', 'corrected']
     table = _table(channel.period) if is_counts else _table_cond(channel.period)
     fk_col, fk_val = ('channel', channel.id) if is_counts else ('station', channel.station_id)
-    with pg_conn.cursor() as cursor:
-        query = f'''INSERT INTO {table} (time, {fk_col}, {column}) VALUES %s
-        ON CONFLICT (time, {fk_col}) DO UPDATE SET {column} = EXCLUDED.{column}'''
-        template = f'({"to_timestamp(%s)" if epoch else "%s"},{fk_val},%s)'
-        psycopg2.extras.execute_values (cursor, query, data, template=template)
-        pg_conn.commit()
+    try:
+        with pg_conn.cursor() as cursor:
+            query = f'''INSERT INTO {table} (time, {fk_col}, {column}) VALUES %s
+            ON CONFLICT (time, {fk_col}) DO UPDATE SET {column} = EXCLUDED.{column}'''
+            template = f'({"to_timestamp(%s)" if epoch else "%s"},{fk_val},%s)'
+            psycopg2.extras.execute_values (cursor, query, data, template=template)
+            pg_conn.commit()
+    except psycopg2.errors.InFailedSqlTransaction:
+        pg_conn.rollback()
+        logging.warning(f'Muon: InFailedSqlTransaction on upsert, rolling back')
+        return upsert(channel, data, column, epoch)
     logging.info(f'Upsert: muon:{channel.station_name}{("/"+channel.name) if is_counts else ""} <-[{len(data)}] {column} from {data[0][0]}')
 
 def clear(channel, column):

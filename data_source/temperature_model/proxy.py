@@ -75,9 +75,14 @@ def analyze_integrity(lat, lon, t_from, t_to, fc_age='2 days', model_lag='4 days
         bad_condition=f'''forecast IS NOT NULL AND
 (time < \'now\'::timestamp - interval \'{model_lag}\' OR
 (time - forecast > interval \'8 h\' AND \'now\'::timestamp - forecast > interval \'{fc_age}\'))''')
-    with pg_conn.cursor() as cursor:
-        cursor.execute(q)
-        return cursor.fetchall()
+    try:
+        with pg_conn.cursor() as cursor:
+            cursor.execute(q)
+            return cursor.fetchall()
+    except psycopg2.errors.InFailedSqlTransaction:
+        pg_conn.rollback()
+        logging.warning(f'TEmperature: InFailedSqlTransaction on an_int, rolling back')
+        return analyze_integrity(lat, lon, t_from, t_to, fc_age, model_lag)
 
 def select(lat, lon, t_from, t_to, only=[]):
     result = []

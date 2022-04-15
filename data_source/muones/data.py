@@ -20,12 +20,12 @@ def _get_prepare(station, t_from, t_to, period, channel, columns=['corrected']):
     if is_done == False:
         return 'failed' if info.get('failed') else 'busy', info
     ch = proxy.channel(station, channel, period)
+    if not ch:
+        return 'unknown', None
     trim_past, trim_future = ch.since, datetime.now().timestamp()
     t_from = t_from if t_from > trim_past else trim_past
     t_to = t_to if t_to < trim_future else trim_future
     interv = (floor(t_from / period) * period, ceil(t_to / period) * period)
-    if not ch:
-        return 'unknown', None
     if is_done or not proxy.analyze_integrity(ch, interv, columns):
         return 'ok', (ch, interv)
     mq_fn = lambda q: scheduler.merge_query(*key, q)
