@@ -10,7 +10,6 @@ import time
 import re
 from math import floor, ceil
 
-COLUMN_TEMP = 'T_m'
 MODEL_PERIOD = 3600
 TEMP_EFF_WEIGHT = dict({
     ('Nagoya',  0): [0.000, 0.142, 0.285, 0.360, 0.376, 0.362, 0.348, 0.331, 0.317, 0.309, 0.302, 0.289, 0.278, 0.271, 0.270, 0.286, 0.305, 0.337],
@@ -44,34 +43,15 @@ def _t_obtain_model(channel, t_from, t_to, merge_query, what):
         delay += .1 if delay < 1 else 0
         time.sleep(delay)
 
-def _t_effective(channel, t_from, t_to, merge_query):
+def t_effective(channel, t_from, t_to, merge_query):
     temp = _t_obtain_model(channel, t_from, t_to, merge_query, temperature.proxy.LEVELS_COLUMNS[::-1])
     times, levels = temp[:,0], temp[:,1:]
     weights = TEMP_EFF_WEIGHT[(channel.station_name, channel.angle)]
     t_eff = np.array([np.sum(weighted) for weighted in (levels * weights)])
     return np.column_stack((times, t_eff))
 
-def _t_mass_average(channel, t_from, t_to, merge_query):
+def t_mass_average(channel, t_from, t_to, merge_query):
     return _t_obtain_model(channel, t_from, t_to, merge_query, ['mass_average'])
-
-def get_prepare_tasks(channel, fill_fn, subquery_fn):
-        tasks = []
-        tasks.append(('raw counts', fill_fn, (
-            lambda i: proxy.analyze_integrity(channel, i, 'source'),
-            lambda i: proxy.upsert(channel, *parser.obtain(channel, *i, 'source')),
-            False, 1, 365*24
-        )))
-        tasks.append(('pressure', fill_fn, (
-            lambda i: proxy.analyze_integrity(channel, i, 'pressure'),
-            lambda i: proxy.upsert(channel, *parser.obtain(channel, *i, 'pressure')),
-            False, 1, 365*24
-        )))
-        tasks.append(('temperature-model', fill_fn, (
-            lambda i: proxy.analyze_integrity(channel, i, COLUMN_TEMP),
-            lambda i: proxy.upsert(channel, _t_mass_average(channel, *i, subquery_fn), COLUMN_TEMP, epoch=True),
-            True, 8, 365*24
-        )))
-        return tasks
 
 def corrected(channel, interval, coefs_action):
     columns = ['source', 'T_m', 'pressure']

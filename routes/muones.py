@@ -121,11 +121,11 @@ def muon_correlation():
     t_from = int(request.args.get('from', ''))
     t_to = int(request.args.get('to', ''))
     period = int(request.args.get('period')) if request.args.get('period') else 3600
-    against = request.args.get('against', '') or 'Tm'
+    against = request.args.get('against', '') or 'T_m'
     station = request.args.get('station', '')
     channel = request.args.get('channel', '')
     only = request.args.get('only', '')
-    if period not in [60, 3600] or against not in ['pressure', 'Tm', 'T_m', 'all']:
+    if period not in [60, 3600] or against not in ['pressure', 'T_eff', 'T_m', 'all']:
         raise ValueError()
     status, data = muones.get_correlation(station, t_from, t_to, period,
         against=against, channel=channel, only=only)

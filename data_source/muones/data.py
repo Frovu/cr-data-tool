@@ -13,7 +13,27 @@ def stations():
 def station(lat, lon):
     return proxy.station(lat, lon)
 
-def _get_prepare(station, t_from, t_to, period, channel, columns=['corrected']):
+def _get_prepare_tasks(channel, fill_fn, subquery_fn, temp_mode='T_m'):
+    temp_fn = corrections.t_mass_average if temp_mode == 'T_m' else corrections.t_effective
+    return [
+        ('raw counts', fill_fn, (
+            lambda i: proxy.analyze_integrity(channel, i, 'source'),
+            lambda i: proxy.upsert(channel, *parser.obtain(channel, *i, 'source')),
+            False, 1, 365*24
+        )),
+        ('pressure', fill_fn, (
+            lambda i: proxy.analyze_integrity(channel, i, 'pressure'),
+            lambda i: proxy.upsert(channel, *parser.obtain(channel, *i, 'pressure')),
+            False, 1, 365*24
+        )),
+        ('temperature-model', fill_fn, (
+            lambda i: proxy.analyze_integrity(channel, i, temp_mode),
+            lambda i: proxy.upsert(channel, temp_fn(channel, *i, subquery_fn), temp_mode, epoch=True),
+            True, 8, 365*24
+        ))
+    ]
+
+def _get_prepare(station, t_from, t_to, period, channel, columns):
     token = station + channel + str(period)
     key = (token, t_from, t_to)
     is_done, info = scheduler.status(key)
@@ -30,7 +50,7 @@ def _get_prepare(station, t_from, t_to, period, channel, columns=['corrected']):
         return 'ok', (ch, interv)
     mq_fn = lambda q: scheduler.merge_query(*key, q)
     scheduler.do_fill(token, *interv, period,
-        corrections.get_prepare_tasks(ch, fill_fn, mq_fn), key_overwrite=key)
+        _get_prepare_tasks(ch, fill_fn, mq_fn), key_overwrite=key)
     return 'accepted', None
 
 def get_corrected(station, t_from, t_to, period=3600, channel='V', coefs='saved'):
@@ -44,9 +64,13 @@ def get_corrected(station, t_from, t_to, period=3600, channel='V', coefs='saved'
 
 def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pressure', what='source', only=None):
     if against == 'Tm': against = 'T_m'
-    if against not in ['T_m', 'pressure', 'all']:
+    if against == 'Teff': against = 'T_eff'
+    if against not in ['T_m', 'T_eff', 'pressure', 'all']:
         return 'unknown', None
-    status, info = _get_prepare(station, t_from, t_to, period, channel, ['source', 'T_m', 'pressure'])
+    if against == 'T_eff' and station not in ['Nagoya']:
+        return 'unknown', None
+    columns = ['source', against] if against != all else ['source', 'T_m', 'pressure']
+    status, info = _get_prepare(station, t_from, t_to, period, channel, columns)
     if status == 'ok':
         if against == 'all':
             return 'ok', corrections.calc_coefs(*info)

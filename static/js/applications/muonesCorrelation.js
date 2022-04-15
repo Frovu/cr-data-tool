@@ -48,8 +48,8 @@ export async function initTabs() {
 Plot correlations of muones telescopes data.<br>
 Supported only for ${sText}`)
 	]);
-	const periods = ['1 hour', '1 minute'];
-	const against = ['pressure', 'Tm'];
+	const periods = ['hour', 'minute'];
+	const against = ['pressure', 'T_m', 'T_eff'];
 	tabs.fill('query', [
 		stations ?
 			tabs.input('station-channel', (station, channel) => {
@@ -62,11 +62,11 @@ Supported only for ${sText}`)
 		tabs.input('switch', per => {
 			params.period = per.includes('minute') ? 60 : 3600;
 			query.params(params);
-		}, { options: params.period===60?periods.reverse():periods, text: 'period: ' }),
+		}, { options: periods, text: 'period: ', active: params.period == 3600 ? 'hour' : 'minute'}),
 		tabs.input('switch', ag => {
 			params.against = ag;
 			query.params(params);
-		}, { options: params.against!==against[0]?against.reverse():against, text: 'against: ' }),
+		}, { options: against, text: 'against: ', active: params.against }),
 		tabs.input('time', (from, to, force) => {
 			params.from = from;
 			params.to = to;

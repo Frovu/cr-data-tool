@@ -16,6 +16,7 @@ PERIODS = dict([
     # (60, '01m'),
     (3600, '60m')
 ])
+C_COLUMNS = ['source', 'corrected', 'T_eff']
 
 def _table(period):
     return f'muon_counts_{PERIODS[period]}'
@@ -29,6 +30,7 @@ for _period in PERIODS:
         channel SMALLINT,
         source REAL,
         corrected REAL,
+        T_eff REAL,
         UNIQUE (time, channel))''')
         cursor.execute(f'''CREATE TABLE IF NOT EXISTS {_table_cond(_period)} (
         time TIMESTAMP NOT NULL,
@@ -85,19 +87,24 @@ def analyze_integrity(channel, interval, columns):
         cursor.execute(integrity_query(*interval, channel.period, [], columns, join_overwrite=j))
         return cursor.fetchall()
 
-def select(channel, interval, columns=['count_corr'], include_time=True, order='c.time', where=''):
+def select(channel, interval, columns, include_time=True, order='c.time', where=''):
     with pg_conn.cursor() as cursor:
         q = f'''SELECT {"EXTRACT(EPOCH FROM c.time)," if include_time else ""}{",".join(columns)}
 FROM {_table(channel.period)} c LEFT JOIN {_table_cond(channel.period)} m ON m.time = c.time
 WHERE c.time >= to_timestamp(%s) AND c.time <= to_timestamp(%s)
 AND m.station = {channel.station_id} AND c.channel = {channel.id}
 {"AND "+where if where else ""} ORDER BY {order}'''
-        cursor.execute(q, interval)
-        return cursor.fetchall(), (['time']+columns) if include_time else columns
+        try:
+            cursor.execute(q, interval)
+            return cursor.fetchall(), (['time']+columns) if include_time else columns
+        except psycopg2.errors.InFailedSqlTransaction:
+            pg_conn.rollback()
+            logging.warning(f'Muon: InFailedSqlTransaction on select, rolling back')
+            return select(channel, interval, columns, include_time, order, where)
 
 def upsert(channel, data, column, epoch=False):
     if not len(data): return
-    is_counts = column in ['source', 'corrected']
+    is_counts = column in C_COLUMNS
     table = _table(channel.period) if is_counts else _table_cond(channel.period)
     fk_col, fk_val = ('channel', channel.id) if is_counts else ('station', channel.station_id)
     try:
@@ -114,7 +121,7 @@ def upsert(channel, data, column, epoch=False):
     logging.info(f'Upsert: muon:{channel.station_name}{("/"+channel.name) if is_counts else ""} <-[{len(data)}] {column} from {data[0][0]}')
 
 def clear(channel, column):
-    is_counts = column in ['source', 'corrected']
+    is_counts = column in C_COLUMNS
     table = _table(channel.period) if is_counts else _table_cond(channel.period)
     fk_col, fk_val = ('channel', channel.id) if is_counts else ('station', channel.station_id)
     with pg_conn.cursor() as cursor:
