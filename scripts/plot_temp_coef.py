@@ -14,7 +14,7 @@ plt.rcParams['figure.facecolor'] = 'darkgrey'
 url = 'https://crst.izmiran.ru/crdt'
 # url = 'http://localhost:5000'
 
-PERIOD = 365*2 # days
+PERIOD = 365//6 # days
 session = requests.Session()
 
 def _obtain_coef(dt_from, dt_to, station, channel, single):
@@ -45,10 +45,10 @@ period: timedelta=timedelta(days=365), single: bool=False):
     return data[:,0], data[:,1], data[:,2]
 
 if __name__ == '__main__':
-    tfr = datetime(1986, 4, 1)
+    tfr = datetime(1986, 8, 1)
     tto = datetime(2018, 12, 31)
     fig, ax = plt.subplots()
-    channels = ['N', 'N2', 'N3']
+    channels = ['S', 'E', 'V']
     colors = ['#00FFAA', '#00AAFF', '#ccFF00', '#55FF00']
 
     def _plot_one(channel):

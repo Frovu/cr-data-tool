@@ -12,17 +12,17 @@ from math import floor, ceil
 
 MODEL_PERIOD = 3600
 TEMP_EFF_WEIGHT = dict({
-    ('Nagoya',  0): [0.000, 0.142, 0.285, 0.360, 0.376, 0.362, 0.348, 0.331, 0.317, 0.309, 0.302, 0.289, 0.278, 0.271, 0.270, 0.286, 0.305, 0.337],
-    ('Nagoya', 30): [0.000, 0.148, 0.296, 0.372, 0.386, 0.372, 0.357, 0.338, 0.323, 0.314, 0.307, 0.291, 0.279, 0.270, 0.269, 0.284, 0.302, 0.330],
-    ('Nagoya', 39): [0.000, 0.153, 0.306, 0.385, 0.396, 0.381, 0.365, 0.344, 0.328, 0.318, 0.311, 0.293, 0.279, 0.270, 0.268, 0.281, 0.299, 0.327],
-    ('Nagoya', 49): [0.000, 0.166, 0.333, 0.416, 0.419, 0.405, 0.386, 0.360, 0.342, 0.330, 0.318, 0.298, 0.280, 0.269, 0.265, 0.276, 0.292, 0.319],
-    ('Nagoya', 64): [0.000, 0.208, 0.417, 0.514, 0.488, 0.471, 0.444, 0.403, 0.376, 0.355, 0.337, 0.303, 0.277, 0.261, 0.253, 0.260, 0.273, 0.297]
+    ('Nagoya',  0): [0.142, 0.285, 0.360, 0.376, 0.362, 0.348, 0.331, 0.317, 0.309, 0.302, 0.289, 0.278, 0.271, 0.270, 0.286, 0.305, 0.337],
+    ('Nagoya', 30): [0.148, 0.296, 0.372, 0.386, 0.372, 0.357, 0.338, 0.323, 0.314, 0.307, 0.291, 0.279, 0.270, 0.269, 0.284, 0.302, 0.330],
+    ('Nagoya', 39): [0.153, 0.306, 0.385, 0.396, 0.381, 0.365, 0.344, 0.328, 0.318, 0.311, 0.293, 0.279, 0.270, 0.268, 0.281, 0.299, 0.327],
+    ('Nagoya', 49): [0.166, 0.333, 0.416, 0.419, 0.405, 0.386, 0.360, 0.342, 0.330, 0.318, 0.298, 0.280, 0.269, 0.265, 0.276, 0.292, 0.319],
+    ('Nagoya', 64): [0.208, 0.417, 0.514, 0.488, 0.471, 0.444, 0.403, 0.376, 0.355, 0.337, 0.303, 0.277, 0.261, 0.253, 0.260, 0.273, 0.297]
 })
 
 def _t_obtain_model(channel, t_from, t_to, merge_query, what):
     lat, lon = channel.coordinates
-    pa_from, pa_to = floor(interval[0]/MODEL_PERIOD)*MODEL_PERIOD, ceil(interval[1]/MODEL_PERIOD)*MODEL_PERIOD
-    logging.debug(f'Muones: querying model temp ({lat}, {lon}) {what} {t_from}:{t_to}')
+    pa_from, pa_to = floor(t_from/MODEL_PERIOD)*MODEL_PERIOD, ceil(t_to/MODEL_PERIOD)*MODEL_PERIOD
+    logging.debug(f'Muones: querying model temp ({lat}, {lon}) {t_from}:{t_to}')
     delay = .1
     while True:
         status, data = temperature.get(lat, lon, pa_from, pa_to, only=what, merge_query=merge_query)
@@ -47,7 +47,7 @@ def t_effective(channel, t_from, t_to, merge_query):
     temp = _t_obtain_model(channel, t_from, t_to, merge_query, temperature.proxy.LEVELS_COLUMNS[::-1])
     times, levels = temp[:,0], temp[:,1:]
     weights = TEMP_EFF_WEIGHT[(channel.station_name, channel.angle)]
-    t_eff = np.array([np.sum(weighted) for weighted in (levels * weights)])
+    t_eff = np.array([np.sum(weighted) for weighted in (levels * weights)]) / np.sum(weights)
     return np.column_stack((times, t_eff))
 
 def t_mass_average(channel, t_from, t_to, merge_query):

@@ -13,7 +13,7 @@ def stations():
 def station(lat, lon):
     return proxy.station(lat, lon)
 
-def _get_prepare_tasks(channel, fill_fn, subquery_fn, temp_mode='T_m'):
+def _get_prepare_tasks(channel, fill_fn, subquery_fn, temp_mode):
     temp_fn = corrections.t_mass_average if temp_mode == 'T_m' else corrections.t_effective
     return [
         ('raw counts', fill_fn, (
@@ -49,8 +49,9 @@ def _get_prepare(station, t_from, t_to, period, channel, columns):
     if is_done or not proxy.analyze_integrity(ch, interv, columns):
         return 'ok', (ch, interv)
     mq_fn = lambda q: scheduler.merge_query(*key, q)
+    temp_mode = 'T_m' if 'T_m' in columns else 'T_eff'
     scheduler.do_fill(token, *interv, period,
-        _get_prepare_tasks(ch, fill_fn, mq_fn), key_overwrite=key)
+        _get_prepare_tasks(ch, fill_fn, mq_fn, temp_mode), key_overwrite=key)
     return 'accepted', None
 
 def get_corrected(station, t_from, t_to, period=3600, channel='V', coefs='saved'):
