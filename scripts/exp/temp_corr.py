@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from sklearn.linear_model import LinearRegression
 import numpy as np
 import time, os, logging
 
@@ -13,8 +14,8 @@ import data_source.temperature_model.temperature as temperature
 PERIOD = 365*2
 
 start = time.time()
-tfr = datetime(2004, 1, 1)
-tto = datetime(2005, 12, 30)
+tfr = datetime(2000, 1, 1)
+tto = datetime(2004, 12, 30)
 t_from, t_to = [a.replace(tzinfo=timezone.utc).timestamp() for a in [tfr, tto]]
 
 ST = 'Nagoya'
@@ -29,15 +30,26 @@ while True:
     else:
         time.sleep(1)
 
-
+data = np.array(muon.proxy.select(*info, ['source', 'pressure'], where='source>0')[0])
+times, raw, pressure = data[:,0], data[:,1], data[:,2]
+pr = np.mean(pressure) - pressure
 t_data = muon.corrections._t_obtain_model(info[0], t_from, t_to, lambda x: None, temperature.proxy.LEVELS_COLUMNS[::-1])
-
+t_data = t_data[np.in1d(t_data[:,0], times),1:]
+t_vars = np.mean(t_data, axis=0) - t_data
+gsm_result = np.column_stack(muon.corrections.gsm.get_variation(*info))
+gsm_result = gsm_result[np.in1d(gsm_result[:,0], times),1:]
+regr_data = np.column_stack((pr, gsm_result, t_vars))
+regr = LinearRegression().fit(regr_data, np.log(raw))
+lvl_coefs = regr.coef_[3:]
+m_corrected = raw * np.exp(-1 * regr.coef_[0] * pr)
+for i in range(len(lvl_coefs)):
+    m_corrected *= 1 - lvl_coefs[i] * t_vars[:,i]
+v_m_corrected = m_corrected / np.mean(m_corrected) - 1
+times = [datetime.utcfromtimestamp(t) for t in times]
 
 fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, gridspec_kw={'width_ratios': [3, 1], 'height_ratios': [1, 2]})
 
-
-
-colors = ['#00FFAA', '#00AAFF', '#ccFF00', '#55FF00']
+colors = ['#00FFAA', '#00AAFF', '#ccFF00', '#50FF00']
 
 
 t_times = [datetime.utcfromtimestamp(t) for t in t_times]
@@ -60,6 +72,7 @@ v_src = corr_eff[:,2] / np.mean(corr_eff[:,2]) - 1
 v_gsm = corr_eff[:,6] + corr_eff[:,7]
 ax3.plot(c_ma_t, v_ma*100, linewidth=0.4, color=colors[1], label=f'corr_mass_avg')
 ax3.plot(c_ef_t, v_ef*100, linewidth=0.4, color=colors[2], label=f'corr_effective')
+ax3.plot(times, v_m_corrected*100, linewidth=0.4, color=colors[3], label=f'corr_multi')
 ax3.plot(c_ef_t, v_src*100, linewidth=0.2, color='#8800aa', label=f'uncorrected')
 twx = ax3.twinx()
 twx.plot(c_ef_t, v_gsm, linewidth=0.3, color='#00ffff', label=f'gsm_v')
@@ -80,11 +93,14 @@ ax4.set_title('correlation')
 levels = muon.corrections.LEVELS
 W = muon.corrections.TEMP_EFF_WEIGHT[(info[0].station_name, info[0].angle)]
 ax2.plot(levels, W, color=colors[2], label=f't_eff')
+twx = ax2.twinx()
+twx.plot(temperature.LEVELS[::-1], lvl_coefs*1000, color=colors[3], label=f't_multi')
 plt.setp(ax2.legend().get_texts(), color='grey')
+plt.setp(twx.legend().get_texts(), color='grey')
 ax2.set_title('weight distribution')
 
 legend = plt.legend()
-# plt.title(f'period={PERIOD} days')
+plt.suptitle(f'{ST}:{CH}')
 plt.setp(legend.get_texts(), color='grey')
 print('plot in', round(time.time() - start, 2), 'seconds')
 plt.show()
