@@ -50,6 +50,13 @@ const FIELDS = {
 		precision: 1,
 		show: false
 	},
+	T_eff: {
+		label: 'temperature',
+		scale: 'K',
+		color: 'rgba(255,155,50,1)',
+		precision: 1,
+		show: false
+	},
 };
 const URL = 'api/muones';
 const params = util.storage.getObject('muones-params') || {
@@ -194,6 +201,10 @@ Correction is performed via mass-average temperature method.<br>
 			if (force)
 				query.fetch(params);
 		}, { from: params.from, to: params.to }),
+		tabs.input('switch', opt => {
+			params.tmode = opt;
+			query.params(params);
+		}, { options: ['T_m', 'T_eff'], active: params.tmode, text: 'temp mode: ' }),
 		tabs.input('switch', opt => {
 			viewMode = opt;
 			plotInit(data);

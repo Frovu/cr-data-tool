@@ -53,8 +53,10 @@ def t_effective(channel, t_from, t_to, merge_query):
 def t_mass_average(channel, t_from, t_to, merge_query):
     return _t_obtain_model(channel, t_from, t_to, merge_query, ['mass_average'])
 
-def corrected(channel, interval, coefs_action):
-    columns = ['source', 'T_m', 'pressure']
+def corrected(channel, interval, coefs_action, temp_source='T_m'):
+    if temp_source != 'T_m':
+        coefs_action = 'recalc' # FIXME: !!!
+    columns = ['source', temp_source, 'pressure']
     where = ' AND '.join([f'{c} > 0' for c in columns])
     data = np.array(proxy.select(channel, interval, columns, where=where)[0], dtype=np.float64)
     if len(data) < 32:
@@ -87,7 +89,7 @@ def corrected(channel, interval, coefs_action):
         proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
     result = [time, np.round(corrected, 2), raw, pr_src, np.round(tm_src, 2)] \
         + ([np.round(corrected_v, 2), np.round(v_isotropic, 3), np.round(v_anisotropic, 3)] if coef_recalc and with_v else [])
-    fields = ['time', 'corrected', 'source', 'pressure', 'T_m'] \
+    fields = ['time', 'corrected', 'source', 'pressure', temp_source] \
         + (['corrected_v', 'v_expected', 'v_expected1'] if coef_recalc and with_v else [])
     return np.column_stack(result).tolist(), fields, {
         'coef_pressure': coef_pr,

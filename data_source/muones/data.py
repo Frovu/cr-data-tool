@@ -54,10 +54,12 @@ def _get_prepare(station, t_from, t_to, period, channel, columns):
         _get_prepare_tasks(ch, fill_fn, mq_fn, temp_mode), key_overwrite=key)
     return 'accepted', None
 
-def get_corrected(station, t_from, t_to, period=3600, channel='V', coefs='saved'):
-    status, info = _get_prepare(station, t_from, t_to, period, channel, ['source', 'T_m', 'pressure'])
+def get_corrected(station, t_from, t_to, period=3600, channel='V', coefs='saved', temp='T_m'):
+    if temp == 'T_eff' and station not in ['Nagoya']:
+        return 'failed', {'failed': 'T_eff not supported'}
+    status, info = _get_prepare(station, t_from, t_to, period, channel, ['source', temp, 'pressure'])
     if status == 'ok':
-        res = corrections.corrected(*info, coefs)
+        res = corrections.corrected(*info, coefs, temp)
         if not res:
             return 'failed', {'failed': 'No data'}
         return 'ok', res
@@ -69,7 +71,7 @@ def get_correlation(station, t_from, t_to, period=3600, channel='V', against='pr
     if against not in ['T_m', 'T_eff', 'pressure', 'all']:
         return 'unknown', None
     if against == 'T_eff' and station not in ['Nagoya']:
-        return 'unknown', None
+        return 'failed', {'failed': 'T_eff not supported'}
     columns = ['source', against] if against != all else ['source', 'T_m', 'pressure']
     status, info = _get_prepare(station, t_from, t_to, period, channel, columns)
     if status == 'ok':

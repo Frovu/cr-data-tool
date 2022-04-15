@@ -27,13 +27,14 @@ def muon_corrected():
     station = request.values.get('station')
     channel = request.values.get('channel', 'V')
     period = int(request.values.get('period', 3600))
-    coefs = request.args.get('coefs', '') or 'saved'
-    if period not in [60, 3600]:
+    temp_src = request.args.get('tmode', 'T_m')
+    coefs = request.args.get('coefs', 'saved')
+    if period not in [60, 3600] or coefs not in ['saved', 'recalc', 'retain'] or temp_src not in ['T_m', 'T_eff']:
         raise ValueError()
     if coefs == 'retain':
         if not permissions.check('ADMIN', 'MUONS'):
             return {}, 403
-    status, data = muones.get_corrected(station, t_from, t_to, period, channel, coefs)
+    status, data = muones.get_corrected(station, t_from, t_to, period, channel, coefs, temp_src)
     body = { "status": status }
     if status == 'ok':
         body["info"] = data[2]
