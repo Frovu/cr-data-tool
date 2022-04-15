@@ -18,11 +18,12 @@ TEMP_EFF_WEIGHT = dict({
     ('Nagoya', 49): [0.166, 0.333, 0.416, 0.419, 0.405, 0.386, 0.360, 0.342, 0.330, 0.318, 0.298, 0.280, 0.269, 0.265, 0.276, 0.292, 0.319],
     ('Nagoya', 64): [0.208, 0.417, 0.514, 0.488, 0.471, 0.444, 0.403, 0.376, 0.355, 0.337, 0.303, 0.277, 0.261, 0.253, 0.260, 0.273, 0.297]
 })
+LEVELS = np.add(temperature.LEVELS[::-1][1:], temperature.LEVELS[::-1][:-1]) / 2
 for c in TEMP_EFF_WEIGHT:
     levels = temperature.LEVELS[::-1]
     weights = TEMP_EFF_WEIGHT[c]
     interp = interpolate.interp1d(levels, weights)
-    TEMP_EFF_WEIGHT[c] = interp(np.add(levels[1:], levels[:-1]) / 2)
+    TEMP_EFF_WEIGHT[c] = interp(LEVELS)
 
 def _t_obtain_model(channel, t_from, t_to, merge_query, what):
     lat, lon = channel.coordinates
@@ -53,7 +54,7 @@ def t_effective(channel, t_from, t_to, merge_query):
     times, levels = temp[:,0], temp[:,1:]
     weights = TEMP_EFF_WEIGHT[(channel.station_name, channel.angle)]
     lengths = np.abs(np.diff(temperature.LEVELS[::-1])) / 1000
-    norm = np.sum(np.multiply(weights, lengths))
+    norm = np.mean(weights) #np.sum(np.multiply(weights, lengths))
     levels = np.add(levels[:,1:], levels[:,:-1]) / 2
     t_eff = np.array([np.sum(weighted) for weighted in (levels * weights * lengths)]) / norm
     return np.column_stack((times, t_eff))
