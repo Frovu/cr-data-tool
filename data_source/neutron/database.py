@@ -45,7 +45,7 @@ def _fetch_one(interval, station):
     with pg_conn.cursor() as cursor:
         if pg_conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION:
             pg_conn.rollback()
-        cursor.execute(integrity_query(*interval, PERIOD, 'neutron_counts', 'corrected'))
+        cursor.execute(integrity_query(*interval, PERIOD, 'neutron_counts', 'corrected', where=f'station=\'{station}\''))
         if gaps := cursor.fetchall():
             for gap in gaps:
                 _obtain_nmdb(gap, station, cursor)
