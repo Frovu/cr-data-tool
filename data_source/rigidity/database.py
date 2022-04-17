@@ -1,5 +1,5 @@
 from data_source.rigidity.cutoff import CutoffParams
-from data_source.muones.proxy import pg_conn
+from data_source.muon.proxy import pg_conn
 from datetime import datetime, timedelta
 
 TABLE_NAME = 'cutoff_rigidity'

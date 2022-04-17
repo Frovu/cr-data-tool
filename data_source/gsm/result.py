@@ -1,4 +1,4 @@
-from data_source.muones.db_proxy import pg_conn
+from data_source.muon.db_proxy import pg_conn
 import numpy
 
 with pg_conn.cursor() as cursor:

@@ -1,6 +1,6 @@
 import data_source.stations_meteo.data as meteo
 import data_source.stations_meteo.db_proxy as proxy
-import data_source.muones.obtain_data as muones
+import data_source.muon.obtain_data as muones
 from datetime import datetime, timedelta
 import psycopg2.extras
 import logging

@@ -1,5 +1,5 @@
-import data_source.muones.data as muones
-import data_source.muones.edit as edit
+import data_source.muon.data as muones
+import data_source.muon.edit as edit
 import data_source.stations_meteo.pressure as meteo
 from flask import Blueprint, request, session
 from datetime import datetime

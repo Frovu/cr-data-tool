@@ -1,6 +1,6 @@
 import data_source.gsm.expected as gsm
-import data_source.muones.db_proxy as proxy
-import data_source.muones.obtain_data as parser
+import data_source.muon.db_proxy as proxy
+import data_source.muon.obtain_data as parser
 import data_source.temperature_model.temperature as temperature
 import logging
 import numpy as np

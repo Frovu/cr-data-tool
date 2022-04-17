@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 plt.rcParams['axes.facecolor'] = 'black'
 plt.rcParams['figure.facecolor'] = 'darkgrey'
 
-import data_source.muones.data as muon
+import data_source.muon.data as muon
 import data_source.temperature_model.temperature as temperature
 
 PERIOD = 365*2

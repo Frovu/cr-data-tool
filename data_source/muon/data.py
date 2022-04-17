@@ -1,7 +1,7 @@
 from core.sequence_filler import SequenceFiller, fill_fn
-import data_source.muones.db_proxy as proxy
-import data_source.muones.obtain_data as parser
-import data_source.muones.corrections as corrections
+import data_source.muon.db_proxy as proxy
+import data_source.muon.obtain_data as parser
+import data_source.muon.corrections as corrections
 from datetime import datetime
 from math import floor, ceil
 

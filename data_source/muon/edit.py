@@ -1,4 +1,4 @@
-from data_source.muones.db_proxy import pg_conn, remove_spikes, _table, _table_cond
+from data_source.muon.db_proxy import pg_conn, remove_spikes, _table, _table_cond
 from threading import Timer
 import logging
 
