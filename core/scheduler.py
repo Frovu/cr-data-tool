@@ -107,3 +107,20 @@ class Scheduler:
                 del self.cache[key]
         self.queries[key] = q
         return self.queries[key]
+
+    # NOTE: wrapping like this does not allow for completed tasks which did not produce persistent result
+    def wrap(self, argc: int=1):
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                is_done, info = self.status(args[:argc])
+                if is_done == False:
+                    return 'failed' if info.get('failed') else 'busy', info
+                result, error, tasks = func(*args, **kwargs)
+                if result:
+                    return 'ok', result
+                if error:
+                    return 'failed', error
+                assert tasks
+                return 'accepted', self.query_tasks(args[:argc], tasks)
+            return wrapper
+        return decorator

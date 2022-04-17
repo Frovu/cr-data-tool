@@ -1,9 +1,9 @@
 import logging, traceback
 
 def route_shielded(func):
-    def wrapper():
+    def wrapper(*args, **kwargs):
         try:
-            return func()
+            return func(*args, **kwargs)
         except ValueError:
             return {}, 400
         except Exception:
