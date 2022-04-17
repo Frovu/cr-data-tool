@@ -3,7 +3,7 @@ import * as util from '../util.js';
 import * as plot from '../plot.js';
 
 const FIELDS = {
-	Moscow: {
+	'Moscow-pioneer': {
 		time: 'time',
 		c0: {
 			label: 'c1',
@@ -114,7 +114,7 @@ Only supported for: ${SUPPORTED}`)
 			params.station = station;
 			plotInit();
 			query.params(params);
-		}, { text: 'station:', list: SUPPORTED }),
+		}, { text: 'station:', list: SUPPORTED.map(s => new Object({name: s})) }),
 		tabs.input('time', (from, to, force) => {
 			params.from = from;
 			params.to = to;

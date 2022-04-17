@@ -14,8 +14,8 @@ import data_source.temperature_model.temperature as temperature
 PERIOD = 365*2
 
 start = time.time()
-tfr = datetime(2000, 1, 1)
-tto = datetime(2004, 12, 30)
+tfr = datetime(1990, 1, 1)
+tto = datetime(1991, 12, 30)
 t_from, t_to = [a.replace(tzinfo=timezone.utc).timestamp() for a in [tfr, tto]]
 
 ST = 'Nagoya'
