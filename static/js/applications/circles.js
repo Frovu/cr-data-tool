@@ -5,13 +5,15 @@ import uPlot from '../uPlot.esm.js';
 
 const URL = 'api/neutron/circles';
 const params = util.storage.getObject('circles-params') || {
-	from: new Date(2021, 9, 1).getTime() / 1000,
-	to: new Date(2021, 10, 31).getTime() / 1000,
+	from: new Date(2021, 10, 1).getTime() / 1000,
+	to: new Date(2021, 11, 15).getTime() / 1000,
 };
 let xdata = [], ydata = [], circles = [];
+let stations = [];
 
 function receiveData(resp) {
 	const slen = resp.shift.length, tlen = resp.time.length;
+	stations = resp.stations;
 	xdata = Array(slen*tlen), ydata = Array(slen*tlen), circles = Array(slen*tlen);
 	let maxVar = 0;
 	for (let ti = 0; ti < tlen; ++ti) {
@@ -19,12 +21,12 @@ function receiveData(resp) {
 			const idx = ti*slen + si;
 			const time = resp.time[ti], vv = resp.variation[ti][si];
 			if (vv < maxVar) maxVar = vv;
-			ydata[idx] = time ;
 			xdata[idx] = time;
+			ydata[idx] = (time / 86400 * 360 + resp.shift[si]) % 360 - 180;
 			circles[idx] = vv;
 		}
 	}
-	circles = circles.map(c => c / maxVar * -30);
+	circles = circles.map(c => Math.abs(c / maxVar) * 30 + 1);
 	plotInit();
 }
 
@@ -51,7 +53,7 @@ function drawPoints(u, seriesIdx) {
 
 function plotInit() {
 	if (!xdata.length) return;
-	plot.initCustom(style => {
+	console.log(plot.initCustom(style => {
 		return {
 			...plot.getPlotSize(true),
 			mode: 2,
@@ -72,6 +74,7 @@ function plotInit() {
 					grid: { stroke: style.grid, width: 1 },
 				},
 				{
+					label: 'longitude',
 					scale: 'y',
 					font: style.font,
 					stroke: style.text,
@@ -81,31 +84,30 @@ function plotInit() {
 				}
 			],
 			scales: {
-				// x: {
-				// 	time: false,
-				// 	range: (u, min, max) => [min, max],
-				// },
+				x: {
+					time: false,
+					range: (u, min, max) => [min, max],
+				},
 				y: {
-					range: [-180, 180],
+					range: [-185, 185],
 				},
 			},
 			series: [
-				null,
+				{},
 				{
 					facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
-					label: 'longitude',
 					stroke: 'rgba(250,10,80,1)',
 					fill: 'rgba(255,0,0,0.1)',
 					paths: drawPoints
 				}
 			]
 		};
-	}, [xdata, ydata]);
+	}, [ null, [xdata, ydata] ]));
 }
 
 const query = util.constructQueryManager(URL, {
 	data: receiveData,
-	params: p => util.storage.setObject('pressure-params', p)
+	params: p => util.storage.setObject('circles-params', p)
 });
 
 export function initTabs() {

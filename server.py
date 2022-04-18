@@ -45,10 +45,12 @@ Session(app)
 bcrypt = Bcrypt(app)
 
 from routes import temperature
+from routes import neutron
 from routes import muones
 from routes import admin
 from routes import auth
 app.register_blueprint(temperature.bp)
+app.register_blueprint(neutron.bp)
 app.register_blueprint(muones.bp)
 app.register_blueprint(admin.bp)
 app.register_blueprint(auth.bp)

@@ -28,9 +28,10 @@ def get(t_from, t_to):
     base_period, base_idx = _determine_base(data)
     base_data = data[base_idx[0]:base_idx[1], 1:]
     variation = data[:,1:] / np.mean(base_data, axis=0) - 1
-    shift = [_get_direction(s) for s in stations]
+    variation = np.round(variation * 100, 2)
     return dict({
         'time': np.uint64(data[:,0]).tolist(),
-        'variation': np.round(variation * 100, 2).tolist(),
-        'shift': shift
+        'variation': np.where(np.isnan(variation), None, variation).tolist(),
+        'shift': [_get_direction(s) for s in stations],
+        'station': list(stations)
     })
