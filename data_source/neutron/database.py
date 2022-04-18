@@ -62,4 +62,5 @@ def _fetch_one(interval, station):
         return numpy.array(cursor.fetchall(), dtype=numpy.float32)
 
 def fetch(interval, stations):
-    return numpy.column_stack([_fetch_one(interval, s) for s in stations])
+    times = numpy.arange(interval[0], interval[1] + 1, PERIOD)
+    return numpy.column_stack([times]+[_fetch_one(interval, s) for s in stations])
