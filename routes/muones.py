@@ -6,7 +6,6 @@ from datetime import datetime
 from core import permissions
 from core.utils import route_shielded
 import logging
-import traceback
 
 bp = Blueprint('muones', __name__, url_prefix='/api/muones')
 
