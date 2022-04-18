@@ -11,7 +11,7 @@ window.addEventListener('resize', () => {
 
 function getStyle() {
 	const css = window.getComputedStyle(document.body);
-	style = {
+	return style = {
 		font: css.font,
 		grid: css.getPropertyValue('--color-grid'),
 		text: css.getPropertyValue('--color-inactive'),
@@ -19,8 +19,8 @@ function getStyle() {
 	};
 }
 
-function getPlotSize() {
-	const height = Math.floor(parentEl.offsetWidth * (plotTime?0.5:0.75));
+export function getPlotSize(modeTime=plotTime) {
+	const height = Math.floor(parentEl.offsetWidth * (modeTime?0.5:0.75));
 	return {
 		width: parentEl.offsetWidth - 4,
 		height: height > (window.innerHeight-80) ? window.innerHeight-80 : (height > MIN_HEIGHT ? height : MIN_HEIGHT),
@@ -71,6 +71,11 @@ function linePaths() {
 			u.ctx.strokeStyle = ss;
 		});
 	};
+}
+
+export function initCustom(opts, data) {
+	if (uplot) uplot.destroy();
+	return uplot = new uPlot(opts(getStyle()), data, parentEl);
 }
 
 // ref: https://leeoniya.github.io/uPlot/demos/scatter.html

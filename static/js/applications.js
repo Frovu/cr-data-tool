@@ -1,5 +1,6 @@
 import * as temperature from './applications/temperature.js';
 import * as tempHeight from './applications/tempHeight.js';
+import * as circles from './applications/circles.js';
 import * as muon from './applications/muones.js';
 import * as muonRaw from './applications/muonesRaw.js';
 import * as muonCorr from './applications/muonesCorrelation.js';
@@ -9,6 +10,7 @@ import * as admin from './applications/admin.js';
 const applications = {
 	temperature,
 	tempHeight,
+	circles,
 	muon,
 	muonRaw,
 	muonCorr,
@@ -18,8 +20,9 @@ const applications = {
 const hierarchy = {
 	muon: ['muon', 'muonRaw', 'muonCorr', 'pressure'],
 	temperature: ['temperature', 'tempHeight'],
+	neutron: ['circles']
 };
-const publicApps = ['muon', 'temperature'];
+const publicApps = ['muon', 'neutron', 'temperature'];
 
 const DEFAULT = 'temperature';
 const DONT_SAVE = ['info-tab', 'graph-tab'];

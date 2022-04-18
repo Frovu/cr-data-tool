@@ -81,7 +81,7 @@ def analyze_integrity(lat, lon, t_from, t_to, fc_age='2 days', model_lag='4 days
             return cursor.fetchall()
     except psycopg2.errors.InFailedSqlTransaction:
         pg_conn.rollback()
-        logging.warning(f'TEmperature: InFailedSqlTransaction on an_int, rolling back')
+        log.warning(f'TEmperature: InFailedSqlTransaction on an_int, rolling back')
         return analyze_integrity(lat, lon, t_from, t_to, fc_age, model_lag)
 
 def select(lat, lon, t_from, t_to, only=[]):
