@@ -1,7 +1,7 @@
-import * as tabs from '../tabsUtil.js';
-import * as util from '../util.js';
+import * as tabs from '../lib/tabsUtil.js';
+import * as util from '../lib/util.js';
 import * as plot from '../plot.js';
-import uPlot from '../uPlot.esm.js';
+import uPlot from '../lib/uPlot.esm.js';
 
 const URL = 'api/neutron/circles';
 const params = util.storage.getObject('circles-params') || {

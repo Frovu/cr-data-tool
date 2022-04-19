@@ -1,5 +1,5 @@
-import * as tabs from '../tabsUtil.js';
-import * as util from '../util.js';
+import * as tabs from '../lib/tabsUtil.js';
+import * as util from '../lib/util.js';
 import * as plot from '../plot.js';
 import * as temp from './temperature.js';
 

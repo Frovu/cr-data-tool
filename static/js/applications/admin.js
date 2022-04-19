@@ -1,4 +1,4 @@
-import * as tabs from '../tabsUtil.js';
+import * as tabs from '../lib/tabsUtil.js';
 import * as plot from '../plot.js';
 
 const params = {

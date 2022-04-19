@@ -1,4 +1,4 @@
-import uPlot from './uPlot.esm.js';
+import uPlot from './lib/uPlot.esm.js';
 
 const MIN_HEIGHT = 360;
 let style = {};
