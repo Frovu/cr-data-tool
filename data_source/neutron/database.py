@@ -41,7 +41,7 @@ def _obtain_nmdb(interval, station, pg_cursor):
     psycopg2.extras.execute_values(pg_cursor, query, data, template=f'(\'{station}\',%s,%s,%s,%s)')
 
 def _fetch_one(interval, station):
-    assert len(station) <= 4
+    assert len(station) <= 5
     with pg_conn.cursor() as cursor:
         if pg_conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION:
             pg_conn.rollback()

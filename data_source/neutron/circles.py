@@ -1,15 +1,21 @@
 from data_source.neutron import database
 import numpy as np
 
-# name: [ longitude, R cutoff ]
 RING = dict({
-    'OULU': [ 25.47, 0.9 ],
-    'APTY': [ 33.39, 0.5 ],
-    'KERG': [ 70.25, 1.14 ],
-    'NRLK': [ 88.05, 0.63 ],
-    # 'IRKT': [ 104.03, 3.64 ],
-    # 'YKTK': [ 129.43, 1.65 ],
-    # 'INVK': [ -133.72, 0.3 ],
+    'APTY': 73.05,
+    'DRBS': 65.17,
+    'FSMT': 293.07,
+    'INVK': 234.85,
+    'IRKT': 163.58,
+    'KERG': 89.71,
+
+    'KIEL2': 65.34,
+    'NAIN': 18.32,
+    'NEWK': 331.49,
+    'NRLK': 124.48,
+    'OULU': 67.42,
+    'PWNK': 349.56,
+    'YKTK': 174.02
 })
 
 def _determine_base(data):
@@ -22,7 +28,7 @@ def _get_direction(station):
     return RING[station]
 
 def get(t_from, t_to):
-    t_from = t_from // PERIOD * PERIOD
+    t_from = t_from // database.PERIOD * database.PERIOD
     stations = RING.keys()
     data = database.fetch((t_from, t_to), stations)
     base_period, base_idx = _determine_base(data)
