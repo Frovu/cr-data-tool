@@ -1,5 +1,6 @@
 from data_source.neutron import database
 import numpy as np
+import warnings
 
 RING = dict({
     'APTY': 73.05,
@@ -21,7 +22,7 @@ RING = dict({
 def _determine_base(data):
     slice = 0, -1
     period = data[slice[0]][0], data[slice[1]][0]
-    return period, slice
+    return slice
 
 # TODO: calculate asymptotic direction
 def _get_direction(station):
@@ -31,9 +32,12 @@ def get(t_from, t_to):
     t_from = t_from // database.PERIOD * database.PERIOD
     stations = RING.keys()
     data = database.fetch((t_from, t_to), stations)
-    base_period, base_idx = _determine_base(data)
+    base_idx = _determine_base(data)
     base_data = data[base_idx[0]:base_idx[1], 1:]
-    variation = data[:,1:] / np.mean(base_data, axis=0) - 1
+    base_data = base_data
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        variation = data[:,1:] / np.nanmean(base_data, axis=0) - 1
     variation = np.round(variation * 100, 2)
     return dict({
         'time': np.uint64(data[:,0]).tolist(),
