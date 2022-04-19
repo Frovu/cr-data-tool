@@ -2,10 +2,12 @@ from data_source.muon.db_proxy import pg_conn
 from core.sql_queries import integrity_query
 import os, logging, pymysql.cursors, numpy
 import psycopg2, psycopg2.extras
+from threading import Timer
 from datetime import datetime
 
 PERIOD = 3600
 nmdb_conn = None
+discon_timer = None
 
 with pg_conn.cursor() as cursor:
     cursor.execute(f'''CREATE TABLE IF NOT EXISTS neutron_counts (
@@ -17,8 +19,15 @@ with pg_conn.cursor() as cursor:
     UNIQUE(time, station))''')
     pg_conn.commit()
 
+def _disconnect_nmdb():
+    global nmdb_conn, discon_timer
+    logging.info('Disconnecting NMDB')
+    nmdb_conn.close()
+    nmdb_conn = None
+    discon_timer = None
+
 def _connect_nmdb():
-    global nmdb_conn
+    global nmdb_conn, discon_timer
     if not nmdb_conn:
         logging.info('Connecting to NMDB')
         nmdb_conn = pymysql.connect(
@@ -27,6 +36,11 @@ def _connect_nmdb():
             user=os.environ.get('NMDB_USER'),
             password=os.environ.get('NMDB_PASS'),
             database='nmdb')
+    if discon_timer:
+        discon_timer.cancel()
+        discon_timer = None
+    discon_timer = Timer(300, _disconnect_nmdb)
+    discon_timer.start()
 
 def _obtain_nmdb(interval, station, pg_cursor):
     _connect_nmdb()
