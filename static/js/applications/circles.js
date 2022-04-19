@@ -18,7 +18,7 @@ const maxSize = 60;
 function receiveData(resp) {
 	const slen = resp.shift.length, tlen = resp.time.length;
 	if (tlen < 10) return;
-	stations = resp.stations, shifts = resp.shift;
+	stations = resp.station, shifts = resp.shift;
 	const data = Array.from(Array(4), () => new Array(slen*tlen));
 	let maxVar = 0, posCount = 0;
 	console.time('restructure');
@@ -63,7 +63,7 @@ function receiveData(resp) {
 }
 
 function drawCircles(u, seriesIdx) {
-	uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+	uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
 		let strokeWidth = 1;
 		let deg360 = 2 * Math.PI;
 		let d = u.data[seriesIdx];
@@ -111,9 +111,56 @@ function drawCircles(u, seriesIdx) {
 function plotInit() {
 	if (!ndata.length) return;
 	plot.initCustom(style => {
+		let hRect; // hovered
+		const legendValue = u => {
+			if (u.data == null || hRect == null)
+				return '';
+			const d = u.data[hRect.sidx];
+			const stIdx = d[3][hRect.didx], lon = d[1][hRect.didx].toFixed(2);
+			const time = new Date(d[0][hRect.didx] * 1000).toISOString().replace(/\..*|T/g, ' ');
+			return `[ ${stations[stIdx]} ] aLon = ${lon} (${shifts[stIdx]}), time = ${time}`;
+		};
 		return {
 			...plot.getPlotSize(true),
 			mode: 2,
+			cursor: {
+				dataIdx: (u, seriesIdx) => {
+					if (seriesIdx == 1) {
+						hRect = null;
+
+						let dist = Infinity;
+						let cx = u.cursor.left * devicePixelRatio;
+						let cy = u.cursor.top * devicePixelRatio;
+
+						qt.get(cx, cy, 1, 1, o => {
+							if (qtree.pointWithin(cx, cy, o.x, o.y, o.x + o.w, o.y + o.h)) {
+								let ocx = o.x + o.w / 2;
+								let ocy = o.y + o.h / 2;
+
+								let dx = ocx - cx;
+								let dy = ocy - cy;
+
+								let d = Math.sqrt(dx ** 2 + dy ** 2);
+
+								// test against radius for actual hover
+								if (d <= o.w / 2) {
+									// only hover bbox with closest distance
+									if (d <= dist) {
+										dist = d;
+										hRect = o;
+									}
+								}
+							}
+						});
+					}
+					return hRect && seriesIdx == hRect.sidx ? hRect.didx : null;
+				},
+				points: {
+					size: (u, seriesIdx) => {
+						return hRect && seriesIdx == hRect.sidx ? hRect.w / devicePixelRatio : 0;
+					}
+				}
+			},
 			hooks: {
 				drawClear: [
 					u => {
@@ -161,15 +208,19 @@ function plotInit() {
 			series: [
 				{},
 				{
+					label: '+',
 					facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
 					stroke: 'rgba(0,255,255,1)',
 					fill: 'rgba(0,255,255,0.5)',
+					value: legendValue,
 					paths: drawCircles
 				},
 				{
+					label: '-',
 					facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
 					stroke: 'rgba(255,10,110,1)',
 					fill: 'rgba(255,10,110,0.5)',
+					value: legendValue,
 					paths: drawCircles
 				}
 			]
