@@ -2,6 +2,7 @@ import * as tabs from '../lib/tabsUtil.js';
 import * as util from '../lib/util.js';
 import * as plot from '../plot.js';
 import uPlot from '../lib/uPlot.esm.js';
+import * as qtree from '../lib/quadtree.js';
 
 const URL = 'api/neutron/circles';
 const params = util.storage.getObject('circles-params') || {
@@ -10,6 +11,9 @@ const params = util.storage.getObject('circles-params') || {
 };
 let pdata = [], ndata = [];
 let stations = [], shifts = [];
+let qt = null;
+
+const maxSize = 60;
 
 function receiveData(resp) {
 	const slen = resp.shift.length, tlen = resp.time.length;
@@ -37,17 +41,18 @@ function receiveData(resp) {
 	let pi = 0, ni = 0, len = slen*tlen;
 	for (let idx = 0; idx < len; ++idx) {
 		const vv = data[2][idx];
-		const size = Math.abs(vv) / maxVar * 50;
+		let size = Math.abs(vv) / maxVar * 40 + 3;
+		if (size > maxSize) size = maxSize;
 		if (vv >= 0) {
 			pdata[0][pi] = data[0][idx];
 			pdata[1][pi] = data[1][idx];
-			pdata[2][pi] = size + 6;
+			pdata[2][pi] = size + 3;
 			pdata[3][pi] = data[3][idx];
 			pi++;
 		} else {
 			ndata[0][ni] = data[0][idx];
 			ndata[1][ni] = data[1][idx];
-			ndata[2][ni] = size + 3;
+			ndata[2][ni] = size;
 			ndata[3][ni] = data[3][idx];
 			ni++;
 		}
@@ -57,45 +62,49 @@ function receiveData(resp) {
 	plotInit();
 }
 
-function drawPoints(u, seriesIdx) {
+function drawCircles(u, seriesIdx) {
 	uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
-		let d = u.data[seriesIdx];
-		u.ctx.fillStyle = series.stroke();
+		let strokeWidth = 1;
 		let deg360 = 2 * Math.PI;
-		let p = new Path2D();
+		let d = u.data[seriesIdx];
+
+		console.time('circles');
+
+		u.ctx.save();
+		u.ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
+		u.ctx.clip();
+		u.ctx.fillStyle = series.fill();
+		u.ctx.strokeStyle = series.stroke();
+		u.ctx.lineWidth = strokeWidth;
+
+		let filtLft = u.posToVal(-maxSize / 2, scaleX.key);
+		let filtRgt = u.posToVal(u.bbox.width / devicePixelRatio + maxSize / 2, scaleX.key);
+		let filtBtm = u.posToVal(u.bbox.height / devicePixelRatio + maxSize / 2, scaleY.key);
+		let filtTop = u.posToVal(-maxSize / 2, scaleY.key);
 		for (let i = 0; i < d[0].length; i++) {
 			let xVal = d[0][i];
 			let yVal = d[1][i];
 			let size = d[2][i] * devicePixelRatio;
-			if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
+			if (xVal >= filtLft && xVal <= filtRgt && yVal >= filtBtm && yVal <= filtTop) {
 				let cx = valToPosX(xVal, scaleX, xDim, xOff);
 				let cy = valToPosY(yVal, scaleY, yDim, yOff);
-				p.moveTo(cx + size/2, cy);
-				arc(p, cx, cy, size/2, 0, deg360);
+				u.ctx.moveTo(cx + size/2, cy);
+				u.ctx.beginPath();
+				u.ctx.arc(cx, cy, size/2, 0, deg360);
+				u.ctx.fill();
+				u.ctx.stroke();
+				qt.add({
+					x: cx - size/2 - strokeWidth/2 - u.bbox.left,
+					y: cy - size/2 - strokeWidth/2 - u.bbox.top,
+					w: size + strokeWidth,
+					h: size + strokeWidth,
+					sidx: seriesIdx,
+					didx: i
+				});
 			}
 		}
-		u.ctx.fill(p);
-	});
-}
-
-function drawCircles(u, seriesIdx) {
-	uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
-		let d = u.data[seriesIdx];
-		u.ctx.fillStyle = series.stroke();
-		let deg360 = 2 * Math.PI;
-		let p = new Path2D();
-		for (let i = 0; i < d[0].length; i++) {
-			let size = circles[i] * devicePixelRatio;
-			let xVal = d[0][i];
-			let yVal = d[1][i];
-			if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
-				let cx = valToPosX(xVal, scaleX, xDim, xOff);
-				let cy = valToPosY(yVal, scaleY, yDim, yOff);
-				p.moveTo(cx + size/2, cy);
-				arc(p, cx, cy, size/2, 0, deg360);
-			}
-		}
-		u.ctx.fill(p);
+		console.timeEnd('circles');
+		u.ctx.restore();
 	});
 }
 
@@ -108,6 +117,8 @@ function plotInit() {
 			hooks: {
 				drawClear: [
 					u => {
+						qt = qt || new qtree.Quadtree(0, 0, u.bbox.width, u.bbox.height);
+						qt.clear();
 						u.series.forEach((s, i) => {
 							if (i > 0)
 								s._paths = null;
@@ -120,11 +131,12 @@ function plotInit() {
 					font: style.font,
 					stroke: style.text,
 					grid: { stroke: style.grid, width: 1 },
+					space: 70,
 					values: (u, vals) => vals.map(v => {
 						const d = new Date(v * 1000);
 						const day = String(d.getDate()).padStart(2, '0');
 						const hour =  String(d.getHours()).padStart(2, '0');
-						return day + '.' + hour;
+						return day + '\'' + hour;
 					})
 				},
 				{
@@ -152,13 +164,13 @@ function plotInit() {
 					facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
 					stroke: 'rgba(0,255,255,1)',
 					fill: 'rgba(0,255,255,0.5)',
-					paths: drawPoints
+					paths: drawCircles
 				},
 				{
 					facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
 					stroke: 'rgba(255,10,110,1)',
 					fill: 'rgba(255,10,110,0.5)',
-					paths: drawPoints
+					paths: drawCircles
 				}
 			]
 		};

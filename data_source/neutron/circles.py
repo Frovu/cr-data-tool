@@ -17,12 +17,12 @@ def _determine_base(data):
     period = data[slice[0]][0], data[slice[1]][0]
     return period, slice
 
+# TODO: calculate asymptotic direction
 def _get_direction(station):
-    # TODO: asymptotic direction
-    lon = RING[station][0]
-    return lon
+    return RING[station]
 
 def get(t_from, t_to):
+    t_from = t_from // PERIOD * PERIOD
     stations = RING.keys()
     data = database.fetch((t_from, t_to), stations)
     base_period, base_idx = _determine_base(data)
