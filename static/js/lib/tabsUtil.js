@@ -1,4 +1,4 @@
-import * as exportM from './export.js';
+import * as exportM from '../export.js';
 export const exportTab = exportM.exportTab;
 
 export function fill(tab, items) {
