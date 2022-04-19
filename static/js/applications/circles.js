@@ -20,14 +20,15 @@ function receiveData(resp) {
 	if (tlen < 10) return;
 	stations = resp.station, shifts = resp.shift;
 	const data = Array.from(Array(4), () => new Array(slen*tlen));
-	let maxVar = 0, posCount = 0;
+	let maxVar = 0, posCount = 0, nullCount = 0;
 	console.time('restructure');
 	for (let ti = 0; ti < tlen; ++ti) {
 		for (let si = 0; si < slen; ++si) {
-			const idx = ti*slen + si;
 			const time = resp.time[ti], vv = resp.variation[ti][si];
+			const idx = ti*slen + si;
 			if (vv < maxVar) maxVar = vv;
-			if (vv >= 0) ++posCount;
+			if (vv == null) ++nullCount;
+			else if (vv >= 0) ++posCount;
 			data[0][idx] = time;
 			data[1][idx] = (time / 86400 * 360 + resp.shift[si]) % 360 - 180;
 			data[2][idx] = vv;
@@ -35,12 +36,13 @@ function receiveData(resp) {
 		}
 	}
 	maxVar = Math.abs(maxVar);
-	ndata = Array.from(Array(4), () => new Array(slen*tlen - posCount));
-	pdata = Array.from(Array(4), () => new Array(posCount));
+	ndata = Array.from(Array(5), () => new Array(slen*tlen - posCount - nullCount));
+	pdata = Array.from(Array(5), () => new Array(posCount));
 	console.log(maxVar);
 	let pi = 0, ni = 0, len = slen*tlen;
 	for (let idx = 0; idx < len; ++idx) {
 		const vv = data[2][idx];
+		if (vv == null) continue;
 		let size = Math.abs(vv) / maxVar * 40 + 3;
 		if (size > maxSize) size = maxSize;
 		if (vv >= 0) {
@@ -48,12 +50,14 @@ function receiveData(resp) {
 			pdata[1][pi] = data[1][idx];
 			pdata[2][pi] = size + 3;
 			pdata[3][pi] = data[3][idx];
+			pdata[4][pi] = vv;
 			pi++;
 		} else {
 			ndata[0][ni] = data[0][idx];
 			ndata[1][ni] = data[1][idx];
 			ndata[2][ni] = size;
 			ndata[3][ni] = data[3][idx];
+			ndata[4][ni] = vv;
 			ni++;
 		}
 
@@ -118,10 +122,10 @@ function plotInit() {
 			const d = u.data[hRect.sidx];
 			const stIdx = d[3][hRect.didx], lon = d[1][hRect.didx].toFixed(2);
 			const time = new Date(d[0][hRect.didx] * 1000).toISOString().replace(/\..*|T/g, ' ');
-			return `[ ${stations[stIdx]} ] aLon = ${lon} (${shifts[stIdx]}), time = ${time}`;
+			return `[ ${stations[stIdx]} ] v = ${d[4][hRect.didx]}%, aLon = ${lon} (${shifts[stIdx]}), time = ${time}`;
 		};
 		return {
-			...plot.getPlotSize(true),
+			...plot.getPlotSize(false),
 			mode: 2,
 			cursor: {
 				dataIdx: (u, seriesIdx) => {
@@ -178,7 +182,9 @@ function plotInit() {
 					font: style.font,
 					stroke: style.text,
 					grid: { stroke: style.grid, width: 1 },
+					ticks: { stroke: style.grid, width: 1 },
 					space: 70,
+					size: 40,
 					values: (u, vals) => vals.map(v => {
 						const d = new Date(v * 1000);
 						const day = String(d.getDate()).padStart(2, '0');
