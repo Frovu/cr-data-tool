@@ -35,9 +35,8 @@
 			const opts = new Proxy(new URLSearchParams(window.location.search), {
 				get: (searchParams, prop) => searchParams.get(prop),
 			});
-			console.log(opts.asd)
 			const days = parseInt(opts.days) || 7;
-			let updateDelay = parseInt(opts.update) || 5;
+			let updateDelay = parseInt(opts.update) || 30;
 			if (updateDelay < 5) updateDelay = 5;
 			const delayMs = updateDelay * 60 * 1000;
 			let updated = Date.now();
@@ -47,7 +46,7 @@
 				if (sec < 60)
 					updt.innerHTML = `Updated ${sec.toFixed()} second${sec<2?'':'s'} ago`;
 				else
-					updt.innerHTML = `Updated ${(sec/60).toFixed()} minute${sec<90?'':'s'} ago`;
+					updt.innerHTML = `Updated ${Math.floor(sec/60)} minute${sec<90?'':'s'} ago`;
 			}, 1000)
 			const query = constructQueryManager('api/neutron/circles', {
 				data: resp => {

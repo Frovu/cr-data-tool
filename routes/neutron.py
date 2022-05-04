@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from data_source.neutron import circles
 
 TRIM_PAST = datetime(1990, 1, 1).replace(tzinfo=timezone.utc).timestamp()
+MAX_LEN_H = 30 * 24
 
 @bp.route('/circles', methods=['GET'])
 @route_shielded
@@ -16,6 +17,8 @@ def muon_corrected():
     trim_past, trim_future = TRIM_PAST, datetime.now().timestamp()
     t_from = t_from if t_from > trim_past else trim_past
     t_to = t_to if t_to < trim_future else trim_future
+    trim_len = t_to - MAX_LEN_H * 3600
+    t_from = t_from if t_from > trim_len else trim_len
 
     body = circles.get(t_from, t_to)
     body['status'] = 'ok'
