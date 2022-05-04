@@ -15,7 +15,7 @@ let qt = null;
 
 let maxSize = 72;
 
-function receiveData(resp) {
+export function receiveData(resp) {
 	const slen = resp.shift.length, tlen = resp.time.length;
 	if (tlen < 10) return;
 	stations = resp.station, shifts = resp.shift, base = parseInt(resp.base);
@@ -128,6 +128,7 @@ function plotInit() {
 		};
 		return {
 			...plot.getPlotSize(false),
+			padding: [0, 0, 0, 0],
 			mode: 2,
 			cursor: {
 				dataIdx: (u, seriesIdx) => {
@@ -246,12 +247,11 @@ function plotInit() {
 	}, [ null, pdata, ndata ]);
 }
 
-const query = util.constructQueryManager(URL, {
-	data: receiveData,
-	params: p => util.storage.setObject('circles-params', p)
-});
-
 export function initTabs() {
+	const query = util.constructQueryManager(URL, {
+		data: receiveData,
+		params: p => util.storage.setObject('circles-params', p)
+	});
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
 Plot GLE precursors using stations ring method.<br>Yellow line shows base period (24h) start`)

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+	<head>
+		<meta charset="utf-8">
+		<link rel="stylesheet" href="css/themes.css">
+		<link rel="stylesheet" href="css/uPlot.min.css">
+		<link rel="stylesheet" href="css/tab.css">
+		<style media="screen">
+			.graph {
+				--font: DejaVu Sans Mono, Liberation Mono, monospace;
+				background-color: var(--color-tab-bg);
+				color: var(--color-text);
+				font-family: var(--font);
+				font-size: 14px;
+				margin: 8px 2px 0 0;
+			}
+			.u-series, .u-value, .u-title {
+				font-family: var(--font);
+			}
+			#updated {
+				font-style: italic;
+				color: var(--color-inactive);
+				position: absolute;
+				left: 32px;
+				bottom: 45px;
+			}
+		</style>
+		<title>Circles</title>
+	</head>
+	<body main-theme="dark" class="graph">
+		<span id="updated"></span>
+		<script type="module">
+			import {receiveData} from './js/applications/circles.js';
+			import {constructQueryManager} from './js/lib/util.js';
+			const opts = new Proxy(new URLSearchParams(window.location.search), {
+				get: (searchParams, prop) => searchParams.get(prop),
+			});
+			console.log(opts.asd)
+			const days = parseInt(opts.days) || 7;
+			let updateDelay = parseInt(opts.update) || 5;
+			if (updateDelay < 5) updateDelay = 5;
+			const delayMs = updateDelay * 60 * 1000;
+			let updated = Date.now();
+			const updt = document.getElementById('updated');
+			setInterval(() => {
+				const sec = (Date.now() - updated) / 1000;
+				if (sec < 60)
+					updt.innerHTML = `Updated ${sec.toFixed()} second${sec<2?'':'s'} ago`;
+				else
+					updt.innerHTML = `Updated ${(sec/60).toFixed()} minute${sec<90?'':'s'} ago`;
+			}, 1000)
+			const query = constructQueryManager('api/neutron/circles', {
+				data: resp => {
+					updated = Date.now();
+					updt.innerHTML = `Updated just now`;
+					receiveData(resp);
+				}
+			});
+			function fetch() {
+				const params = {
+					from: Math.floor(new Date().getTime() / 1000 - 86400 * days),
+					to:   Math.floor(new Date().getTime() / 1000),
+				};
+				updt.innerHTML = `Updating...`;
+				query.fetch(params);
+				const nextUpdate = Math.ceil(Date.now() / delayMs) * delayMs + 60000
+				console.log('next in ', (nextUpdate - Date.now()) / 1000)
+				setTimeout(fetch, nextUpdate - Date.now());
+			}
+			fetch();
+		</script>
+
+	</body>
+</html>
