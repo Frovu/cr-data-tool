@@ -2,6 +2,8 @@ from data_source.neutron import database
 import numpy as np
 import warnings
 
+BASE_LENGTH_H = 24
+
 RING = dict({
     'APTY': 73.05,
     'DRBS': 65.17,
@@ -20,9 +22,18 @@ RING = dict({
 })
 
 def _determine_base(data):
-    slice = 0, -1
-    period = data[slice[0]][0], data[slice[1]][0]
-    return slice
+    b_len = BASE_LENGTH_H
+    time, data = data[:,0], data[:,1:]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        mean_val = np.nanmean(data, axis=0)
+        mean_var = np.nanmean(data / mean_val, axis=1)
+    indices = np.where(mean_var[:-1*b_len] > 1)[0]
+    deviations = np.array([np.std(data[i:i+b_len], 0) for i in indices])
+    mean_std = 1 / np.nanmean(deviations, axis=1)
+    weightened_std = mean_std * (mean_var[indices] - 1)
+    base_idx = indices[np.argmax(weightened_std)]
+    return base_idx, base_idx + b_len
 
 # TODO: calculate asymptotic direction
 def _get_direction(station):

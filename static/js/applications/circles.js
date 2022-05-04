@@ -43,12 +43,12 @@ function receiveData(resp) {
 	for (let idx = 0; idx < len; ++idx) {
 		const vv = data[2][idx];
 		if (vv == null) continue;
-		let size = Math.abs(vv) / maxVar * 40 + 3;
+		let size = Math.abs(vv) / maxVar * 40 + 1;
 		if (size > maxSize) size = maxSize;
 		if (vv >= 0) {
 			pdata[0][pi] = data[0][idx];
 			pdata[1][pi] = data[1][idx];
-			pdata[2][pi] = size + 3;
+			pdata[2][pi] = size + 2;
 			pdata[3][pi] = data[3][idx];
 			pdata[4][pi] = vv;
 			pi++;
