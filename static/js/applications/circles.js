@@ -13,7 +13,7 @@ let pdata = [], ndata = [];
 let stations = [], shifts = [], base = 0;
 let qt = null;
 
-const maxSize = 60;
+let maxSize = 72;
 
 function receiveData(resp) {
 	const slen = resp.shift.length, tlen = resp.time.length;
@@ -21,6 +21,8 @@ function receiveData(resp) {
 	stations = resp.station, shifts = resp.shift, base = parseInt(resp.base);
 	const data = Array.from(Array(4), () => new Array(slen*tlen));
 	let maxVar = 0, posCount = 0, nullCount = 0;
+	maxSize = 5 + plot.getPlotSize(false).height / 10;
+	console.log('max size', maxSize);
 	console.time('restructure');
 	for (let ti = 0; ti < tlen; ++ti) {
 		for (let si = 0; si < slen; ++si) {
@@ -36,18 +38,19 @@ function receiveData(resp) {
 		}
 	}
 	maxVar = Math.abs(maxVar);
+	if (maxVar < 8) maxVar = 8;
 	ndata = Array.from(Array(5), () => new Array(slen*tlen - posCount - nullCount));
 	pdata = Array.from(Array(5), () => new Array(posCount));
 	let pi = 0, ni = 0, len = slen*tlen;
 	for (let idx = 0; idx < len; ++idx) {
 		const vv = data[2][idx];
 		if (vv == null) continue;
-		let size = Math.abs(vv) / maxVar * 40 + 1;
+		let size = Math.abs(vv) / maxVar * maxSize;
 		if (size > maxSize) size = maxSize;
 		if (vv >= 0) {
 			pdata[0][pi] = data[0][idx];
 			pdata[1][pi] = data[1][idx];
-			pdata[2][pi] = size + 2;
+			pdata[2][pi] = size + 1;
 			pdata[3][pi] = data[3][idx];
 			pdata[4][pi] = vv;
 			pi++;
@@ -125,7 +128,6 @@ function plotInit() {
 		};
 		return {
 			...plot.getPlotSize(false),
-			// title: `base=${new Date(base*1000).toISOString().replace(/\..*|T/g, ' ')}+24h`,
 			mode: 2,
 			cursor: {
 				dataIdx: (u, seriesIdx) => {
@@ -170,11 +172,11 @@ function plotInit() {
 					u => {
 						const baseX = u.valToPos(base, 'x');
 						u.ctx.save();
-						u.ctx.strokeStyle = '#ffff00';
+						u.ctx.strokeStyle = '#ffbb00';
 						u.ctx.lineWidth = 1;
 						u.ctx.beginPath();
-						u.ctx.moveTo(baseX, u.bbox.top);
-						u.ctx.lineTo(baseX, u.bbox.top + u.bbox.height);
+						u.ctx.moveTo(u.bbox.left + baseX, u.bbox.top);
+						u.ctx.lineTo(u.bbox.left + baseX, u.bbox.top + u.bbox.height);
 						u.ctx.stroke();
 						u.ctx.restore();
 
