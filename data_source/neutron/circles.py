@@ -25,7 +25,7 @@ def _determine_base(data):
     b_len = BASE_LENGTH_H
     time, data = data[:,0], data[:,1:]
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
+        warnings.simplefilter('ignore', category=RuntimeWarning)
         mean_val = np.nanmean(data, axis=0)
         mean_var = np.nanmean(data / mean_val, axis=1)
     indices = np.where(mean_var[:-1*b_len] > 1)[0]
@@ -47,10 +47,11 @@ def get(t_from, t_to):
     base_data = data[base_idx[0]:base_idx[1], 1:]
     base_data = base_data
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
+        warnings.simplefilter('ignore', category=RuntimeWarning)
         variation = data[:,1:] / np.nanmean(base_data, axis=0) - 1
     variation = np.round(variation * 100, 2)
     return dict({
+        'base': int(data[base_idx[0], 0]),
         'time': np.uint64(data[:,0]).tolist(),
         'variation': np.where(np.isnan(variation), None, variation).tolist(),
         'shift': [_get_direction(s) for s in stations],

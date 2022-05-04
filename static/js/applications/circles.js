@@ -10,7 +10,7 @@ const params = util.storage.getObject('circles-params') || {
 	to: new Date(2021, 11, 15).getTime() / 1000,
 };
 let pdata = [], ndata = [];
-let stations = [], shifts = [];
+let stations = [], shifts = [], base = 0;
 let qt = null;
 
 const maxSize = 60;
@@ -18,7 +18,7 @@ const maxSize = 60;
 function receiveData(resp) {
 	const slen = resp.shift.length, tlen = resp.time.length;
 	if (tlen < 10) return;
-	stations = resp.station, shifts = resp.shift;
+	stations = resp.station, shifts = resp.shift, base = parseInt(resp.base);
 	const data = Array.from(Array(4), () => new Array(slen*tlen));
 	let maxVar = 0, posCount = 0, nullCount = 0;
 	console.time('restructure');
@@ -38,7 +38,6 @@ function receiveData(resp) {
 	maxVar = Math.abs(maxVar);
 	ndata = Array.from(Array(5), () => new Array(slen*tlen - posCount - nullCount));
 	pdata = Array.from(Array(5), () => new Array(posCount));
-	console.log(maxVar);
 	let pi = 0, ni = 0, len = slen*tlen;
 	for (let idx = 0; idx < len; ++idx) {
 		const vv = data[2][idx];
@@ -126,6 +125,7 @@ function plotInit() {
 		};
 		return {
 			...plot.getPlotSize(false),
+			// title: `base=${new Date(base*1000).toISOString().replace(/\..*|T/g, ' ')}+24h`,
 			mode: 2,
 			cursor: {
 				dataIdx: (u, seriesIdx) => {
@@ -168,6 +168,16 @@ function plotInit() {
 			hooks: {
 				drawClear: [
 					u => {
+						const baseX = u.valToPos(base, 'x');
+						u.ctx.save();
+						u.ctx.strokeStyle = '#ffff00';
+						u.ctx.lineWidth = 1;
+						u.ctx.beginPath();
+						u.ctx.moveTo(baseX, u.bbox.top);
+						u.ctx.lineTo(baseX, u.bbox.top + u.bbox.height);
+						u.ctx.stroke();
+						u.ctx.restore();
+
 						qt = qt || new qtree.Quadtree(0, 0, u.bbox.width, u.bbox.height);
 						qt.clear();
 						u.series.forEach((s, i) => {
@@ -175,7 +185,7 @@ function plotInit() {
 								s._paths = null;
 						});
 					},
-				],
+				]
 			},
 			axes: [
 				{
@@ -242,7 +252,7 @@ const query = util.constructQueryManager(URL, {
 export function initTabs() {
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
-Plot GLE precursors using stations ring method.`)
+Plot GLE precursors using stations ring method.<br>Yellow line shows base period (24h) start`)
 	]);
 	tabs.fill('query', [
 		tabs.input('time', (from, to, force) => {
