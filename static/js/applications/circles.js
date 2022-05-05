@@ -7,7 +7,7 @@ import * as qtree from '../lib/quadtree.js';
 const URL = 'api/neutron/circles';
 const params = util.storage.getObject('circles-params') || {
 	from: new Date(2021, 10, 1).getTime() / 1000,
-	to: new Date(2021, 11, 15).getTime() / 1000,
+	to: new Date(2021, 10, 5).getTime() / 1000,
 };
 let pdata = [], ndata = [];
 let stations = [], shifts = [], base = 0;
