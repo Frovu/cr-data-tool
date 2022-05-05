@@ -35,6 +35,8 @@
 			const opts = new Proxy(new URLSearchParams(window.location.search), {
 				get: (searchParams, prop) => searchParams.get(prop),
 			});
+			if (opts.bg)
+				document.body.style.backgroundColor = '#' + opts.bg;
 			const days = parseInt(opts.days) || 7;
 			let updateDelay = parseInt(opts.update) || 30;
 			if (updateDelay < 5) updateDelay = 5;
