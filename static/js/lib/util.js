@@ -20,7 +20,7 @@ function encodeParams(obj) {
 	return keys.length ? '?' + keys.map(k => `${k}=${obj[k]}`).join('&') : '';
 }
 
-export function constructQueryManager(url, callbacks, progDetails=true) {
+export function constructQueryManager(url, callbacks, progDetails=true, insistent=false) {
 	let params, fetchParams, fetchInterval, fetchOngoing, paramsChanged;
 	const div = document.createElement('div');
 	div.classList.add('query');
@@ -33,7 +33,7 @@ export function constructQueryManager(url, callbacks, progDetails=true) {
 		const resp = await fetch(`${url}${encodeParams(params)}`).catch(e=>{console.error(e);});
 		const body = resp && resp.status === 200 && await resp.json().catch(e=>{console.error(e);});
 		if (progEl) progEl.innerHTML = '';
-		console.log('resp:', resp.status, body);
+		console.log('resp:', resp && resp.status, body);
 		if (body) {
 			if (body.status === 'ok') {
 				el.innerHTML = 'Done!';
@@ -79,7 +79,7 @@ export function constructQueryManager(url, callbacks, progDetails=true) {
 					if (!fetchOngoing)
 						return resolve(null);
 					fetchOnce().then(ok => {
-						if (typeof ok === 'undefined' && fetchOngoing) {
+						if (fetchOngoing && (typeof ok === 'undefined' || (insistent && !ok))) {
 							delay = delay<2000 ? (delay+50) : delay;
 							fetchInterval = setTimeout(fetchfn, delay);
 						} else {

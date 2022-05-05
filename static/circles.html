@@ -8,7 +8,7 @@
 		<style media="screen">
 			.graph {
 				--font: DejaVu Sans Mono, Liberation Mono, monospace;
-				background-color: var(--color-tab-bg);
+				background-color: var(--color-bg);
 				color: var(--color-text);
 				font-family: var(--font);
 				font-size: 14px;
@@ -19,7 +19,7 @@
 			}
 			#updated {
 				font-style: italic;
-				color: var(--color-inactive);
+				color: var(--color-grid);
 				position: absolute;
 				left: 32px;
 				bottom: 45px;
@@ -28,7 +28,7 @@
 		<title>Circles</title>
 	</head>
 	<body main-theme="dark" class="graph">
-		<span id="updated"></span>
+		<span id="updated">Loading..</span>
 		<script type="module">
 			import {receiveData} from './js/applications/circles.js';
 			import {constructQueryManager} from './js/lib/util.js';
@@ -39,22 +39,22 @@
 			let updateDelay = parseInt(opts.update) || 30;
 			if (updateDelay < 5) updateDelay = 5;
 			const delayMs = updateDelay * 60 * 1000;
-			let updated = Date.now();
+			let updated;
 			const updt = document.getElementById('updated');
-			setInterval(() => {
-				const sec = (Date.now() - updated) / 1000;
-				if (sec < 60)
-					updt.innerHTML = `Updated ${sec.toFixed()} second${sec<2?'':'s'} ago`;
-				else
-					updt.innerHTML = `Updated ${Math.floor(sec/60)} minute${sec<90?'':'s'} ago`;
-			}, 1000)
 			const query = constructQueryManager('api/neutron/circles', {
 				data: resp => {
 					updated = Date.now();
 					updt.innerHTML = `Updated just now`;
 					receiveData(resp);
+					setInterval(() => {
+						const sec = (Date.now() - updated) / 1000;
+						if (sec < 60)
+							updt.innerHTML = `Updated ${sec.toFixed()} second${sec<2?'':'s'} ago`;
+						else
+							updt.innerHTML = `Updated ${Math.floor(sec/60)} minute${sec<120?'':'s'} ago`;
+					}, 1000);
 				}
-			});
+			}, false, true);
 			function fetch() {
 				const params = {
 					from: Math.floor(new Date().getTime() / 1000 - 86400 * days),
