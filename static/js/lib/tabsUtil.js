@@ -115,6 +115,15 @@ export function input(type, callback, options = {}) {
 		footer.classList.add('footer');
 		footer.innerHTML = 'date format: yyyy-mm-dd';
 		elem.append('from', from, 'to', to, footer);
+		if (options.editable) {
+			return {
+				elem,
+				set: (dateFrom, dateTo) => {
+					from.value = dateFrom.toISOString().replace(/T.*/, '');
+					to.value = dateTo.toISOString().replace(/T.*/, '');
+				}
+			};
+		}
 	} else if (type === 'switch') {
 		elem = document.createElement('button');
 		elem.innerHTML = options.active || options.options[0];
@@ -154,6 +163,20 @@ export function input(type, callback, options = {}) {
 			div.append( elem);
 		}
 		return div;
+	} else if (type === 'select') {
+		elem = document.createElement('div');
+		const sel = document.createElement('select');
+		if (!options.active) {
+			sel.innerHTML = '<option disabled selected value>-- None --</option>';
+		}
+		for (const option of options.options) {
+			const opt = document.createElement('option');
+			opt.innerHTML = opt.value = option;
+			if (options.active === option) opt.selected = 'selected';
+			sel.append(opt);
+		}
+		sel.onchange = () => callback(sel.value);
+		elem.append(options.text ? options.text + ' ' : '', sel);
 	} else if (type === 'query') {
 		const optParams = options.params || {};
 		const getParams = typeof optParams === 'function' ? optParams : () => optParams;

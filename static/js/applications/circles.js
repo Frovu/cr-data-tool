@@ -253,19 +253,36 @@ const query = util.constructQueryManager(URL, {
 	params: p => util.storage.setObject('circles-params', p)
 });
 
+const EVENTS = {
+	'FD 2012-07-14': [ '2012-07-12', '2012-07-16' ],
+	'FD 2012-09-03': [ '2012-09-01', '2012-09-06' ],
+	'FD 2013-03-15': [ '2013-03-11', '2013-03-16' ],
+	'FD 2013-04-14': [ '2013-04-11', '2013-04-16' ],
+	'FD 2016-06-13': [ '2016-06-09', '2016-06-15' ],
+	'FD 2021-10-04': [ '2021-11-01', '2021-11-05' ],
+};
+
 export function initTabs() {
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
 Plot GLE precursors using stations ring method.<br>Yellow line shows base period (24h) start`)
 	]);
+	const timeInput = tabs.input('time', (from, to, force) => {
+		params.from = from;
+		params.to = to;
+		query.params(params);
+		if (force)
+			query.fetch(params);
+	}, { from: params.from, to: params.to, editable: true });
 	tabs.fill('query', [
-		tabs.input('time', (from, to, force) => {
-			params.from = from;
-			params.to = to;
+		timeInput.elem,
+		tabs.input('select', opt => {
+			const interval = EVENTS[opt].map(d => new Date(d));
+			[ params.from, params.to ] = interval.map(d => d.getTime() / 1000);
 			query.params(params);
-			if (force)
-				query.fetch(params);
-		}, { from: params.from, to: params.to }),
+			timeInput.set(...interval);
+			query.fetch(params);
+		}, { text: 'Select event:', options: Object.keys(EVENTS) }),
 		query.el
 	]);
 	query.fetch(params);
