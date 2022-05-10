@@ -4,6 +4,16 @@ import * as plot from '../plot.js';
 import uPlot from '../lib/uPlot.esm.js';
 import * as qtree from '../lib/quadtree.js';
 
+const EVENTS = {
+	'FD 2011-02-18': [ '2011-02-15', '2011-02-19' ],
+	'FD 2012-07-14': [ '2012-07-12', '2012-07-16' ],
+	'FD 2012-09-03': [ '2012-09-01', '2012-09-06' ],
+	'FD 2013-03-15': [ '2013-03-11', '2013-03-16' ],
+	'FD 2013-04-14': [ '2013-04-11', '2013-04-16' ],
+	'FD 2016-06-13': [ '2016-06-09', '2016-06-15' ],
+	'FD 2021-10-04': [ '2021-11-01', '2021-11-05' ],
+};
+
 const URL = 'api/neutron/circles';
 const params = util.storage.getObject('circles-params') || {
 	from: new Date(2021, 10, 1).getTime() / 1000,
@@ -252,15 +262,6 @@ const query = util.constructQueryManager(URL, {
 	data: receiveData,
 	params: p => util.storage.setObject('circles-params', p)
 });
-
-const EVENTS = {
-	'FD 2012-07-14': [ '2012-07-12', '2012-07-16' ],
-	'FD 2012-09-03': [ '2012-09-01', '2012-09-06' ],
-	'FD 2013-03-15': [ '2013-03-11', '2013-03-16' ],
-	'FD 2013-04-14': [ '2013-04-11', '2013-04-16' ],
-	'FD 2016-06-13': [ '2016-06-09', '2016-06-15' ],
-	'FD 2021-10-04': [ '2021-11-01', '2021-11-05' ],
-};
 
 export function initTabs() {
 	tabs.fill('app', [

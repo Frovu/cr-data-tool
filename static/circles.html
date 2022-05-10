@@ -22,13 +22,21 @@
 				color: var(--color-grid);
 				position: absolute;
 				left: 32px;
-				bottom: 45px;
+				bottom: 48px;
+			}
+			#warn {
+				font-style: italic;
+				color: var(--color-grid);
+				position: absolute;
+				left: 32px;
+				bottom: 32px;
 			}
 		</style>
 		<title>Circles</title>
 	</head>
 	<body main-theme="dark" class="graph">
 		<span id="updated">Loading..</span>
+		<span id="warn"></span>
 		<script type="module">
 			import {receiveData} from './js/applications/circles.js';
 			import {constructQueryManager} from './js/lib/util.js';
@@ -43,10 +51,16 @@
 			const delayMs = updateDelay * 60 * 1000;
 			let updated;
 			const updt = document.getElementById('updated');
+			const warn = document.getElementById('warn');
 			const query = constructQueryManager('api/neutron/circles', {
 				data: resp => {
 					updated = Date.now();
 					updt.innerHTML = `Updated just now`;
+					warn.innerHTML = '';
+					if (resp.excluded && resp.excluded.length)
+						warn.innerHTML += `Excluded: ${resp.excluded.join()}`
+					if (resp.filtered)
+						warn.innerHTML += ` Filtered: ${resp.filtered}`
 					receiveData(resp);
 					setInterval(() => {
 						const sec = (Date.now() - updated) / 1000;
@@ -61,6 +75,7 @@
 				const params = {
 					from: Math.floor(new Date().getTime() / 1000 - 86400 * days),
 					to:   Math.floor(new Date().getTime() / 1000),
+					exclude: opts.exclude || '',
 				};
 				updt.innerHTML = `Updating...`;
 				query.fetch(params);
