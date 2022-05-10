@@ -44,8 +44,8 @@ def _filter(full_data):
         warnings.simplefilter('ignore', category=RuntimeWarning)
         variation = data / np.nanmean(data, axis=0) * 100 - 100
         mean_variation = np.nanmedian(variation, axis=1)
-    deviation = np.abs(variation - mean_variation[:,None])
-    mask = np.where(deviation > 5)
+    deviation = variation - mean_variation[:,None]
+    mask = np.where((deviation > 3) | (deviation < -7.5)) # meh values
     data[mask] = np.nan
     excluded = list()
     for station_i in range(data.shape[1]): # exclude station if >10 spikes
@@ -55,9 +55,9 @@ def _filter(full_data):
     filtered = np.count_nonzero(~np.isin(mask[1], excluded))
     return full_data, filtered, excluded
 
-def get(t_from, t_to):
+def get(t_from, t_to, exclude=[]):
     t_from = t_from // database.PERIOD * database.PERIOD
-    stations = RING.keys()
+    stations = [k for k in RING.keys() if k not in exclude]
     data, filtered, excluded = _filter(database.fetch((t_from, t_to), stations))
     base_idx = _determine_base(data)
     base_data = data[base_idx[0]:base_idx[1], 1:]
@@ -71,5 +71,7 @@ def get(t_from, t_to):
         'time': np.uint64(data[:,0]).tolist(),
         'variation': np.where(np.isnan(variation), None, variation).tolist(),
         'shift': [_get_direction(s) for s in stations],
-        'station': list(stations)
+        'station': list(stations),
+        'filtered': filtered,
+        'excluded': exclude + [stations[i] for i in excluded]
     })
