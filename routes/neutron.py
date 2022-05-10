@@ -19,6 +19,8 @@ def muon_corrected():
     t_to = t_to if t_to < trim_future else trim_future
     trim_len = t_to - MAX_LEN_H * 3600
     t_from = t_from if t_from > trim_len else trim_len
+    if t_to - t_from < 86400:
+        raise ValueError()
 
     body = circles.get(t_from, t_to)
     body['status'] = 'ok'
