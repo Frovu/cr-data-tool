@@ -13,18 +13,21 @@ FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < perio
 GROUP BY period ORDER BY period
 '''
 
-def _obtain_nagoya(dt_from, dt_to, what):
+def _obtain_local(station, dt_from, dt_to, what):
     year, month = dt_from.year, dt_from.month
-    dir = f'tmp/Nagoya/{what}'
+    dir = f'tmp/{station}'
     result = []
+    is_weird = station == 'Yakutsk' and what == 'pressure'
     while year < dt_to.year or (year == dt_to.year and month <= dt_to.month):
-        fpath = f'{dir}/{year%100:02}{month:02}.txt'
+        fpath = f'{dir}/{what}/{year%100:02}{month:02}.txt'
+        if is_weird: fpath = f'{dir}/pressure.txt'
         if os.path.exists(fpath):
             with open(fpath) as file:
                 for line in file:
                     date, time, value = line.split()
                     time = datetime.strptime(date+'T'+time, '%Y-%m-%dT%H:%M:%S+00') # meh
-                    result.append((time, float(value)))
+                    result.append((time, float(value)/10 if is_weird else float(value)))
+        if is_weird: break
         month += 1
         if month > 12:
             month = 1
@@ -147,16 +150,20 @@ def obtain(channel, t_from, t_to, column):
                 cursor.execute(_psql_query('muon_data', channel.period, t_from, t_to, ['dt', col]))
                 resp = cursor.fetchall()
                 return resp, column
+    elif station == 'Yakutsk':
+        what = column if column == 'pressure' else channel.name
+        dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
+        return _obtain_local(station, dt_from, dt_to, what), column
     elif station == 'Nagoya':
         what = column if column == 'pressure' else channel.name
         dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
         result = _obtain_gmdn(station, dt_from, dt_to, what)
         if not result:
-            return _obtain_nagoya(dt_from, dt_to, what), column
+            return _obtain_local(station, dt_from, dt_to, what), column
         if result[0][0] > dt_from:
-            result = _obtain_nagoya(dt_from, result[0][0]-timedelta(hours=1), what) + result
+            result = _obtain_local(station, dt_from, result[0][0]-timedelta(hours=1), what) + result
         if result[-1][0] < dt_to:
-            result = result + _obtain_nagoya(result[-1][0]+timedelta(hours=1), dt_to, what)
+            result = result + _obtain_local(station, result[-1][0]+timedelta(hours=1), dt_to, what)
         return result, column
     elif station == 'Moscow-CARPET':
         data = _obtain_gdrive(station.split('-')[1], t_from, t_to, channel.name, column)

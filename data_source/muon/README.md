@@ -29,7 +29,8 @@ INSERT INTO muon_stations(lat, lon, name, since, elevation_m) VALUES
 (55.47, 37.32, 'Moscow-CARPET', '2019-01-01', 190),
 (67.57, 33.39, 'Apatity', '2020-11-26', 181),
 (78.06, 14.22, 'Barentsburg', '2021-10-03', 70),
-(35.2, 137.0, 'Nagoya', '1986-04-22', 77)
+(35.2, 137.0, 'Nagoya', '1986-04-22', 77),
+(61.59, 129.41, 'Yakutsk', '1972-01-01', 100)
 ON CONFLICT(name) DO NOTHING;
 INSERT INTO muon_channels(station_name, channel_name, dir_vertical, dir_azimuthal) VALUES
 ('Moscow-pioneer', 'V' , 0, 0),
@@ -37,6 +38,11 @@ INSERT INTO muon_channels(station_name, channel_name, dir_vertical, dir_azimutha
 ('Moscow-CUBE', 'V' , 0, 0),
 ('Apatity', 'V' , 0, 0),
 ('Barentsburg', 'V' , 0, 0),
+('Yakutsk', 'V' , 0, 0),
+('Yakutsk', 'N' , 30, 0),
+('Yakutsk', 'S' , 30, 180),
+('Yakutsk', 'N2' , 60, 0),
+('Yakutsk', 'S2' , 60, 180),
 ('Nagoya', 'V' , 0, 0),
 ('Nagoya', 'NE', 39, 45),
 ('Nagoya', 'SE', 39, 135),
