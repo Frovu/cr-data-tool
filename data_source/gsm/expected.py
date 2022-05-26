@@ -37,7 +37,8 @@ def get_variation(channel, interval, period=3600):
         logging.warning(f'GSM: coef missing {channel.station_name}:{channel.name}')
         return time, np.full(time.shape, 0), np.full(time.shape, 0)
     gsm_result = gsm.get(interval)
-    assert gsm_result and time.shape == gsm_result[0].shape
+    if not gsm_result or time.shape != gsm_result[0].shape:
+        return None, None
     a10, x, y, z = gsm_result
     # logging.debug(f'GSM: rotating planet')
     time_of_day = (time + period / 2) % 86400
