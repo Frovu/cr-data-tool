@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS muon_channels (
 );
 INSERT INTO muon_stations(lat, lon, name, since, elevation_m) VALUES
 (55.47, 37.32, 'Moscow-pioneer', '2020-08-26', 190),
-(55.47, 37.32, 'Moscow-CUBE', '2019-01-01', 190),
+(55.47, 37.32, 'Moscow-CUBE', '2007-10-23', 190),
 (55.47, 37.32, 'Moscow-CARPET', '2019-01-01', 190),
 (67.57, 33.39, 'Apatity', '2020-11-26', 181),
 (78.06, 14.22, 'Barentsburg', '2021-10-03', 70),

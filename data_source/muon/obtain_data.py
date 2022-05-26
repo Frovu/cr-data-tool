@@ -139,7 +139,8 @@ def _obtain_gdrive(station, t_from, t_to, channel='V', what='source'):
 
 def obtain(channel, t_from, t_to, column):
     station = channel.station_name
-    logging.debug(f'Muones: querying raw {station}:{channel.name} {t_from}:{t_to}')
+    what = column if column == 'pressure' else channel.name
+    logging.debug(f'Muones: querying {what} {station}:{channel.name} {t_from}:{t_to}')
     if station == 'Moscow-pioneer':
         with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
             user = os.environ.get('MUON_MSK_USER'),
@@ -151,11 +152,9 @@ def obtain(channel, t_from, t_to, column):
                 resp = cursor.fetchall()
                 return resp, column
     elif station == 'Yakutsk':
-        what = column if column == 'pressure' else channel.name
         dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
         return _obtain_local(station, dt_from, dt_to, what), column
     elif station == 'Nagoya':
-        what = column if column == 'pressure' else channel.name
         dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
         result = _obtain_gmdn(station, dt_from, dt_to, what)
         if not result:
@@ -171,6 +170,8 @@ def obtain(channel, t_from, t_to, column):
     elif station in ['Apatity', 'Barentsburg']:
         data = _obtain_apatity(station, t_from, t_to, channel.name, column)
         return data, column
+    else:
+        return [], column
 
 def obtain_raw(station, t_from, t_to, period, fields=None):
     if station == 'Moscow-pioneer':
