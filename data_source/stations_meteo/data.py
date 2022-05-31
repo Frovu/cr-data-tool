@@ -1,4 +1,4 @@
-import data_source.temperature_model.temperature as temperature
+import data_source.atmosphere.temperature as temperature
 import data_source.stations_meteo.db_proxy as proxy
 import data_source.stations_meteo.parser as parser
 from core.sequence_filler import SequenceFiller, fill_fn

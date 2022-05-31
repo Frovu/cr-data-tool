@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import logging as log
-from data_source.temperature_model.download import Downloader, filename
+from data_source.atmosphere.download import Downloader, filename
 from datetime import datetime, timedelta, timezone
 from netCDF4 import Dataset, num2date, date2index
 

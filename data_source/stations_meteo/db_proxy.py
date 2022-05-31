@@ -1,5 +1,5 @@
 from core.sql_queries import integrity_query
-import data_source.temperature_model.proxy as model_proxy
+import data_source.atmosphere.proxy as model_proxy
 pg_conn = model_proxy.pg_conn
 import psycopg2.extras
 import numpy

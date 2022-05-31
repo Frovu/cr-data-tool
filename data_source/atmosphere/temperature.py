@@ -1,9 +1,9 @@
 from core.sequence_filler import SequenceFiller, fill_fn
 import numpy as np
 from scipy import interpolate, ndimage
-import data_source.temperature_model.parser as parser
-import data_source.temperature_model.proxy as proxy
-import data_source.temperature_model.gfs_parser as gfs
+import data_source.atmosphere.parser as parser
+import data_source.atmosphere.proxy as proxy
+import data_source.atmosphere.gfs_parser as gfs
 from math import floor, ceil
 import logging as log
 LEVELS = proxy.LEVELS

@@ -9,7 +9,7 @@ plt.rcParams['axes.facecolor'] = 'black'
 plt.rcParams['figure.facecolor'] = 'darkgrey'
 
 import data_source.muon.data as muon
-import data_source.temperature_model.temperature as temperature
+import data_source.atmosphere.temperature as temperature
 
 PERIOD = 365*2
 

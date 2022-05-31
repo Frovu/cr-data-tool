@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 import numpy as np
 import os
 from scipy import interpolate, ndimage
-from data_source.temperature_model.proxy import LEVELS
+from data_source.atmosphere.proxy import LEVELS
 from concurrent.futures import ThreadPoolExecutor
 import traceback
 import time

@@ -1,5 +1,5 @@
-import data_source.temperature_model.temperature as t_model
-import data_source.temperature_model.proxy as database
+import data_source.atmosphere.temperature as t_model
+import data_source.atmosphere.proxy as database
 import data_source.stations_meteo.data as t_stations
 from flask import Blueprint, request
 from datetime import datetime
