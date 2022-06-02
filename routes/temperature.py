@@ -1,4 +1,5 @@
 import data_source.atmosphere.temperature as t_model
+import data_source.atmosphere.ground_flux as gflux
 import data_source.atmosphere.proxy as database
 import data_source.stations_meteo.data as t_stations
 from flask import Blueprint, request
@@ -33,6 +34,17 @@ def get():
     permissions.log_action('get_result', 'temperature', f'{lat},{lon}')
     body["fields"] = data[1]
     body["data"] = numpy.round(numpy.array(data[0]), 2).tolist()
+    return body
+
+@bp.route('/gflux', methods=['GET'])
+@route_shielded
+def get_gflux():
+    t_from = int(request.args.get('from', ''))
+    t_to = int(request.args.get('to', ''))
+    lat = float(request.args.get('lat', ''))
+    lon = float(request.args.get('lon', ''))
+    res = gflux.get(lat, lon, t_from, t_to)
+    body = { "status": "ok", "data": numpy.where(numpy.isnan(res), None, res).tolist() }
     return body
 
 @bp.route('/stations', methods=['GET'])

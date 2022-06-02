@@ -1,6 +1,7 @@
 import data_source.atmosphere.temperature as temp
 import data_source.atmosphere.parser as parser
 from math import floor, ceil
+from scipy import interpolate
 import numpy as np, logging as log
 
 MODEL_PERIOD = 6 * 3600
@@ -21,6 +22,10 @@ def get(lat, lon, t_from, t_to):
     t_from, t_to = _bound(t_from, t_to)
     log.info(f"gflux: Obtaining ({lat},{lon}) {t_from}:{t_to}")
     times_6h, data = parser.obtain('gflux', t_from, t_to)
-    approximated = temp._approximate_for_point(data, lat, lon)
-    times_1h, result = temp._interpolate_time(times_6h, approximated)
-    return np.column_stack((times_1h, result))
+    approximated = np.array([d[20][75] for d in data]) # FIXME
+    approximated = np.where(np.isnan(approximated), 0, approximated)
+    times_1h = np.arange(times_6h[0], times_6h[-1] + 1, 3600)
+    spline = interpolate.splrep(times_6h, approximated, s=1)
+    result = interpolate.splev(times_1h, spline)
+    # return np.column_stack((times_1h, result))
+    return np.column_stack((times_6h, approximated))

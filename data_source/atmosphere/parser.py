@@ -20,7 +20,6 @@ downloaders = dict({
 def _extract_from_file(what, fname, dt_from, dt_to):
     key = 'gflux' if what == 'gflux' else 'air'
     data = Dataset(os.path.join(PATH, fname), 'r')
-    print(data)
     assert 'NMC reanalysis' in data.title
     log.debug(f'Reading: {fname} from {dt_from} to {dt_to}')
     times = data.variables['time']

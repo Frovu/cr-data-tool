@@ -6,6 +6,7 @@ import * as muonRaw from './applications/muonesRaw.js';
 import * as muonCorr from './applications/muonesCorrelation.js';
 import * as pressure from './applications/pressure.js';
 import * as admin from './applications/admin.js';
+import * as gflux from './applications/gflux.js';
 
 const applications = {
 	temperature,
@@ -15,11 +16,12 @@ const applications = {
 	muonRaw,
 	muonCorr,
 	pressure,
-	admin
+	admin,
+	gflux
 };
 const hierarchy = {
 	muon: ['muon', 'muonRaw', 'muonCorr', 'pressure'],
-	temperature: ['temperature', 'tempHeight'],
+	temperature: ['temperature', 'tempHeight', 'gflux'],
 	neutron: ['circles']
 };
 const publicApps = ['muon', 'neutron', 'temperature'];
