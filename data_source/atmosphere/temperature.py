@@ -19,13 +19,13 @@ SPLINE_INDENT_H = MODEL_PERIOD // HOUR * SPLINE_INDENT
 scheduler = SequenceFiller(ttl=0)
 
 # transform geographical coords to index coords
-def _get_coords(lat, lon, resolution=2.5):
+def _get_coords(lat, lon, resolution):
     lat_i = interpolate.interp1d([90, -90], [0, 180 // resolution])
     lon_i = interpolate.interp1d([0,  360], [0, 360 // resolution])
     return [[lat_i(lat)], [lon_i((lon + 360) % 360)]] # lon: [-180;180]->[0;360]
 
-def _approximate_for_point(data, lat, lon):
-    coords = _get_coords(lat, lon)
+def _approximate_for_point(data, lat, lon, resolution=2.5):
+    coords = _get_coords(lat, lon, resolution)
     approximated = np.empty(data.shape[:2])
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
@@ -51,7 +51,7 @@ def _fill_interval(interval, lat, lon, mq):
     t_to   = MODEL_PERIOD * ( ceil(interval[1] / MODEL_PERIOD) + SPLINE_INDENT)
     log.info(f"NCEP/NCAR: Obtaining ({lat},{lon}) {t_from}:{t_to}")
     try:
-        times_6h, data = parser.obtain(t_from, t_to, mq)
+        times_6h, data = parser.obtain('temperature', t_from, t_to, mq)
     except Exception as e:
         if 'too short' in str(e):
             log.warning(f"NCEP/NCAR: Falling back to forecast {t_from}:{t_to}")

@@ -20,6 +20,7 @@ downloaders = dict({
 def _extract_from_file(what, fname, dt_from, dt_to):
     key = 'gflux' if what == 'gflux' else 'air'
     data = Dataset(os.path.join(PATH, fname), 'r')
+    print(data)
     assert 'NMC reanalysis' in data.title
     log.debug(f'Reading: {fname} from {dt_from} to {dt_to}')
     times = data.variables['time']
@@ -30,7 +31,7 @@ def _extract_from_file(what, fname, dt_from, dt_to):
     epoch_times = np.array([dt.replace(tzinfo=timezone.utc).timestamp() for dt in time_values], dtype=int)
     return epoch_times, data.variables[key][start_idx:end_idx]
 
-def _obtain_year(what, dt_from, dt_to, merge_query=None):
+def _obtain_year(what, dt_from, dt_to, merge_query):
     try:
         year = dt_from.year
         fname = downloaders[what].filename(year)
@@ -59,7 +60,7 @@ def get_hopeless():
         return hopeless[1].replace(tzinfo=timezone.utc).timestamp()
 
 # inclusive, presumes period to be aligned
-def obtain(what, t_from, t_to, mq):
+def obtain(what, t_from, t_to, mq=None):
     dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
     if dt_from.year == dt_to.year:
         return _obtain_year(what, dt_from, dt_to, mq)
