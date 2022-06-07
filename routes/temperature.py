@@ -33,7 +33,8 @@ def get():
         return body
     permissions.log_action('get_result', 'temperature', f'{lat},{lon}')
     body["fields"] = data[1]
-    body["data"] = numpy.round(numpy.array(data[0]), 2).tolist()
+    res = numpy.round(numpy.array(data[0], dtype='float'), 2)
+    body["data"] = numpy.where(numpy.isnan(res), None, res).tolist()
     return body
 
 @bp.route('/gflux', methods=['GET'])
