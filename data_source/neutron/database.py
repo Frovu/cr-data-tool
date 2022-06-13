@@ -21,7 +21,7 @@ with pg_conn.cursor() as cursor:
 
 def _disconnect_nmdb():
     global nmdb_conn, discon_timer
-    logging.info('Disconnecting NMDB')
+    logging.debug('Disconnecting NMDB')
     nmdb_conn.close()
     nmdb_conn = None
     discon_timer = None
@@ -51,7 +51,7 @@ def _obtain_nmdb(interval, station, pg_cursor):
             FROM {station}_revori WHERE start_date_time >= %s AND start_date_time < %s + interval 1 hour GROUP BY date(start_date_time), extract(hour from start_date_time)'''
         cursor.execute(query, dt_interval)
         data = cursor.fetchall()
-    logging.info(f'Neutron: obtain nmdb:{station} [{len(data)}] {dt_interval[0]} to {dt_interval[1]}')
+    logging.debug(f'Neutron: obtain nmdb:{station} [{len(data)}] {dt_interval[0]} to {dt_interval[1]}')
     query = f'''INSERT INTO neutron_counts (station, time, uncorrected, corrected, pressure) VALUES %s
     ON CONFLICT (time, station) DO UPDATE SET corrected = EXCLUDED.corrected'''
     psycopg2.extras.execute_values(pg_cursor, query, data, template=f'(\'{station}\',%s,%s,%s,%s)')
