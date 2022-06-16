@@ -171,8 +171,9 @@ async function fetchStations() {
 export async function initTabs() {
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
-Temperature corrected muons data.
-Correction is performed via mass-average temperature method.<br>
+Temperature corrected data of muon telescopes.<br>
+Correction is performed via mass-average temperature method. <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR</a> and <a href="https://nomads.ncep.noaa.gov/txt_descriptions/GFS_doc.shtml">GFS</a> are used as data source.<br>
+If you by some ocasion have a muon telescope and want to setup easy correction of your data, please <a href="mailto:izmiran.crdt@gmail.com">contact us</a>.
 `)
 	]);
 	const stations = await fetchStations() || [];

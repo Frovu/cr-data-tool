@@ -267,7 +267,7 @@ const query = util.constructQueryManager(URL, {
 export function initTabs() {
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
-Plot GLE precursors using stations ring method.<br>Yellow line shows base period (24h) start`)
+Plot FD precursors using ring of stations method.<br>Yellow line shows base period (24h) start`)
 	]);
 	const timeInput = tabs.input('time', (from, to, force) => {
 		params.from = from;
