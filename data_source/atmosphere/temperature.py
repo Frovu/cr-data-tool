@@ -7,16 +7,15 @@ import data_source.atmosphere.gfs_parser as gfs
 from math import floor, ceil
 import logging as log
 LEVELS = proxy.LEVELS
+scheduler = SequenceFiller(ttl=0)
 
 HOUR = 3600
 MODEL_PERIOD = 6 * HOUR
-MODEL_LAG_H = 96 # assume NCEP/NCAR reanalysis data for that time back is always available
 FORECAST_ALLOW_FUTURE = 2 * 24 * HOUR
-MODEL_LAG = (MODEL_LAG_H * HOUR) // MODEL_PERIOD * MODEL_PERIOD
 MODEL_EPOCH = np.datetime64('1948-01-01').astype(int)
-SPLINE_INDENT = 2 # additional periods on edges for spline evaluation
+SPLINE_INDENT = 1 # additional periods on edges for spline evaluation
 SPLINE_INDENT_H = MODEL_PERIOD // HOUR * SPLINE_INDENT
-scheduler = SequenceFiller(ttl=0)
+MODEL_LAG = MODEL_PERIOD * (10 + SPLINE_INDENT)
 
 # transform geographical coords to index coords
 def _get_coords(lat, lon, resolution):
@@ -50,13 +49,7 @@ def _fill_interval(interval, lat, lon, mq):
     t_from = MODEL_PERIOD * (floor(interval[0] / MODEL_PERIOD) - SPLINE_INDENT)
     t_to   = MODEL_PERIOD * ( ceil(interval[1] / MODEL_PERIOD) + SPLINE_INDENT)
     log.info(f"NCEP/NCAR: Obtaining ({lat},{lon}) {t_from}:{t_to}")
-    try:
-        times_6h, data = parser.obtain('temperature', t_from, t_to, mq)
-    except Exception as e:
-        if 'too short' in str(e):
-            log.warning(f"NCEP/NCAR: Falling back to forecast {t_from}:{t_to}")
-            return _fill_with_forecast([0, 1], t_from, t_to, lat, lon)
-        return None
+    times_6h, data = parser.obtain('temperature', t_from, t_to, mq)
     log.debug(f"NCEP/NCAR: Retrieved [{data.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
     approximated = _approximate_for_point(data, lat, lon)
     log.debug(f"NCEP/NCAR: Approximated ({lat},{lon}) {t_from}:{t_to}")
@@ -64,9 +57,14 @@ def _fill_interval(interval, lat, lon, mq):
     log.debug(f"NCEP/NCAR: Interpolated [{result.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
     t_m = _t_mass_average(result)
     log.debug(f"NCEP/NCAR: T_m [{t_m.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
-    result_m = np.column_stack((times_1h, t_m, result))
     slice = SPLINE_INDENT_H # do not insert edges of spline
-    proxy.insert(lat, lon, result_m[slice:(-1*slice)])
+    result_m = np.column_stack((times_1h, t_m, result))[slice:(-1*slice)]
+    proxy.insert(lat, lon, result_m)
+    model_data_end = int(result_m[-1][0]) + HOUR
+    if model_data_end < interval[1]:
+        lag = (interval[1] - model_data_end) // 3600 + 1
+        log.warning(f"NCEP/NCAR: Model lag exceeds by {lag} hours, using forecast")
+        _fill_with_forecast([0, 1], model_data_end, interval[1], lat, lon)
 
 def _fill_with_forecast(progress, t_from, t_to, lat, lon):
     data = gfs.obtain(lat, lon, t_from, t_to, progress)

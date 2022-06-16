@@ -51,7 +51,6 @@ def _obtain_year(what, dt_from, dt_to, merge_query):
         now, end = datetime.now(), datetime.utcfromtimestamp(res[0][-1])
         if what == 'temperature' and now.year == year and end < dt_to:
             hopeless = (now, end)
-            raise Exception(f'file too short {fname}')
     return res
 
 def get_hopeless():
