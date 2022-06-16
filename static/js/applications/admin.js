@@ -84,7 +84,7 @@ export function initTabs() {
 		editPerms.hidden = null;
 		userPerms.innerHTML = '<h4>Permissions</h4>';
 		userPerms.innerHTML += Object.keys(resp).map(k => `<p>${k}: <i>${resp[k].join()}</i></p>`).join('\n');
-	}, { url: 'api/admin/user', text: 'Fetch' });
+	}, { url: 'api/admin/user', text: 'Fetch', params: () => userOpts });
 	const usernameInp = tabs.input('text', uname => {
 		userOpts.username = uname;
 		permOpts.username = uname;
@@ -97,10 +97,10 @@ export function initTabs() {
 	editPerms.hidden = 'true';
 	const permAdd = tabs.input('query', () => {
 		queryUser.fetch();
-	}, { url: 'api/admin/permissions/add', text: 'Allow' });
+	}, { url: 'api/admin/permissions/add', params: () => permOpts, text: 'Allow' });
 	const permRemove = tabs.input('query', () => {
 		queryUser.fetch();
-	}, { url: 'api/admin/permissions/remove', text: 'Forbid' });
+	}, { url: 'api/admin/permissions/remove', params: () => permOpts, text: 'Forbid' });
 	const permFlagInp = tabs.input('text', val => {
 		permOpts.flag = val;
 		permAdd.setParams(permOpts);

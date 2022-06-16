@@ -16,8 +16,8 @@ const applications = {
 	muonRaw,
 	muonCorr,
 	pressure,
+	gflux,
 	admin,
-	gflux
 };
 const hierarchy = {
 	muon: ['muon', 'muonRaw', 'muonCorr', 'pressure'],
