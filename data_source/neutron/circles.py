@@ -1,4 +1,5 @@
 from data_source.neutron import database
+from scipy import interpolate
 import numpy as np
 import warnings
 
@@ -55,21 +56,30 @@ def _filter(full_data):
     filtered = np.count_nonzero(~np.isin(mask[1], excluded))
     return full_data, filtered, excluded
 
+def precursor_index(time, variations, directions, angular_precision = .5):
+    rotated = (directions + time / 86400 * 360) % 360
+    spline = interpolate.UnivariateSpline(rotated, variations)
+    circle = spline(np.arange(0, 360, angular_precision))
+    min_i, max_i = np.argmin(circle), np.argmax(circle)
+    divergency = circle[max_i] - circle[min_i]
+    angle = np.abs(rotated[min_i], rotated[max_i])
+    if angle > 180: angle = 360 - angle
+    # if divergency >= 1: return 0
+    return divergency * (180 / angle) ** 2
+
 def get(t_from, t_to, exclude=[]):
     t_from = t_from // database.PERIOD * database.PERIOD
     stations = [k for k in RING.keys() if k not in exclude]
     data, filtered, excluded = _filter(database.fetch((t_from, t_to), stations))
     base_idx = _determine_base(data)
     base_data = data[base_idx[0]:base_idx[1], 1:]
-    base_data = base_data
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', category=RuntimeWarning)
-        variation = data[:,1:] / np.nanmean(base_data, axis=0) - 1
-    variation = np.round(variation * 100, 2)
+        variation = data[:,1:] / np.nanmean(base_data, axis=0) * 100 - 100
     return dict({
         'base': int(data[base_idx[0], 0]),
         'time': np.uint64(data[:,0]).tolist(),
-        'variation': np.where(np.isnan(variation), None, variation).tolist(),
+        'variation': np.where(np.isnan(variation), None, np.round(variation, 2)).tolist(),
         'shift': [_get_direction(s) for s in stations],
         'station': list(stations),
         'filtered': filtered,
