@@ -67,8 +67,9 @@ def _align_to_period(datasets, t_from, t_to, period):
 def _obtain_rmp_interval(station, t_from, t_to, query, period, hopeless=True):
     raw_data = _query_aws_rmp(AWS_RMP_IDX[station], t_from, t_to)
     if raw_data is None:
-        log.error(f'Failed to obtain, aborting aws.rmp: {station} {t_from}:{t_to}');
-        raise Exception('abort aws.rmp')
+        log.error(f'Failed to obtain aws.rmp: {station} {t_from}:{t_to}')
+        return
+        # raise Exception('abort aws.rmp')
     data = dict()
     for entry in raw_data:
         if not (type(entry) is dict):

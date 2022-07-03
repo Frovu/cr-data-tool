@@ -23,14 +23,11 @@ def _download(session, filename, latlon, fcst_date, fcst_hour, source='gfs', ret
     try:
         res = session.get(f'{_GFS_URL}{query}{_GFS_QUERY_VARS}', stream=True, timeout=10)
         if res.status_code == 200:
-            # logging.debug(f'OK GFS {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
             with open(filename, 'wb') as f:
                 for chunk in res.iter_content(chunk_size=None):
                     f.write(chunk)
             return filename
-        if res.status_code != 302:
-            logging.debug(f'Failed GFS [{res.status_code}] {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
-
+        logging.debug(f'Failed GFS [{res.status_code}] {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
     except requests.exceptions.ConnectionError as e:
         if retry < 1: raise e
         logging.debug(f'GFS ConnectionError, retrying {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
