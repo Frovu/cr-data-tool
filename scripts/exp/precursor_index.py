@@ -47,7 +47,7 @@ def idx_polyfit(time, variations, directions, window: int = 3):
         result[i] = (idx, divergency, angle, residuals)
     return result
 
-def idx_sinr(time, variations, directions, window: int = 3, min_scl = 0.45):
+def idx_sinr(time, variations, directions, window: int = 3, min_scl = 0.5):
     sorted = np.argsort(directions)
     variations, directions = variations[:,sorted], directions[sorted]
     result = np.full((len(time), 4), np.nan, dtype=np.float32)
@@ -58,6 +58,8 @@ def idx_sinr(time, variations, directions, window: int = 3, min_scl = 0.45):
         y = np.concatenate([variations[i-t] for t in range(window)])
         filter = np.isfinite(y)
         x, y = x[filter], y[filter]
+        height = abs(np.max(y) - np.min(y))
+        y = y / height # rebase
         amax, amin = x[np.argmax(y)], x[np.argmin(y)]
         approx_dist = np.abs(amax - amin)
         center_target = 180 if approx_dist < 180 else 360
@@ -68,13 +70,13 @@ def idx_sinr(time, variations, directions, window: int = 3, min_scl = 0.45):
         trim = np.where((x > bounds) & (x < 360-bounds))
         try:
             popt, pcov = optimize.curve_fit(fn, x[trim], y[trim])
+            angle, scale = abs(popt[0]) - 1, abs(popt[1]) * 2
+            dists  = np.array([fn(x[trim][j], *popt)-y[trim][j] for j in range(len(trim[0]))])
+            mean_dist = (1.1 - np.mean(np.abs(dists)) / scale) ** 2
 
-            # dist = np.array([fn(x[i], *popt)-y[i] for i in range(len(x))])
-            # print(np.mean(np.abs(dist)**2), np.var(y))
-            angle, scale = abs(popt[0]), abs(popt[1])
-            if angle < 1 or angle > 4: angle = 0
-            idx = (scale ** 2 * angle) if scale >= min_scl else 0
-            result[i] = (idx, scale, angle, abs(np.max(y) - np.min(y)))
+            if angle < 0 or angle > 2: angle = 0
+            idx = 2 * (scale * angle * mean_dist) if scale >= min_scl else 0
+            result[i] = (idx, scale, angle, mean_dist)
         except:
             result[i] = (np.nan, np.nan, np.nan, np.nan)
     return result
@@ -84,18 +86,18 @@ def plot():
     fig, ((axt1, ax1, ax2), (axt2, ax3, ax4)) = plt.subplots(2, 3, gridspec_kw={'width_ratios': [2, 1, 1], 'height_ratios': [1, 1]})
     colors = ['#00FFAA', '#00AAFF', '#ccFF00', '#50FF00']
 
-    # interval = [ datetime(2011, 2, 13), datetime(2011, 2, 18) ]
-    interval = [ datetime(2022, 5, 15), datetime(2022, 5, 22) ]
-    # interval = [ datetime(2021, 10, 31, 12), datetime(2021, 11, 4, 10) ]
-    # interval = [ datetime(2021, 6, 10), datetime(2021, 6, 14) ]
+    # interval = [ datetime(2011, 2, 15), datetime(2011, 2, 19) ]
+    interval = [ datetime(2022, 5, 10), datetime(2022, 5, 16) ]
+    interval = [ datetime(2021, 10, 31), datetime(2021, 11, 4) ]
+    # interval = [ datetime(2021, 7, 10), datetime(2021, 7, 14) ]
     interval = [ t.replace(tzinfo=timezone.utc).timestamp() for t in interval ]
-    time, variation, directions = _get(*interval)
+    time, variation, directions = _get(*interval, ['KIEL2', 'NRLK'])
     dtime = np.array([datetime.utcfromtimestamp(t) for t in time])
 
     # p1_res = np.array([index_1(time[i], variation[i], directions) for i in range(0, len(time))])
-    p1_res = idx_sinr(time, variation, directions, 3)
+    p1_res = idx_sinr(time, variation, directions, 4)
     # p1_res_w2 = idx_polyfit(time, variation, directions, 5)
-    p1_res_w2 = idx_sinr(time, variation, directions, 3, 0.6)
+    p1_res_w2 = idx_sinr(time, variation, directions, 4, 0.6)
     p1_idx, p1_div, p1_ang = p1_res[:,0], p1_res[:,1], p1_res[:,2]
     # print(p1_idx)
     twx = axt1.twinx()
@@ -103,7 +105,7 @@ def plot():
     axt1.plot(dtime[~np.isnan(p1_idx)], p1_idx[~np.isnan(p1_idx)], lw=3, color='#ff10a0', label=f'precursor_idx')
     axt1.plot(dtime[~np.isnan(p1_res_w2[:,0])], p1_res_w2[:,0][~np.isnan(p1_res_w2[:,0])], color='#af10f0', label=f'precursor_idx')
 
-    # axt2.plot(dtime, p1_res[:,3], lw=2, color='#ff10a0', label=f'resid')
+    axt2.plot(dtime, p1_res[:,3], lw=2, color='#ff10a0', label=f'resid')
     axt2.plot(dtime[p1_ang>0], p1_div[p1_ang>0], lw=1.5, color='#00ffff', label=f'diff')
     twx = axt2.twinx()
     twx.plot(dtime[p1_ang>0], p1_ang[p1_ang>0], lw=2, color=colors[2], label=f'a')
@@ -116,14 +118,16 @@ def plot():
     #     ax.plot(rotated, variations, 'ro', ms=6)
 
 
-    def plot_idx(i, ax, window=3):
+    def plot_idx(i, ax, window=4):
         nonlocal time, variation, directions
         sorted = np.argsort(directions)
-        variations, directions = variation[:,sorted], directions[sorted]
-        x = np.concatenate([directions + time[i-t] * 360 / 86400 for t in range(window)]) % 360
+        variations, direction = variation[:,sorted], directions[sorted]
+        x = np.concatenate([direction + time[i-t] * 360 / 86400 for t in range(window)]) % 360
         y = np.concatenate([variations[i-t] for t in range(window)])
         filter = np.isfinite(y)
         x, y = x[filter], y[filter]
+        dist = abs(np.max(y) - np.min(y))
+        y = y / dist # rebase
         amax, amin = x[np.argmax(y)], x[np.argmin(y)]
         approx_dist = np.abs(amax - amin)
         center_target = 180 if approx_dist < 180 else 360
@@ -154,20 +158,27 @@ def plot():
             print(np.mean(np.abs(dist)), np.var(y))
             print('\\_/', popt)
             ax.plot(rng, fn(rng, *popt), 'c', lw=3)
+            ax.set_title(f'{dtime[i]} i={p1_idx[i]:.2f} a={p1_ang[i]:.2f} s={p1_div[i]:.2f} {p1_res[:,3][i]:.2f}')
 
-            # trim = np.where((x > 30) & (x < 360-30))
-            # popt, pcov = optimize.curve_fit(fn, x[trim], y[trim], bounds=bb)
-            # print('\\_/', popt)
+            # def fn(x, a, b, scale, sx, sy):
+            #     return np.sin(x * a * np.pi / 180 + sx) * scale + np.sin(x * b * np.pi / 180 + sx) * scale + sy
+            # # trim = np.where((x > 30) & (x < 360-30))
+            # popt, pcov = optimize.curve_fit(fn, x[trim], y[trim])
+            # print('\\_/\\_', popt)
             # ax.plot(rng, fn(rng, *popt), 'y', lw=3)
-            ax.set_title(f'{dtime[i]} i={p1_idx[i]:.2f} a={p1_ang[i]:.2f} s={p1_div[i]:.2f}')
+
+
         except:
             print('failed')
 
     half = len(p1_idx)//2
     plot_idx(np.nanargmax(p1_idx[:half]), ax1)
-    plot_idx(np.nanargmax(p1_idx[half//2:half])+half//2, ax2)
-    plot_idx(np.nanargmax(p1_res[:,3][:half]), ax3)
-    plot_idx(np.nanargmax(p1_div[p1_ang>0][half//2:])+half//2, ax4)
+    plot_idx(np.nanargmax(p1_idx[half:])+half, ax2)
+    plot_idx(np.nanargmax(p1_idx[half:])+half+1, ax3)
+    # plot_idx(np.nanargmax(p1_ang), ax2)
+    # plot_idx(np.nanargmax(p1_ang[:half]), ax3)
+    plot_idx(np.nanargmax(p1_ang[half:])+half, ax4)
+    # plot_idx(np.nanargmax(p1_res[:,3][half:])+half, ax4)
 
     legend = plt.legend()
     plt.setp(legend.get_texts(), color='grey')
