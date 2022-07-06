@@ -77,6 +77,10 @@ f'&interval_type=from_to&separator=Space&ors=UNIX&oformlenie=stub&field={target}
         value = 0 if len(split) < 3 else float(split[2])
         tstamp = datetime.strptime(split[0]+'T'+split[1], '%Y-%m-%dT%H:%M:%S+00') # FIXME: use separator=bar instead
         result.append((tstamp, value))
+    if len(result) < 1:
+        hours = (dt_to - dt_from).seconds // 3600 + 1
+        result = [(dt_from + timedelta(hours=h), -1) for h in range(hours)]
+        logging.info(f'Muones: closed gap [{len(result)}] {station}:{what} {dt_from}:')
     return result
 
 def _obtain_apatity(station, t_from, t_to, channel='V', what='source', period=3600):

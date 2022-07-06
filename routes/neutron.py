@@ -11,7 +11,7 @@ MAX_LEN_H = 30 * 24
 
 @bp.route('/circles', methods=['GET'])
 @route_shielded
-def muon_corrected():
+def circles():
     t_from = int(request.args.get('from', ''))
     t_to = int(request.args.get('to', ''))
     exclude = request.args.get('exclude')
