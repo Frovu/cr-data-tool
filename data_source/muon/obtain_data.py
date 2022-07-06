@@ -58,12 +58,31 @@ def _obtain_gmdn(station, dt_from, dt_to, what):
                 result.append([time, val])
     return result
 
+# doesn't support non-hour resolutions
+def _obtain_yakutsk(station, dt_from, dt_to, what):
+    target = 'p' if what == 'pressure' else what.lower() + '_ur'
+    level = station.split('_')[-1]
+    url = f'''https://www.ysn.ru/ipm/yktMT{level}/?station=yktk60_{level}&res1=1hour
+&year1={dt_from.year}&mon1={dt_from.month}&day1={dt_from.day}&hour1={dt_from.hour}
+&year2={dt_to.year}&mon2={dt_to.month}&day2={dt_to.day}&hour2={dt_to.hour}
+&interval_type=from_to&separator=Space&ors=UNIX&oformlenie=stub&field={target}&output=ASCIIFile'''
+    res = requests.get(url, stream=True)
+    if res.status_code != 200:
+        logging.warning(f'Muones: failed raw -{res.status_code}- {station}:{what} {dt_from}:')
+        return []
+    result = []
+    for line in res.iter_lines():
+        date, time, value = line.split()
+        tstamp = datetime.strptime(date+'T'+time, '%Y-%m-%dT%H:%M:%S+00') # FIXME: use separator=bar instead
+        result.append((tstamp, float(value)))
+    return result
+
 def _obtain_apatity(station, t_from, t_to, channel='V', what='source', period=3600):
     url = 'https://cosmicray.pgia.ru/json/db_query_mysql.php'
     dbn = 'full_muons' if station == 'Apatity' else 'full_muons_barentz'
     res = requests.get(f'{url}?db={dbn}&start={t_from}&stop={t_to}&interval={period//60}')
     if res.status_code != 200:
-        logging.warning(f'Muones: failed raw -{res.status_cod}- {station}:{channel} {t_from}:{t_to}')
+        logging.warning(f'Muones: failed raw -{res.status_code}- {station}:{channel} {t_from}:{t_to}')
         return []
     target = 'pressure_mu' if what == 'pressure' else 'mu_dn'
     data = json.loads(res.text)
@@ -78,8 +97,7 @@ def _obtain_apatity(station, t_from, t_to, channel='V', what='source', period=36
     logging.debug(f'Muones: got raw [{len(result)}/{(t_to-t_from)//period+1}] {station}:{channel} {t_from}:{t_to}')
     return result
 
-def _obtain_gdrive(station, t_from, t_to, channel='V', what='source'):
-    dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
+def _obtain_gdrive(station, dt_from, dt_to, channel='V', what='source'):
     result = []
     for year in range(dt_from.year, dt_to.year + 1):
         try:
@@ -151,11 +169,16 @@ def obtain(channel, t_from, t_to, column):
                 cursor.execute(_psql_query('muon_data', channel.period, t_from, t_to, ['dt', col]))
                 resp = cursor.fetchall()
                 return resp, column
-    elif station == 'Yakutsk':
-        dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
+    elif station in ['Apatity', 'Barentsburg']:
+        data = _obtain_apatity(station, t_from, t_to, channel.name, column)
+        return data, column
+
+    dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
+    if 'Yakutsk_' in station:
+        return _obtain_yakutsk(station, dt_from, dt_to, what), column
+    if station == 'Yakutsk':
         return _obtain_local(station, dt_from, dt_to, what), column
-    elif station == 'Nagoya':
-        dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in [t_from, t_to]]
+    if station == 'Nagoya':
         result = _obtain_gmdn(station, dt_from, dt_to, what)
         if not result:
             return _obtain_local(station, dt_from, dt_to, what), column
@@ -164,14 +187,12 @@ def obtain(channel, t_from, t_to, column):
         if result[-1][0] < dt_to:
             result = result + _obtain_local(station, result[-1][0]+timedelta(hours=1), dt_to, what)
         return result, column
-    elif station == 'Moscow-CARPET':
-        data = _obtain_gdrive(station.split('-')[1], t_from, t_to, channel.name, column)
+    if station == 'Moscow-CARPET':
+        data = _obtain_gdrive(station.split('-')[1], dt_from, dt_to, channel.name, column)
         return data, column
-    elif station in ['Apatity', 'Barentsburg']:
-        data = _obtain_apatity(station, t_from, t_to, channel.name, column)
-        return data, column
-    else:
-        return [], column
+
+    logging.error(f'Unknown muon station {station}')
+    return [], column
 
 def obtain_raw(station, t_from, t_to, period, fields=None):
     if station == 'Moscow-pioneer':
