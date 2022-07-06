@@ -5,9 +5,7 @@ import numpy as np
 # C0, C10, A11, Ph11
 # ^([\.\d-]+)\s+([\.\d-]+)\s+([\.\d-]+)\s+([\.\d-]+)\s+nagoya\.([a-zA-Z]+\d?)$  => ('Nagoya', '$5'): ($1, $2, $3, $4),
 GSM_COEF = dict({
-    ('Moscow-pioneer', 'V'): (0.7360, 0.0989, 0.5990, 58.20),
-    ('Moscow-CARPET', 'V'): (0.7360, 0.0989, 0.5990, 58.20),
-    ('Moscow-CUBE', 'V'): (0.7360, 0.0989, 0.5990, 58.20),
+    ('Moscow', 'V'): (0.7360, 0.0989, 0.5990, 58.20),
     ('Yakutsk', 'V'): (0.2975, 0.1764, 0.1975, 57.3),
     ('Yakutsk', 'N'): (0.3014, 0.1740, 0.2036, 36.5),
     ('Yakutsk', 'S'): (0.2975, 0.1623, 0.2250, 18.2),
@@ -36,8 +34,9 @@ GSM_COEF = dict({
 
 def get_variation(channel, interval, period=3600):
     time = np.arange(interval[0], interval[1]+1, period)
-    if (channel.station_name, channel.name) not in GSM_COEF:
-        logging.warning(f'GSM: coef missing {channel.station_name}:{channel.name}')
+    location = channel.station_name.split('-')[0].split('_')[0]
+    if (location, channel.name) not in GSM_COEF:
+        logging.warning(f'GSM: coef missing {location}:{channel.name}')
         return time, np.full(time.shape, 0), np.full(time.shape, 0)
     gsm_result = gsm.get(interval)
     if not gsm_result or time.shape != gsm_result[0].shape:
@@ -49,7 +48,7 @@ def get_variation(channel, interval, period=3600):
     x_station = x * np.cos(phi)      + y * np.sin(phi)
     y_station = x * np.sin(phi) * -1 + y * np.cos(phi)
     # logging.debug(f'GSM: station coefs')
-    c0, c10, a11, p11 = GSM_COEF[(channel.station_name, channel.name)]
+    c0, c10, a11, p11 = GSM_COEF[(location, channel.name)]
     lat, lon = channel.coordinates
     p11_station = ((lon + p11) % 360 / 360) * 2*np.pi
     Cx = -1 * a11 * np.cos(p11_station)
