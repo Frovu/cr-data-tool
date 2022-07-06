@@ -73,9 +73,10 @@ f'&interval_type=from_to&separator=Space&ors=UNIX&oformlenie=stub&field={target}
     result = []
     for line in res.iter_lines():
         if not line: continue
-        date, time, value = line.decode().split()
-        tstamp = datetime.strptime(date+'T'+time, '%Y-%m-%dT%H:%M:%S+00') # FIXME: use separator=bar instead
-        result.append((tstamp, float(value)))
+        split = line.decode().split()
+        value = 0 if len(split) < 3 else float(split[2])
+        tstamp = datetime.strptime(split[0]+'T'+split[1], '%Y-%m-%dT%H:%M:%S+00') # FIXME: use separator=bar instead
+        result.append((tstamp, value))
     return result
 
 def _obtain_apatity(station, t_from, t_to, channel='V', what='source', period=3600):
