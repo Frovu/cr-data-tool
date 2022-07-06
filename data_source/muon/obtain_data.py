@@ -62,17 +62,18 @@ def _obtain_gmdn(station, dt_from, dt_to, what):
 def _obtain_yakutsk(station, dt_from, dt_to, what):
     target = 'p' if what == 'pressure' else what.lower() + '_ur'
     level = station.split('_')[-1]
-    url = f'''https://www.ysn.ru/ipm/yktMT{level}/?station=yktk60_{level}&res1=1hour
-&year1={dt_from.year}&mon1={dt_from.month}&day1={dt_from.day}&hour1={dt_from.hour}
-&year2={dt_to.year}&mon2={dt_to.month}&day2={dt_to.day}&hour2={dt_to.hour}
-&interval_type=from_to&separator=Space&ors=UNIX&oformlenie=stub&field={target}&output=ASCIIFile'''
+    url = f'https://www.ysn.ru/ipm/yktMT{level}/?station=yktk60_{level}&res1=1hour' \
+f'&year1={dt_from.year}&mon1={dt_from.month}&day1={dt_from.day}&hour1={dt_from.hour}' \
+f'&year2={dt_to.year}&mon2={dt_to.month}&day2={dt_to.day}&hour2={dt_to.hour}' \
+f'&interval_type=from_to&separator=Space&ors=UNIX&oformlenie=stub&field={target}&output=ASCIIFile'
     res = requests.get(url, stream=True)
     if res.status_code != 200:
         logging.warning(f'Muones: failed raw -{res.status_code}- {station}:{what} {dt_from}:')
         return []
     result = []
     for line in res.iter_lines():
-        date, time, value = line.split()
+        if not line: continue
+        date, time, value = line.decode().split()
         tstamp = datetime.strptime(date+'T'+time, '%Y-%m-%dT%H:%M:%S+00') # FIXME: use separator=bar instead
         result.append((tstamp, float(value)))
     return result
