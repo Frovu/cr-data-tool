@@ -20,7 +20,7 @@ const params = util.storage.getObject('circles-params') || {
 	from: new Date(2021, 10, 1).getTime() / 1000,
 	to: new Date(2021, 10, 5).getTime() / 1000,
 };
-let pdata = [], ndata = [];
+let pdata = [], ndata = [], prec_idx = [];
 let stations = [], shifts = [], base = 0;
 let qt = null;
 
@@ -73,8 +73,8 @@ export function receiveData(resp) {
 			ndata[4][ni] = vv;
 			ni++;
 		}
-
 	}
+	prec_idx = resp.precursor_idx;
 	console.timeEnd('restructure');
 	plotInit();
 }
@@ -144,6 +144,9 @@ function plotInit() {
 			cursor: {
 				drag: { x: false, y: false },
 				dataIdx: (u, seriesIdx) => {
+					if (seriesIdx == 3) {
+						return u.posToIdx(u.cursor.left * devicePixelRatio);
+					}
 					if (seriesIdx == 1) {
 						hRect = null;
 
@@ -185,7 +188,7 @@ function plotInit() {
 					u => {
 						const baseX = u.valToPos(base, 'x');
 						u.ctx.save();
-						u.ctx.strokeStyle = '#ffbb00';
+						u.ctx.strokeStyle = 'rgba(100,0,200,1)';
 						u.ctx.lineWidth = 1;
 						u.ctx.beginPath();
 						u.ctx.moveTo(u.bbox.left + baseX, u.bbox.top);
@@ -225,6 +228,10 @@ function plotInit() {
 					values: (u, vals) => vals.map(v => v.toFixed(0)),
 					ticks: { stroke: style.grid, width: 1 },
 					grid: { stroke: style.grid, width: 1 }
+				},
+				{
+					scale: 'idx',
+					show: false
 				}
 			],
 			scales: {
@@ -235,6 +242,9 @@ function plotInit() {
 				y: {
 					range: [-185, 185],
 				},
+				idx: {
+					range: [ -.1, 3 ]
+				}
 			},
 			series: [
 				{},
@@ -253,10 +263,18 @@ function plotInit() {
 					fill: 'rgba(255,10,110,0.5)',
 					value: legendValue,
 					paths: drawCircles
+				},
+				{
+					scale: 'idx',
+					label: 'idx',
+					stroke: 'rgba(255,150,10,1)',
+					facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
+					value: (u, v, si, di) => u.data[3][1][di] || 'NaN',
+					paths: plot.linePaths()
 				}
 			]
 		};
-	}, [ null, pdata, ndata ]);
+	}, [ prec_idx[0], pdata, ndata, prec_idx ]);
 }
 
 const query = util.constructQueryManager(URL, {

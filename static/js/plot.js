@@ -51,7 +51,7 @@ function prepareAxes(axes) {
 	});
 }
 
-function linePaths() {
+export function linePaths() {
 	return (u, seriesIdx) => {
 		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
 			let d = u.data[seriesIdx];

@@ -1,5 +1,5 @@
 from data_source.neutron import database
-from scipy import interpolate
+from scipy import optimize
 import numpy as np
 import warnings
 
@@ -56,16 +56,39 @@ def _filter(full_data):
     filtered = np.count_nonzero(~np.isin(mask[1], excluded))
     return full_data, filtered, excluded
 
-def precursor_index(time, variations, directions, angular_precision = .5):
-    rotated = (directions + time / 86400 * 360) % 360
-    spline = interpolate.UnivariateSpline(rotated, variations)
-    circle = spline(np.arange(0, 360, angular_precision))
-    min_i, max_i = np.argmin(circle), np.argmax(circle)
-    divergency = circle[max_i] - circle[min_i]
-    angle = np.abs(rotated[min_i], rotated[max_i])
-    if angle > 180: angle = 360 - angle
-    # if divergency >= 1: return 0
-    return divergency * (180 / angle) ** 2
+def anisotropy_fn(x, a, scale, sx, sy):
+    return np.cos(x * a * np.pi / 180 + sx) * scale + sy
+
+def precursor_idx(x, y, amp_cutoff = 1):
+    amax, amin = x[np.argmax(y)], x[np.argmin(y)]
+    approx_dist = np.abs(amax - amin)
+    center_target = 180 if approx_dist < 180 else 360
+    shift = center_target - (amax + amin) / 2
+    x = (x + shift + 360) % 360
+    bounds = (approx_dist if approx_dist > 180 else (360-approx_dist)) / 6
+    trim = np.where((x > bounds) & (x < 360-bounds))
+    try:
+        popt, pcov = optimize.curve_fit(anisotropy_fn, x[trim], y[trim])
+        angle, scale = abs(popt[0]), abs(popt[1]) * 2
+        dists  = np.array([anisotropy_fn(x[trim][j], *popt)-y[trim][j] for j in range(len(trim[0]))])
+        # mean_dist = (1.1 - np.mean(np.abs(dists)) / scale) ** 2
+        if scale < amp_cutoff or angle < 1 or angle > 2.5:
+            return 0
+        return round((scale * angle) ** 2 / 8, 2)
+    except:
+        return None
+
+def calc_index_windowed(time, variations, directions, window: int = 3):
+    sorted = np.argsort(directions)
+    variations, directions = variations[:,sorted], directions[sorted]
+    result = []
+    for i in range(window, len(time)):
+        x = np.concatenate([directions + time[i-t] * 360 / 86400 for t in range(window)]) % 360
+        y = np.concatenate([variations[i-t] for t in range(window)])
+        filter = np.isfinite(y)
+        x, y = x[filter], y[filter]
+        result.append(precursor_idx(x, y))
+    return np.uint64(time[window:]).tolist(), result
 
 def get(t_from, t_to, exclude=[]):
     t_from = t_from // database.PERIOD * database.PERIOD
@@ -76,12 +99,15 @@ def get(t_from, t_to, exclude=[]):
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', category=RuntimeWarning)
         variation = data[:,1:] / np.nanmean(base_data, axis=0) * 100 - 100
+    directions = [_get_direction(s) for s in stations]
+    prec_idx = calc_index_windowed(data[:,0], variation, np.array(directions))
     return dict({
         'base': int(data[base_idx[0], 0]),
         'time': np.uint64(data[:,0]).tolist(),
         'variation': np.where(np.isnan(variation), None, np.round(variation, 2)).tolist(),
-        'shift': [_get_direction(s) for s in stations],
+        'shift': directions,
         'station': list(stations),
+        'precursor_idx': prec_idx,
         'filtered': filtered,
         'excluded': exclude + [stations[i] for i in excluded]
     })

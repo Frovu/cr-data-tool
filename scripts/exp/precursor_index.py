@@ -72,11 +72,11 @@ def idx_sinr(time, variations, directions, window: int = 3, min_scl = 1):
             popt, pcov = optimize.curve_fit(fn, x[trim], y[trim])
             angle, scale = abs(popt[0]), abs(popt[1]) * 2
             dists  = np.array([fn(x[trim][j], *popt)-y[trim][j] for j in range(len(trim[0]))])
-            mean_dist = (1.1 - np.mean(np.abs(dists)) / scale) ** 2
+            # mean_dist = (1.1 - np.mean(np.abs(dists)) / scale)
 
             if angle < 1 or angle > 2.5: angle = 0
-            idx = (scale * angle ** 2 / 2 * mean_dist) if scale >= min_scl else 0
-            result[i] = (idx, scale, angle, mean_dist)
+            idx = (scale * angle) ** 2 / 8 if scale >= min_scl else 0
+            result[i] = (idx, scale, angle, abs(np.max(y) - np.min(y)))
         except:
             result[i] = (np.nan, np.nan, np.nan, np.nan)
     return result
@@ -87,7 +87,7 @@ def plot():
     colors = ['#00FFAA', '#00AAFF', '#ccFF00', '#50FF00']
 
     # interval = [ datetime(2011, 2, 15), datetime(2011, 2, 19) ]
-    interval = [ datetime(2022, 5, 16), datetime(2022, 5, 21) ]
+    # interval = [ datetime(2022, 5, 16), datetime(2022, 5, 21) ]
     interval = [ datetime(2021, 10, 31), datetime(2021, 11, 4) ]
     # interval = [ datetime(2022, 6, 28), datetime(2022, 7, 3) ]
     # interval = [ datetime(2012, 7, 12), datetime(2012, 7, 16) ]
@@ -96,9 +96,9 @@ def plot():
     dtime = np.array([datetime.utcfromtimestamp(t) for t in time])
 
     # p1_res = np.array([index_1(time[i], variation[i], directions) for i in range(0, len(time))])
-    p1_res = idx_sinr(time, variation, directions, 2)
+    p1_res = idx_sinr(time, variation, directions, 3)
     # p1_res_w2 = idx_polyfit(time, variation, directions, 5)
-    p1_res_w2 = idx_sinr(time, variation, directions, 3)
+    p1_res_w2 = idx_sinr(time, variation, directions, 4)
     p1_idx, p1_div, p1_ang = p1_res[:,0], p1_res[:,1], p1_res[:,2]
     # print(p1_idx)
     twx = axt1.twinx()
@@ -119,7 +119,7 @@ def plot():
     #     ax.plot(rotated, variations, 'ro', ms=6)
 
 
-    def plot_idx(i, ax, window=2):
+    def plot_idx(i, ax, window=3):
         nonlocal time, variation, directions
         sorted = np.argsort(directions)
         variations, direction = variation[:,sorted], directions[sorted]
