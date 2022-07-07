@@ -214,7 +214,7 @@ function plotInit(clickCallback) {
 							clickY = e.clientY;
 						});
 						u.over.addEventListener('mouseup', e => {
-							if (e.clientX == clickX && e.clientY == clickY) {
+							if (Math.abs(e.clientX - clickX) + Math.abs(e.clientY - clickY) < 30) {
 								const dataIdx = u.posToIdx(u.cursor.left * devicePixelRatio);
 								if (dataIdx != null)
 									clickCallback(prec_idx[0][dataIdx]);

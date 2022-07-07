@@ -38,9 +38,9 @@
 				display: inline-block;
 				visibility: hidden;
 				z-index: 1;
-				left: 6%;
+				top: 6px;
 				width: 475px;
-				border: 2px var(--color-border) solid;
+				border: 2px var(--color-inactive) dashed;
 			}
 			#popup.show {
 				visibility: visible;
@@ -97,8 +97,8 @@
 					const body = await res.json();
 					console.log(body);
 					if (!body.time) return popup.classList.remove('show');
-					popup.style.left = time >= middle ? '6%' : 'unset';
-					popup.style.right = time < middle ? '4px' : 'unset';
+					popup.style.left = time >= middle ? '76px' : 'unset';
+					popup.style.right = time < middle ? '6px' : 'unset';
 					popup.classList.add('show');
 					initDetailsPlot(body, popup);
 				} else {
