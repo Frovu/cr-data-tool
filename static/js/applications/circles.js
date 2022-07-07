@@ -27,7 +27,7 @@ let aplot;
 
 let maxSize = 72;
 
-export function receiveData(resp) {
+export function receiveData(resp, opts = null) {
 	const slen = resp.shift.length, tlen = resp.time.length;
 	if (tlen < 10) return;
 	stations = resp.station, shifts = resp.shift, base = parseInt(resp.base);
@@ -77,7 +77,7 @@ export function receiveData(resp) {
 	}
 	prec_idx = resp.precursor_idx;
 	console.timeEnd('restructure');
-	plotInit();
+	plotInit(opts);
 }
 
 function drawCircles(u, seriesIdx) {
@@ -126,7 +126,8 @@ function drawCircles(u, seriesIdx) {
 	});
 }
 
-function plotInit() {
+function plotInit(clickCallback) {
+	if (!clickCallback) clickCallback = plotClick;
 	if (!ndata.length) return;
 	plot.initCustom(style => {
 		let hRect; // hovered
@@ -216,7 +217,7 @@ function plotInit() {
 							if (e.clientX == clickX && e.clientY == clickY) {
 								const dataIdx = u.posToIdx(u.cursor.left * devicePixelRatio);
 								if (dataIdx != null)
-									plotClick(dataIdx);
+									clickCallback(prec_idx[0][dataIdx]);
 							}
 						});
 					}
@@ -294,72 +295,72 @@ function plotInit() {
 	}, [ prec_idx[0], pdata, ndata, prec_idx ]);
 }
 
-async function plotClick(idx) {
-	const time = prec_idx[0][idx];
-	console.log('%cclick', 'color: #f0f', idx, time);
-	const res = await fetch(`${URL}?from=${params.from}&to=${params.to}&details=${time}`);
+export function initDetailsPlot(body, parent) {
+	if (aplot) aplot.destroy();
+	const dt = new Date(body.time * 1000).toISOString().replace(/\..*|T/g, ' ');
+	const width = parent.offsetWidth - 32;
+	aplot = plot.initCustom(style => {
+		return {
+			title: `[ ${dt}] i=${body.index.toFixed(2)} f=${body.angle.toFixed(2)} amp=${body.amplitude.toFixed(2)}`,
+			width, height: width,
+			mode: 2,
+			padding: [10, 0, 0, 0],
+			legend: { show: false, live: false},
+			cursor: {
+				drag: { x: false, y: false }
+			},
+			hooks: { },
+			axes: [
+				{
+					font: style.font,
+					stroke: style.text,
+					grid: { stroke: style.grid, width: 1 },
+					ticks: { stroke: style.grid, width: 1 },
+					values: (u, vals) => vals.map(v => v.toFixed(0)),
+				},
+				{
+					scale: 'y',
+					font: style.font,
+					stroke: style.text,
+					values: (u, vals) => vals.map(v => v.toFixed(1)),
+					ticks: { stroke: style.grid, width: 1 },
+					grid: { stroke: style.grid, width: 1 }
+				}
+			],
+			scales: {
+				x: {
+					time: false,
+					range: [0, 365],
+				},
+				y: {
+					range: (u, min, max) => [min, max],
+				}
+			},
+			series: [
+				{},
+				{
+					stroke: 'rgba(255,10,110,1)',
+					paths:  plot.pointPaths(10)
+				},
+				{
+					stroke: 'rgba(255,170,0,1)',
+					paths: plot.linePaths(2.5)
+				}
+			]
+		};
+	}, [ null, [body.x, body.y], [body.fnx, body.fny] ], parent);
+}
 
+async function plotClick(time) {
+	console.log('%cclick', 'color: #f0f', time);
+	const res = await fetch(`${URL}?from=${params.from}&to=${params.to}&details=${time}`);
 	if (res.status == 200) {
 		const body = await res.json();
-		if (!body.time) return tabs.showResult(false);
 		console.log(body);
-		const dt = new Date(body.time * 1000).toISOString().replace(/\..*|T/g, ' ');
-		if (aplot) aplot.destroy();
+		if (!body.time) return tabs.showResult(false);
 		tabs.showResult();
-		tabs.fill('result', [ tabs.text(`${dt}<br>i=${body.index.toFixed(2)} angle=${body.angle.toFixed(2)} amp=${body.amplitude.toFixed(2)}`) ]);
 		const tab = document.getElementById('result-tab');
-		const width = tab.offsetWidth - 48;
-		aplot = plot.initCustom(style => {
-			return {
-				width, height: width,
-				mode: 2,
-				padding: [10, 0, 0, 0],
-				legend: { show: false, live: false},
-				cursor: {
-					drag: { x: false, y: false }
-				},
-				hooks: { },
-				axes: [
-					{
-						font: style.font,
-						stroke: style.text,
-						grid: { stroke: style.grid, width: 1 },
-						ticks: { stroke: style.grid, width: 1 },
-						// space: 70,
-						// size: 40,
-						values: (u, vals) => vals.map(v => v.toFixed(0)),
-					},
-					{
-						scale: 'y',
-						font: style.font,
-						stroke: style.text,
-						values: (u, vals) => vals.map(v => v.toFixed(1)),
-						ticks: { stroke: style.grid, width: 1 },
-						grid: { stroke: style.grid, width: 1 }
-					}
-				],
-				scales: {
-					x: {
-						time: false,
-						range: [0, 365],
-					},
-					y: {
-						range: (u, min, max) => [min, max],
-					}
-				},
-				series: [
-					{},
-					{
-						stroke: 'rgba(255,10,110,1)',
-						paths:  plot.pointPaths(10)
-					},
-					{
-						stroke: 'rgba(255,170,0,1)',
-						paths: plot.linePaths(2.5)
-					}
-				]
-			};
-		}, [ null, [body.x, body.y], [body.fnx, body.fny] ], tab);
+		initDetailsPlot(body, tab);
 	} else {
 		console.log('%cfailed to get details:', 'color: #f0a', res.status);
 	}

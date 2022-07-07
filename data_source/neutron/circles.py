@@ -109,7 +109,6 @@ def index_details(time, variations, directions, when, window: int = 3):
     sorted = np.argsort(x)
     x, y = x[sorted], y[sorted]
     rng = np.arange(0, 360, 1)
-    print(shift)
     return dict({
         'time': int(time[idx[0]]),
         'x': np.round(x, 3).tolist(),

@@ -31,14 +31,29 @@
 				left: 32px;
 				bottom: 32px;
 			}
+			#popup {
+				background-color: var(--color-bg);
+				opacity: 0.95;
+				position: absolute;
+				display: inline-block;
+				visibility: hidden;
+				z-index: 1;
+				left: 6%;
+				width: 475px;
+				border: 2px var(--color-border) solid;
+			}
+			#popup.show {
+				visibility: visible;
+			}
 		</style>
 		<title>Circles</title>
 	</head>
 	<body main-theme="dark" class="graph">
 		<span id="updated">Loading..</span>
 		<span id="warn"></span>
+		<div id="popup"></div>
 		<script type="module">
-			import {receiveData} from './js/applications/circles.js';
+			import {receiveData, initDetailsPlot} from './js/applications/circles.js';
 			import {constructQueryManager} from './js/lib/util.js';
 			const opts = new Proxy(new URLSearchParams(window.location.search), {
 				get: (searchParams, prop) => searchParams.get(prop),
@@ -49,9 +64,11 @@
 			let updateDelay = parseInt(opts.update) || 30;
 			if (updateDelay < 5) updateDelay = 5;
 			const delayMs = updateDelay * 60 * 1000;
-			let updated;
+			let updated, params, middle;
+			const popup = document.getElementById('popup');
 			const updt = document.getElementById('updated');
 			const warn = document.getElementById('warn');
+			popup.onclick = () => { popup.classList.remove('show') }
 			const query = constructQueryManager('api/neutron/circles', {
 				data: resp => {
 					updated = Date.now();
@@ -61,7 +78,8 @@
 						warn.innerHTML += `Excluded: ${resp.excluded.join()}`
 					if (resp.filtered)
 						warn.innerHTML += ` Filtered: ${resp.filtered}`
-					receiveData(resp);
+					receiveData(resp, plotClick);
+					middle = resp.time[Math.floor(resp.time.length / 2)]
 					setInterval(() => {
 						const sec = (Date.now() - updated) / 1000;
 						if (sec < 60)
@@ -71,8 +89,24 @@
 					}, 1000);
 				}
 			}, false, true);
-			function fetch() {
-				const params = {
+			async function plotClick(time) {
+				console.log('%cclick', 'color: #f0f', time);
+				const query = `api/neutron/circles?from=${params.from}&to=${params.to}&details=${time}`
+				const res = await fetch(query + (params.exclude?.length ? `&exclude=${params.exclude}` : ''));
+				if (res.status == 200) {
+					const body = await res.json();
+					console.log(body);
+					if (!body.time) return popup.classList.remove('show');
+					popup.style.left = time >= middle ? '6%' : 'unset';
+					popup.style.right = time < middle ? '4px' : 'unset';
+					popup.classList.add('show');
+					initDetailsPlot(body, popup);
+				} else {
+					console.log('%cfailed to get details:', 'color: #f0a', res.status);
+				}
+			}
+			function fetchdata() {
+				params = {
 					from: Math.floor(new Date().getTime() / 1000 - 86400 * days),
 					to:   Math.floor(new Date().getTime() / 1000),
 					exclude: opts.exclude || '',
@@ -81,9 +115,9 @@
 				query.fetch(params);
 				const nextUpdate = Math.ceil(Date.now() / delayMs) * delayMs + 60000
 				console.log('next in ', (nextUpdate - Date.now()) / 1000)
-				setTimeout(fetch, nextUpdate - Date.now());
+				setTimeout(fetchdata, nextUpdate - Date.now());
 			}
-			fetch();
+			fetchdata();
 		</script>
 
 	</body>
