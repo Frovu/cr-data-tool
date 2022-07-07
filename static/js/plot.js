@@ -73,9 +73,9 @@ export function linePaths() {
 	};
 }
 
-export function initCustom(opts, data) {
+export function initCustom(opts, data, parent=parentEl) {
 	if (uplot) uplot.destroy();
-	return uplot = new uPlot(opts(getStyle()), data, parentEl);
+	return uplot = new uPlot(opts(getStyle()), data, parent);
 }
 
 // ref: https://leeoniya.github.io/uPlot/demos/scatter.html

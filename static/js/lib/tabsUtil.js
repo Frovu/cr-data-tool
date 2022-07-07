@@ -1,6 +1,15 @@
 import * as exportM from '../export.js';
 export const exportTab = exportM.exportTab;
 
+export function showResult(show = true) {
+	const el = document.getElementById('result-tab');
+	el.innerHTML = '';
+	if (show)
+		el.classList.add('active');
+	else
+		el.classList.remove('active');
+}
+
 export function fill(tab, items) {
 	const el = document.getElementById(`${tab}-tab`);
 	el.append(...items);

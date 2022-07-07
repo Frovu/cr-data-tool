@@ -180,7 +180,7 @@ window.onload = async () => {
 		el.parentNode.children[1].onclick = e => { // listen label element
 			if (el.disabled) return;
 			e.preventDefault();
-			const activeTabs = tabs.filter(t => document.getElementById(`${t}-btn`).checked);
+			const activeTabs = tabs.filter(t => document.getElementById(`${t}-btn`)?.checked);
 			if (el.checked) {
 				if (layout === 'rich' && activeTabs.length > 1)
 					hideTab(tab);

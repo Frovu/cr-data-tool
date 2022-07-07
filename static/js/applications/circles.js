@@ -203,6 +203,22 @@ function plotInit() {
 								s._paths = null;
 						});
 					},
+				],
+				ready: [
+					u => {
+						let clickX, clickY;
+						u.over.addEventListener('mousedown', e => {
+							clickX = e.clientX;
+							clickY = e.clientY;
+						});
+						u.over.addEventListener('mouseup', e => {
+							if (e.clientX == clickX && e.clientY == clickY) {
+								const dataIdx = u.posToIdx(u.cursor.left * devicePixelRatio);
+								if (dataIdx != null)
+									plotClick(dataIdx);
+							}
+						});
+					}
 				]
 			},
 			axes: [
@@ -277,6 +293,22 @@ function plotInit() {
 	}, [ prec_idx[0], pdata, ndata, prec_idx ]);
 }
 
+async function plotClick(idx) {
+	const time = prec_idx[0][idx];
+	console.log('%cclick', 'color: #f0f', idx, time);
+	const res = await fetch(`${URL}?from=${params.from}&to=${params.to}&details=${time}`);
+
+	if (res.status == 200) {
+		const body = await res.json();
+		console.log(body)
+		const dt = new Date(body.time * 1000).toISOString().replace(/\..*|T/g, ' ');
+		tabs.showResult();
+		tabs.fill('result', [ tabs.text(`${dt}<br>i=${body.index} angle=${body.angle} amp=${body.amplitude}`) ]);
+	} else {
+		console.log('%cfailed to get details:', 'color: #f0a', res.status);
+	}
+}
+
 const query = util.constructQueryManager(URL, {
 	data: receiveData,
 	params: p => util.storage.setObject('circles-params', p)
@@ -315,4 +347,5 @@ export function load() {
 export function unload() {
 	if (query)
 		query.stop();
+	tabs.showResult(false);
 }

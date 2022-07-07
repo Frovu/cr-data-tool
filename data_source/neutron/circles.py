@@ -88,22 +88,33 @@ def calc_index_windowed(time, variations, directions, window: int = 3):
         filter = np.isfinite(y)
         x, y = x[filter], y[filter]
         result.append(precursor_idx(x, y))
-    return np.uint64(time[window:]).tolist(), result
+    return time[window:].tolist(), result
 
-def get(t_from, t_to, exclude=[]):
+def index_details(time, variations, directions, when, window: int = 3):
+    idx = np.where(time == when)[0]
+    if not idx: return {}
+    return dict({
+        'time': int(time[idx[0]])
+    })
+
+def get(t_from, t_to, exclude=[], details=None):
     t_from = t_from // database.PERIOD * database.PERIOD
     stations = [k for k in RING.keys() if k not in exclude]
     data, filtered, excluded = _filter(database.fetch((t_from, t_to), stations))
     base_idx = _determine_base(data)
     base_data = data[base_idx[0]:base_idx[1], 1:]
+    time = np.uint64(data[:,0])
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', category=RuntimeWarning)
+        warnings.simplefilter('ignore', optimize.OptimizeWarning)
         variation = data[:,1:] / np.nanmean(base_data, axis=0) * 100 - 100
-    directions = [_get_direction(s) for s in stations]
-    prec_idx = calc_index_windowed(data[:,0], variation, np.array(directions))
+        directions = [_get_direction(s) for s in stations]
+        if details:
+            return index_details(time, variation, np.array(directions), int(details))
+        prec_idx = calc_index_windowed(time, variation, np.array(directions))
     return dict({
         'base': int(data[base_idx[0], 0]),
-        'time': np.uint64(data[:,0]).tolist(),
+        'time': time.tolist(),
         'variation': np.where(np.isnan(variation), None, np.round(variation, 2)).tolist(),
         'shift': directions,
         'station': list(stations),
