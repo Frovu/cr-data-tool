@@ -87,6 +87,7 @@ export async function swithApp(nextApp) {
 	}
 	for (const tab of tabs) {
 		const button = document.getElementById(`${tab.id.split('-')[0]}-btn`);
+		if (!button) continue;
 		button.disabled = !tab.innerHTML;
 		if (button.disabled)
 			tab.classList.remove('active');

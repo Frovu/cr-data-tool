@@ -7,6 +7,7 @@ const tabs = [
 	'tools',
 	'view',
 	'export',
+	'result',
 	'graph'
 ];
 
@@ -125,14 +126,14 @@ async function checkLogin() {
 function showTab(tab) {
 	const el = document.getElementById(`${tab}-tab`);
 	const btnEl = document.getElementById(`${tab}-btn`);
-	btnEl.checked = true;
+	if (btnEl) btnEl.checked = true;
 	el.classList.add('active');
 }
 
 function hideTab(tab) {
 	const el = document.getElementById(`${tab}-tab`);
 	const btnEl = document.getElementById(`${tab}-btn`);
-	btnEl.checked = false;
+	if (btnEl) btnEl.checked = false;
 	el.classList.remove('active');
 }
 
@@ -172,6 +173,10 @@ window.onload = async () => {
 
 	for (const tab of tabs) {
 		const el = document.getElementById(`${tab}-btn`);
+		if (!el) {
+			hideTab(tab);
+			continue;
+		}
 		el.parentNode.children[1].onclick = e => { // listen label element
 			if (el.disabled) return;
 			e.preventDefault();
@@ -194,7 +199,7 @@ window.onload = async () => {
 			hideTab(tab);
 		}
 	}
-	if (!tabs.filter(t => document.getElementById(`${t}-btn`).checked).length)
+	if (!tabs.filter(t => document.getElementById(`${t}-btn`)?.checked).length)
 		showTab('app');
 
 	await applications.init();
@@ -203,7 +208,7 @@ window.onload = async () => {
 
 	setTimeout(() => {
 		for (const t of tabs) {
-			if (document.getElementById(`${t}-btn`).checked)
+			if (document.getElementById(`${t}-btn`)?.checked)
 				document.getElementById(`${t}-tab`).classList.add('active');
 		}
 	}, 1); // this timeout fixes some weird "restore tab" behavior
