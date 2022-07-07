@@ -23,6 +23,7 @@ const params = util.storage.getObject('circles-params') || {
 let pdata = [], ndata = [], prec_idx = [];
 let stations = [], shifts = [], base = 0;
 let qt = null;
+let aplot;
 
 let maxSize = 72;
 
@@ -283,10 +284,10 @@ function plotInit() {
 				{
 					scale: 'idx',
 					label: 'idx',
-					stroke: 'rgba(255,150,10,1)',
+					stroke: 'rgba(255,170,0,0.9)',
 					facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
 					value: (u, v, si, di) => u.data[3][1][di] || 'NaN',
-					paths: plot.linePaths()
+					paths: plot.linePaths(1.75)
 				}
 			]
 		};
@@ -301,10 +302,64 @@ async function plotClick(idx) {
 	if (res.status == 200) {
 		const body = await res.json();
 		if (!body.time) return tabs.showResult(false);
-		console.log(body)
+		console.log(body);
 		const dt = new Date(body.time * 1000).toISOString().replace(/\..*|T/g, ' ');
+		if (aplot) aplot.destroy();
 		tabs.showResult();
 		tabs.fill('result', [ tabs.text(`${dt}<br>i=${body.index.toFixed(2)} angle=${body.angle.toFixed(2)} amp=${body.amplitude.toFixed(2)}`) ]);
+		const tab = document.getElementById('result-tab');
+		const width = tab.offsetWidth - 48;
+		aplot = plot.initCustom(style => {
+			return {
+				width, height: width,
+				mode: 2,
+				padding: [10, 0, 0, 0],
+				legend: { show: false, live: false},
+				cursor: {
+					drag: { x: false, y: false }
+				},
+				hooks: { },
+				axes: [
+					{
+						font: style.font,
+						stroke: style.text,
+						grid: { stroke: style.grid, width: 1 },
+						ticks: { stroke: style.grid, width: 1 },
+						// space: 70,
+						// size: 40,
+						values: (u, vals) => vals.map(v => v.toFixed(0)),
+					},
+					{
+						scale: 'y',
+						font: style.font,
+						stroke: style.text,
+						values: (u, vals) => vals.map(v => v.toFixed(1)),
+						ticks: { stroke: style.grid, width: 1 },
+						grid: { stroke: style.grid, width: 1 }
+					}
+				],
+				scales: {
+					x: {
+						time: false,
+						range: [0, 365],
+					},
+					y: {
+						range: (u, min, max) => [min, max],
+					}
+				},
+				series: [
+					{},
+					{
+						stroke: 'rgba(255,10,110,1)',
+						paths:  plot.pointPaths(10)
+					},
+					{
+						stroke: 'rgba(255,170,0,1)',
+						paths: plot.linePaths(2.5)
+					}
+				]
+			};
+		}, [ null, [body.x, body.y], [body.fnx, body.fny] ], tab);
 	} else {
 		console.log('%cfailed to get details:', 'color: #f0a', res.status);
 	}

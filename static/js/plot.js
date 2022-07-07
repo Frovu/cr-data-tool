@@ -51,12 +51,14 @@ function prepareAxes(axes) {
 	});
 }
 
-export function linePaths() {
+export function linePaths(width = 1) {
 	return (u, seriesIdx) => {
 		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
 			let d = u.data[seriesIdx];
 			const ss = u.ctx.strokeStyle;
+			const ww = u.ctx.lineWidth;
 			u.ctx.strokeStyle = series.stroke();
+			u.ctx.lineWidth = width;
 			let p = new Path2D();
 			for (let i = 0; i < d[0].length; i++) {
 				let xVal = d[0][i];
@@ -69,21 +71,14 @@ export function linePaths() {
 			}
 			u.ctx.stroke(p);
 			u.ctx.strokeStyle = ss;
+			u.ctx.lineWidth = ww;
 		});
 	};
 }
 
-export function initCustom(opts, data, parent=parentEl) {
-	if (uplot) uplot.destroy();
-	return uplot = new uPlot(opts(getStyle()), data, parent);
-}
-
-// ref: https://leeoniya.github.io/uPlot/demos/scatter.html
-export function initCorr(data, label, pointPx, title, corrLine=false) {
-	if (uplot) uplot.destroy();
-	getStyle();
-	function drawPoints(u, seriesIdx) {
-		const size = pointPx * devicePixelRatio;
+export function pointPaths(sizePx) {
+	return (u, seriesIdx) => {
+		const size = sizePx * devicePixelRatio;
 		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
 			let d = u.data[seriesIdx];
 			u.ctx.fillStyle = series.stroke();
@@ -103,7 +98,20 @@ export function initCorr(data, label, pointPx, title, corrLine=false) {
 			console.timeEnd('points');
 			u.ctx.fill(p);
 		});
-	}
+	};
+}
+
+export function initCustom(opts, data, parent=parentEl) {
+	if (uplot && parent == parentEl) uplot.destroy();
+	const plot = new uPlot(opts(getStyle()), data, parent);
+	if (parent == parentEl) uplot = plot;
+	return plot;
+}
+
+// ref: https://leeoniya.github.io/uPlot/demos/scatter.html
+export function initCorr(data, label, pointPx, title, corrLine=false) {
+	if (uplot) uplot.destroy();
+	getStyle();
 	const axis = (scale, size) => { return {
 		scale, size,
 		font: style.font,
@@ -148,7 +156,7 @@ export function initCorr(data, label, pointPx, title, corrLine=false) {
 				label: label,
 				stroke: 'rgba(250,10,80,1)',
 				fill: 'rgba(255,0,0,0.1)',
-				paths: drawPoints
+				paths: pointPaths(pointPx)
 			}
 		].concat(!corrLine ? [] : [{
 			label: corrLine,

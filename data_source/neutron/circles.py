@@ -108,11 +108,14 @@ def index_details(time, variations, directions, when, window: int = 3):
     x = (x - shift + 360) % 360
     sorted = np.argsort(x)
     x, y = x[sorted], y[sorted]
+    rng = np.arange(0, 360, 1)
+    print(shift)
     return dict({
         'time': int(time[idx[0]]),
-        'x': x.tolist(),
-        'y': y.tolist(),
-        'fn': np.round(anisotropy_fn(x, *popt), 3).tolist(),
+        'x': np.round(x, 3).tolist(),
+        'y': np.round(y, 3).tolist(),
+        'fnx': rng.tolist(),
+        'fny': np.round(anisotropy_fn(rng+shift, *popt), 3).tolist(),
         'index': index,
         'amplitude': scale,
         'angle': angle
