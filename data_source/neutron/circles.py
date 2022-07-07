@@ -59,7 +59,7 @@ def _filter(full_data):
 def anisotropy_fn(x, a, scale, sx, sy):
     return np.cos(x * a * np.pi / 180 + sx) * scale + sy
 
-def precursor_idx(x, y, amp_cutoff = 1):
+def precursor_idx(x, y, amp_cutoff = 1, details = False):
     amax, amin = x[np.argmax(y)], x[np.argmin(y)]
     approx_dist = np.abs(amax - amin)
     center_target = 180 if approx_dist < 180 else 360
@@ -72,9 +72,12 @@ def precursor_idx(x, y, amp_cutoff = 1):
         angle, scale = abs(popt[0]), abs(popt[1]) * 2
         dists  = np.array([anisotropy_fn(x[trim][j], *popt)-y[trim][j] for j in range(len(trim[0]))])
         # mean_dist = (1.1 - np.mean(np.abs(dists)) / scale) ** 2
-        if scale < amp_cutoff or angle < 1 or angle > 2.5:
+        if scale < amp_cutoff or scale > 5 or angle < 1 or angle > 2.5:
             return 0
-        return round((scale * angle) ** 2 / 8, 2)
+        index = round((scale * angle) ** 2 / 8, 2)
+        if details:
+            return x, y, shift, popt, index, scale, angle
+        return index
     except:
         return None
 
@@ -93,8 +96,26 @@ def calc_index_windowed(time, variations, directions, window: int = 3):
 def index_details(time, variations, directions, when, window: int = 3):
     idx = np.where(time == when)[0]
     if not idx: return {}
+    sorted = np.argsort(directions)
+    variations, directions = variations[:,sorted], directions[sorted]
+    x = np.concatenate([directions + time[idx[0]-t] * 360 / 86400 for t in range(window)]) % 360
+    y = np.concatenate([variations[idx[0]-t] for t in range(window)])
+    filter = np.isfinite(y)
+    x, y = x[filter], y[filter]
+    res = precursor_idx(x, y, details=True)
+    if not res: return {}
+    x, y, shift, popt, index, scale, angle = res
+    x = (x - shift + 360) % 360
+    sorted = np.argsort(x)
+    x, y = x[sorted], y[sorted]
     return dict({
-        'time': int(time[idx[0]])
+        'time': int(time[idx[0]]),
+        'x': x.tolist(),
+        'y': y.tolist(),
+        'fn': np.round(anisotropy_fn(x, *popt), 3).tolist(),
+        'index': index,
+        'amplitude': scale,
+        'angle': angle
     })
 
 def get(t_from, t_to, exclude=[], details=None):
@@ -109,6 +130,7 @@ def get(t_from, t_to, exclude=[], details=None):
         warnings.simplefilter('ignore', optimize.OptimizeWarning)
         variation = data[:,1:] / np.nanmean(base_data, axis=0) * 100 - 100
         directions = [_get_direction(s) for s in stations]
+        print(variation.shape)
         if details:
             return index_details(time, variation, np.array(directions), int(details))
         prec_idx = calc_index_windowed(time, variation, np.array(directions))

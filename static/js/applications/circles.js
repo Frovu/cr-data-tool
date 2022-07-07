@@ -300,10 +300,11 @@ async function plotClick(idx) {
 
 	if (res.status == 200) {
 		const body = await res.json();
+		if (!body.time) return tabs.showResult(false);
 		console.log(body)
 		const dt = new Date(body.time * 1000).toISOString().replace(/\..*|T/g, ' ');
 		tabs.showResult();
-		tabs.fill('result', [ tabs.text(`${dt}<br>i=${body.index} angle=${body.angle} amp=${body.amplitude}`) ]);
+		tabs.fill('result', [ tabs.text(`${dt}<br>i=${body.index.toFixed(2)} angle=${body.angle.toFixed(2)} amp=${body.amplitude.toFixed(2)}`) ]);
 	} else {
 		console.log('%cfailed to get details:', 'color: #f0a', res.status);
 	}
