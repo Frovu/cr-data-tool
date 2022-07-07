@@ -47,7 +47,7 @@ def idx_polyfit(time, variations, directions, window: int = 3):
         result[i] = (idx, divergency, angle, residuals)
     return result
 
-def idx_sinr(time, variations, directions, window: int = 3, min_scl = 0.5):
+def idx_sinr(time, variations, directions, window: int = 3, min_scl = 1):
     sorted = np.argsort(directions)
     variations, directions = variations[:,sorted], directions[sorted]
     result = np.full((len(time), 4), np.nan, dtype=np.float32)
@@ -58,24 +58,24 @@ def idx_sinr(time, variations, directions, window: int = 3, min_scl = 0.5):
         y = np.concatenate([variations[i-t] for t in range(window)])
         filter = np.isfinite(y)
         x, y = x[filter], y[filter]
-        height = abs(np.max(y) - np.min(y))
-        y = y / height # rebase
+        # height = abs(np.max(y) - np.min(y))
+        # y = y / height # rebase
         amax, amin = x[np.argmax(y)], x[np.argmin(y)]
         approx_dist = np.abs(amax - amin)
         center_target = 180 if approx_dist < 180 else 360
         shift = center_target - (amax + amin) / 2
         x = (x + shift + 360) % 360
         # bb = ([1, -np.inf, -np.inf, -np.inf], [2, np.inf, np.inf, np.inf])
-        bounds = (approx_dist if approx_dist > 180 else (360-approx_dist)) / 5
+        bounds = (approx_dist if approx_dist > 180 else (360-approx_dist)) / 6
         trim = np.where((x > bounds) & (x < 360-bounds))
         try:
             popt, pcov = optimize.curve_fit(fn, x[trim], y[trim])
-            angle, scale = abs(popt[0]) - 1, abs(popt[1]) * 2
+            angle, scale = abs(popt[0]), abs(popt[1]) * 2
             dists  = np.array([fn(x[trim][j], *popt)-y[trim][j] for j in range(len(trim[0]))])
             mean_dist = (1.1 - np.mean(np.abs(dists)) / scale) ** 2
 
-            if angle < 0 or angle > 2: angle = 0
-            idx = 2 * (scale * angle * mean_dist) if scale >= min_scl else 0
+            if angle < 1 or angle > 2.5: angle = 0
+            idx = (scale * angle ** 2 / 2 * mean_dist) if scale >= min_scl else 0
             result[i] = (idx, scale, angle, mean_dist)
         except:
             result[i] = (np.nan, np.nan, np.nan, np.nan)
@@ -87,17 +87,18 @@ def plot():
     colors = ['#00FFAA', '#00AAFF', '#ccFF00', '#50FF00']
 
     # interval = [ datetime(2011, 2, 15), datetime(2011, 2, 19) ]
-    interval = [ datetime(2022, 5, 10), datetime(2022, 5, 16) ]
+    interval = [ datetime(2022, 5, 16), datetime(2022, 5, 21) ]
     interval = [ datetime(2021, 10, 31), datetime(2021, 11, 4) ]
-    # interval = [ datetime(2021, 7, 10), datetime(2021, 7, 14) ]
+    # interval = [ datetime(2022, 6, 28), datetime(2022, 7, 3) ]
+    # interval = [ datetime(2012, 7, 12), datetime(2012, 7, 16) ]
     interval = [ t.replace(tzinfo=timezone.utc).timestamp() for t in interval ]
     time, variation, directions = _get(*interval, ['KIEL2', 'NRLK'])
     dtime = np.array([datetime.utcfromtimestamp(t) for t in time])
 
     # p1_res = np.array([index_1(time[i], variation[i], directions) for i in range(0, len(time))])
-    p1_res = idx_sinr(time, variation, directions, 4)
+    p1_res = idx_sinr(time, variation, directions, 2)
     # p1_res_w2 = idx_polyfit(time, variation, directions, 5)
-    p1_res_w2 = idx_sinr(time, variation, directions, 4, 0.6)
+    p1_res_w2 = idx_sinr(time, variation, directions, 3)
     p1_idx, p1_div, p1_ang = p1_res[:,0], p1_res[:,1], p1_res[:,2]
     # print(p1_idx)
     twx = axt1.twinx()
@@ -118,7 +119,7 @@ def plot():
     #     ax.plot(rotated, variations, 'ro', ms=6)
 
 
-    def plot_idx(i, ax, window=4):
+    def plot_idx(i, ax, window=2):
         nonlocal time, variation, directions
         sorted = np.argsort(directions)
         variations, direction = variation[:,sorted], directions[sorted]
@@ -126,8 +127,8 @@ def plot():
         y = np.concatenate([variations[i-t] for t in range(window)])
         filter = np.isfinite(y)
         x, y = x[filter], y[filter]
-        dist = abs(np.max(y) - np.min(y))
-        y = y / dist # rebase
+        # dist = abs(np.max(y) - np.min(y))
+        # y = y / dist # rebase
         amax, amin = x[np.argmax(y)], x[np.argmin(y)]
         approx_dist = np.abs(amax - amin)
         center_target = 180 if approx_dist < 180 else 360
@@ -148,7 +149,7 @@ def plot():
         def fn(x, a, scale, sx, sy):
             return np.cos(x * a * np.pi / 180 + sx) * scale + sy
         bb = ([-np.inf, -np.inf, -np.inf, -np.inf], [np.inf, np.inf, np.inf, np.inf])
-        bounds = (approx_dist if approx_dist > 180 else (360-approx_dist)) / 5
+        bounds = (approx_dist if approx_dist > 180 else (360-approx_dist)) / 8
         print(round(bounds), round(approx_dist), round(shift))
         trim = np.where((x > bounds) & (x < 360-bounds))
         try:
