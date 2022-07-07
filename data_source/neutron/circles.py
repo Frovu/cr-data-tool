@@ -132,7 +132,6 @@ def get(t_from, t_to, exclude=[], details=None):
         warnings.simplefilter('ignore', optimize.OptimizeWarning)
         variation = data[:,1:] / np.nanmean(base_data, axis=0) * 100 - 100
         directions = [_get_direction(s) for s in stations]
-        print(variation.shape)
         if details:
             return index_details(time, variation, np.array(directions), int(details))
         prec_idx = calc_index_windowed(time, variation, np.array(directions))

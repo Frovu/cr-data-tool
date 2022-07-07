@@ -49,7 +49,11 @@ def _obtain_nmdb(interval, station, pg_cursor):
         query = f'''SELECT date_add(date(start_date_time), interval extract(hour from start_date_time) hour) as time,
             avg(uncorrected), avg(corr_for_efficiency), avg(pressure_mbar)
             FROM {station}_revori WHERE start_date_time >= %s AND start_date_time < %s + interval 1 hour GROUP BY date(start_date_time), extract(hour from start_date_time)'''
-        cursor.execute(query, dt_interval)
+        try:
+            cursor.execute(query, dt_interval)
+        except:
+            logging.warning('Failed to query nmdb, disconnecting');
+            return _disconnect_nmdb()
         data = cursor.fetchall()
     logging.debug(f'Neutron: obtain nmdb:{station} [{len(data)}] {dt_interval[0]} to {dt_interval[1]}')
     query = f'''INSERT INTO neutron_counts (station, time, uncorrected, corrected, pressure) VALUES %s

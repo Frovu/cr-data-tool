@@ -61,7 +61,7 @@
 			if (opts.bg)
 				document.body.style.backgroundColor = '#' + opts.bg;
 			const days = parseInt(opts.days) || 7;
-			let updateDelay = parseInt(opts.update) || 30;
+			let updateDelay = parseInt(opts.update) || 20;
 			if (updateDelay < 5) updateDelay = 5;
 			const delayMs = updateDelay * 60 * 1000;
 			let updated, params, middle;
@@ -113,9 +113,7 @@
 				};
 				updt.innerHTML = `Updating...`;
 				query.fetch(params);
-				const nextUpdate = Math.ceil(Date.now() / delayMs) * delayMs + 60000
-				console.log('next in ', (nextUpdate - Date.now()) / 1000)
-				setTimeout(fetchdata, nextUpdate - Date.now());
+				setTimeout(fetchdata, delayMs);
 			}
 			fetchdata();
 		</script>
