@@ -44,7 +44,7 @@ export function receiveData(resp) {
 			if (vv == null) ++nullCount;
 			else if (vv >= 0) ++posCount;
 			data[0][idx] = time;
-			data[1][idx] = (time / 86400 * 360 + resp.shift[si]) % 360 - 180;
+			data[1][idx] = (time / 86400 * 360 + resp.shift[si]) % 360;
 			data[2][idx] = vv;
 			data[3][idx] = si;
 		}
@@ -257,10 +257,10 @@ function plotInit() {
 					range: (u, min, max) => [min, max],
 				},
 				y: {
-					range: [-185, 185],
+					range: [-5, 365],
 				},
 				idx: {
-					range: [ -.1, 3 ]
+					range: [ -.04, 3 ]
 				}
 			},
 			series: [
