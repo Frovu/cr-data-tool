@@ -93,8 +93,8 @@
 				console.log('%cclick', 'color: #f0f', time);
 				let q = `api/neutron/circles?from=${params.from}&to=${params.to}&details=${time}`
 				if (params.exclude?.length) q += `&exclude=${params.exclude}`
-				if (opts.window) q += `&window=${params.window}`
-				if (opts.minamp) q += `&minamp=${params.minamp}`
+				if (opts.window) q += `&window=${opts.window}`
+				if (opts.minamp) q += `&minamp=${opts.minamp}`
 				const res = await fetch(q);
 				if (res.status == 200) {
 					const body = await res.json();
@@ -114,7 +114,7 @@
 					to:   Math.floor(new Date().getTime() / 1000),
 					exclude: opts.exclude || null,
 					window: opts.window || null,
-					minamp: opts.minamp || 0.5
+					minamp: opts.minamp || 0.7
 				};
 				updt.innerHTML = `Updating...`;
 				query.fetch(params);

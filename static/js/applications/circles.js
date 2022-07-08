@@ -353,7 +353,10 @@ export function initDetailsPlot(body, parent) {
 
 async function plotClick(time) {
 	console.log('%cclick', 'color: #f0f', time);
-	const res = await fetch(`${URL}?from=${params.from}&to=${params.to}&details=${time}`);
+	let url = `${URL}?from=${params.from}&to=${params.to}&details=${time}`;
+	if (params.window) url += `&window=${params.window}`;
+	if (params.minamp) url += `&minamp=${params.minamp}`;
+	const res = await fetch(url);
 	if (res.status == 200) {
 		const body = await res.json();
 		console.log(body);
@@ -374,7 +377,7 @@ const query = util.constructQueryManager(URL, {
 export function initTabs() {
 	tabs.fill('app', [
 		tabs.text(`<h4>Description</h4>
-Plot FD precursors using ring of stations method.<br>Yellow line shows base period (24h) start`)
+Plot FD precursors using ring of stations method.<br>Purple line depicts base period (24h) start`)
 	]);
 	const timeInput = tabs.input('time', (from, to, force) => {
 		params.from = from;
@@ -392,6 +395,20 @@ Plot FD precursors using ring of stations method.<br>Yellow line shows base peri
 			timeInput.set(...interval);
 			query.fetch(params);
 		}, { text: 'Select event:', options: Object.keys(EVENTS) }),
+		tabs.text('<p>'),
+		tabs.input('text', val => {
+			if (isNaN(parseInt(val)))
+				val = null;
+			params.window = val;
+			query.params(params);
+		}, { value: params.window, placeholder: '1 < w < 12', label: 'Window (h): ', width: 96 }),
+		tabs.text('<p>'),
+		tabs.input('text', val => {
+			if (isNaN(parseFloat(val)))
+				val = null;
+			params.minamp = val;
+			query.params(params);
+		}, { value: params.minamp, placeholder: 'a > 0', label: 'Amp cutoff: ', width: 96 }),
 		query.el
 	]);
 	query.fetch(params);
