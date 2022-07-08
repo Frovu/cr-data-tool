@@ -91,8 +91,11 @@
 			}, false, 5000);
 			async function plotClick(time) {
 				console.log('%cclick', 'color: #f0f', time);
-				const query = `api/neutron/circles?from=${params.from}&to=${params.to}&details=${time}`
-				const res = await fetch(query + (params.exclude?.length ? `&exclude=${params.exclude}` : ''));
+				let q = `api/neutron/circles?from=${params.from}&to=${params.to}&details=${time}`
+				if (params.exclude?.length) q += `&exclude=${params.exclude}`
+				if (opts.window) q += `&window=${params.window}`
+				if (opts.minamp) q += `&minamp=${params.minamp}`
+				const res = await fetch(q);
 				if (res.status == 200) {
 					const body = await res.json();
 					console.log(body);
@@ -111,7 +114,7 @@
 					to:   Math.floor(new Date().getTime() / 1000),
 					exclude: opts.exclude || null,
 					window: opts.window || null,
-					minamp: opts.minamp || null
+					minamp: opts.minamp || 0.5
 				};
 				updt.innerHTML = `Updating...`;
 				query.fetch(params);

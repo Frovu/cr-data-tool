@@ -73,8 +73,9 @@ def precursor_idx(x, y, amp_cutoff = 1, details = False):
         dists  = np.array([anisotropy_fn(x[trim][j], *popt)-y[trim][j] for j in range(len(trim[0]))])
         # mean_dist = (1.1 - np.mean(np.abs(dists)) / scale) ** 2
         if scale < amp_cutoff or scale > 5 or angle < 1 or angle > 2.5:
-            return 0
-        index = round((scale * angle) ** 2 / 8, 2)
+            index = 0
+        else:
+            index = round((scale * angle) ** 2 / 8, 2)
         if details:
             return x, y, shift, popt, index, scale, angle
         return index
@@ -103,7 +104,7 @@ def index_details(time, variations, directions, when, window, amp_cutoff):
     filter = np.isfinite(y)
     x, y = x[filter], y[filter]
     res = precursor_idx(x, y, amp_cutoff, details=True)
-    if not res: return {}
+    if res is None: return {}
     x, y, shift, popt, index, scale, angle = res
     x = (x - shift + 360) % 360
     sorted = np.argsort(x)
