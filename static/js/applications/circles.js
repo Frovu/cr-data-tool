@@ -261,7 +261,7 @@ function plotInit(clickCallback) {
 					range: [-5, 365],
 				},
 				idx: {
-					range: [ -.04, 3 ]
+					range: [ -.04, 3.62 ]
 				}
 			},
 			series: [
