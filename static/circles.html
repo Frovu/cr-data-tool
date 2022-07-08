@@ -88,7 +88,7 @@
 							updt.innerHTML = `Updated ${Math.floor(sec/60)} minute${sec<120?'':'s'} ago`;
 					}, 1000);
 				}
-			}, false, true);
+			}, false, 5000);
 			async function plotClick(time) {
 				console.log('%cclick', 'color: #f0f', time);
 				const query = `api/neutron/circles?from=${params.from}&to=${params.to}&details=${time}`
@@ -109,7 +109,9 @@
 				params = {
 					from: Math.floor(new Date().getTime() / 1000 - 86400 * days),
 					to:   Math.floor(new Date().getTime() / 1000),
-					exclude: opts.exclude || '',
+					exclude: opts.exclude || null,
+					window: opts.window || null,
+					minamp: opts.minamp || null
 				};
 				updt.innerHTML = `Updating...`;
 				query.fetch(params);

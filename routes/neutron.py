@@ -16,6 +16,8 @@ def get_circles():
     t_to = int(request.args.get('to', ''))
     exclude = request.args.get('exclude')
     details = request.args.get('details')
+    window = int(request.args.get('window', -1))
+    minamp = float(request.args.get('minamp', -1))
     exclude = exclude.split(',') if exclude else []
     trim_past, trim_future = TRIM_PAST, datetime.now().timestamp()
     t_from = t_from if t_from > trim_past else trim_past
@@ -25,7 +27,7 @@ def get_circles():
     if t_to - t_from < 86400:
         raise ValueError()
 
-    body = circles.get(t_from, t_to, exclude, details)
+    body = circles.get(t_from, t_to, exclude, details, window, minamp)
     body['status'] = 'ok'
     permissions.log_action('get_result', 'neutron/circle', f'{t_from}')
     return body

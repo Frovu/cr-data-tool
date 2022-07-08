@@ -81,7 +81,7 @@ def precursor_idx(x, y, amp_cutoff = 1, details = False):
     except:
         return None
 
-def calc_index_windowed(time, variations, directions, window: int = 3):
+def calc_index_windowed(time, variations, directions, window, amp_cutoff):
     sorted = np.argsort(directions)
     variations, directions = variations[:,sorted], directions[sorted]
     result = []
@@ -90,10 +90,10 @@ def calc_index_windowed(time, variations, directions, window: int = 3):
         y = np.concatenate([variations[i-t] for t in range(window)])
         filter = np.isfinite(y)
         x, y = x[filter], y[filter]
-        result.append(precursor_idx(x, y))
+        result.append(precursor_idx(x, y, amp_cutoff))
     return time[window:].tolist(), result
 
-def index_details(time, variations, directions, when, window: int = 3):
+def index_details(time, variations, directions, when, window, amp_cutoff):
     idx = np.where(time == when)[0]
     if not idx: return {}
     sorted = np.argsort(directions)
@@ -102,7 +102,7 @@ def index_details(time, variations, directions, when, window: int = 3):
     y = np.concatenate([variations[idx[0]-t] for t in range(window)])
     filter = np.isfinite(y)
     x, y = x[filter], y[filter]
-    res = precursor_idx(x, y, details=True)
+    res = precursor_idx(x, y, amp_cutoff, details=True)
     if not res: return {}
     x, y, shift, popt, index, scale, angle = res
     x = (x - shift + 360) % 360
@@ -120,7 +120,9 @@ def index_details(time, variations, directions, when, window: int = 3):
         'angle': angle
     })
 
-def get(t_from, t_to, exclude=[], details=None):
+def get(t_from, t_to, exclude, details, window, amp_cutoff):
+    if window > 12 or window < 1: window = 3
+    if amp_cutoff < 0 or amp_cutoff > 10: amp_cutoff = 1.0
     t_from = t_from // database.PERIOD * database.PERIOD
     stations = [k for k in RING.keys() if k not in exclude]
     data, filtered, excluded = _filter(database.fetch((t_from, t_to), stations))
@@ -133,8 +135,8 @@ def get(t_from, t_to, exclude=[], details=None):
         variation = data[:,1:] / np.nanmean(base_data, axis=0) * 100 - 100
         directions = [_get_direction(s) for s in stations]
         if details:
-            return index_details(time, variation, np.array(directions), int(details))
-        prec_idx = calc_index_windowed(time, variation, np.array(directions))
+            return index_details(time, variation, np.array(directions), int(details), window, amp_cutoff)
+        prec_idx = calc_index_windowed(time, variation, np.array(directions), window, amp_cutoff)
     return dict({
         'base': int(data[base_idx[0], 0]),
         'time': time.tolist(),

@@ -17,7 +17,7 @@ export const storage = {
 
 function encodeParams(obj) {
 	const keys = Object.keys(obj);
-	return keys.length ? '?' + keys.map(k => `${k}=${obj[k]}`).join('&') : '';
+	return keys.length ? '?' + keys.filter(k => obj[k] || obj[k] == 0).map(k => `${k}=${obj[k]}`).join('&') : '';
 }
 
 export function constructQueryManager(url, callbacks, progDetails=true, insistent=false) {
@@ -81,6 +81,7 @@ export function constructQueryManager(url, callbacks, progDetails=true, insisten
 					fetchOnce().then(ok => {
 						if (fetchOngoing && (typeof ok === 'undefined' || (insistent && !ok))) {
 							delay = delay<2000 ? (delay+50) : delay;
+							if (insistent && !ok) delay = insistent;
 							fetchInterval = setTimeout(fetchfn, delay);
 						} else {
 							resolve(ok);
