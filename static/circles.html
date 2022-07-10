@@ -64,7 +64,7 @@
 			let updateDelay = parseInt(opts.update) || 20;
 			if (updateDelay < 5) updateDelay = 5;
 			const delayMs = updateDelay * 60 * 1000;
-			let updated, params, middle;
+			let updated, params, middle, updater;
 			const popup = document.getElementById('popup');
 			const updt = document.getElementById('updated');
 			const warn = document.getElementById('warn');
@@ -118,9 +118,16 @@
 				};
 				updt.innerHTML = `Updating...`;
 				query.fetch(params);
-				setTimeout(fetchdata, delayMs);
+				updater = setTimeout(fetchdata, delayMs);
 			}
 			fetchdata();
+			document.addEventListener('visibilitychange', () => {
+				console.log('document.hidden', document.hidden)
+				if (document.hidden)
+					clearInterval(updater);
+				else
+					fetchdata();
+			});
 		</script>
 
 	</body>
