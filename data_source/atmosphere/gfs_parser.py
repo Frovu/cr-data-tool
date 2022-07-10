@@ -31,7 +31,7 @@ def _download(session, filename, latlon, fcst_date, fcst_hour, source='gfs', ret
     except requests.exceptions.ConnectionError as e:
         if retry < 1: raise e
         logging.debug(f'GFS ConnectionError, retrying {source}.{yyyymmdd}/{hh}+{fcst_hour:03}')
-        time.sleep(3)
+        time.sleep(1)
         return _download(filename, latlon, fcst_date, fcst_hour, source, retry-1)
     return False
 
@@ -81,12 +81,13 @@ def _calc_one_hour(timestamp, lat, lon, progress, session, grid_margin=2):
         result[0] = 0
     if os.path.exists(fname): os.remove(fname)
     progress[0] += 1
+    time.sleep(.2) # counter ddos protection
     return result
 
 # returns 17-levels temp for coordinates, time range with 1h period edge included
 def obtain(lat, lon, t_from, t_to, progress, PERIOD=3600):
     times = [t for t in range(t_from, t_to + 1, PERIOD)]
     progress[0], progress[1] = 0, len(times)
-    with ThreadPoolExecutor(max_workers=32) as e, requests.Session() as session:
+    with ThreadPoolExecutor(max_workers=2) as e, requests.Session() as session:
         result = np.array(list(e.map(lambda t: _calc_one_hour(t, lat, lon, progress, session), times)))
     return result[result[:,0] > 1] # 6.92261220099555e-310 was here sometimes for some reason

@@ -15,7 +15,7 @@ FORECAST_ALLOW_FUTURE = 3 * 24 * HOUR
 MODEL_EPOCH = np.datetime64('1948-01-01').astype(int)
 SPLINE_INDENT = 1 # additional periods on edges for spline evaluation
 SPLINE_INDENT_H = MODEL_PERIOD // HOUR * SPLINE_INDENT
-MODEL_LAG = MODEL_PERIOD * (10 + SPLINE_INDENT)
+MODEL_LAG = MODEL_PERIOD * (30 + SPLINE_INDENT)
 
 # transform geographical coords to index coords
 def _get_coords(lat, lon, resolution):
