@@ -208,18 +208,32 @@ function plotInit(clickCallback) {
 				],
 				ready: [
 					u => {
-						let clickX, clickY;
+						let clickX, clickY, detailsIdx = null;
 						u.over.addEventListener('mousedown', e => {
 							clickX = e.clientX;
 							clickY = e.clientY;
 						});
 						u.over.addEventListener('mouseup', e => {
 							if (Math.abs(e.clientX - clickX) + Math.abs(e.clientY - clickY) < 30) {
-								const dataIdx = u.posToIdx(u.cursor.left * devicePixelRatio);
-								if (dataIdx != null)
-									clickCallback(prec_idx[0][dataIdx]);
+								detailsIdx = u.posToIdx(u.cursor.left * devicePixelRatio);
+								if (detailsIdx != null)
+									clickCallback(prec_idx[0][detailsIdx]);
 							}
 						});
+						window.onkeydown = e => {
+							if (detailsIdx !== null) {
+								if (e.keyCode == 39)
+									detailsIdx += 1;
+								if (e.keyCode == 37)
+									detailsIdx -= 1;
+								if (detailsIdx < 0)
+									detailsIdx = 0;
+								else if (detailsIdx >= prec_idx[0].length)
+									detailsIdx = prec_idx[0].length - 1;
+								else
+									clickCallback(prec_idx[0][detailsIdx]);
+							}
+						};
 					}
 				]
 			},
