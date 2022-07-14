@@ -138,7 +138,7 @@ function hideTab(tab) {
 }
 
 window.onload = async () => {
-	const theme = window.localStorage.getItem('main-theme') || 'default';
+	const theme = window.localStorage.getItem('main-theme') || 'dark';
 	const themeSelect = document.getElementById('theme-select');
 	for (const opt of themeSelect.children) {
 		opt.selected = opt.value === theme ? 'selected' : null;
@@ -151,7 +151,7 @@ window.onload = async () => {
 		applications.init();
 	};
 
-	let layout = window.localStorage.getItem('layout') || 'default';
+	let layout = window.localStorage.getItem('layout') || 'rich';
 	const layoutSelect = document.getElementById('layout-select');
 	for (const opt of layoutSelect.children) {
 		opt.selected = opt.value === layout ? 'selected' : null;
@@ -199,8 +199,11 @@ window.onload = async () => {
 			hideTab(tab);
 		}
 	}
-	if (!tabs.filter(t => document.getElementById(`${t}-btn`)?.checked).length)
+	if (!tabs.filter(t => document.getElementById(`${t}-btn`)?.checked).length) {
 		showTab('app');
+		if (layout === 'rich')
+			showTab('query');
+	}
 
 	await applications.init();
 	const perm = await checkLogin();
@@ -215,4 +218,5 @@ window.onload = async () => {
 
 };
 
-document.documentElement.setAttribute('main-theme', window.localStorage.getItem('main-theme') || 'default');
+const setTheme = window.localStorage.getItem('main-theme');
+setTheme && document.documentElement.setAttribute('main-theme', setTheme);
