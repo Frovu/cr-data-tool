@@ -46,8 +46,9 @@ def _t_mass_average(data):
     return np.array([np.sum(diff * ((x[:-1] + x[1:]) / 2)) for x in data])
 
 def _fill_interval(interval, lat, lon, mq):
-    t_from = MODEL_PERIOD * (floor(interval[0] / MODEL_PERIOD) - SPLINE_INDENT)
-    t_to   = MODEL_PERIOD * ( ceil(interval[1] / MODEL_PERIOD) + SPLINE_INDENT)
+    indent = SPLINE_INDENT if (interval[1]-interval[0] > HOUR*6) else SPLINE_INDENT*2
+    t_from = MODEL_PERIOD * (floor(interval[0] / MODEL_PERIOD) - indent)
+    t_to   = MODEL_PERIOD * ( ceil(interval[1] / MODEL_PERIOD) + indent)
     log.info(f"NCEP/NCAR: Obtaining ({lat},{lon}) {t_from}:{t_to}")
     times_6h, data = parser.obtain('temperature', t_from, t_to, mq)
     log.debug(f"NCEP/NCAR: Retrieved [{data.shape[0]}] ({lat},{lon}) {t_from}:{t_to}")
