@@ -61,9 +61,9 @@ const FIELDS = {
 };
 const URL = 'api/muones';
 const params = util.storage.getObject('muones-params') || {
-	from: Math.floor(Date.now()/1000) - 86400*3 - 86400*365,
-	to: Math.floor(Date.now()/1000) - 86400*3,
-	station: 'Apatity',
+	from: new Date('2021-10-20').getTime() / 1000,
+	to: new Date('2021-12-20').getTime() / 1000,
+	station: 'Moscow-pioneer',
 	coefs: 'recalc',
 	channel: 'V',
 	period: 3600
@@ -73,7 +73,7 @@ if (params.coefs === 'retain')
 let coefsTmp = params.coefs;
 let data = [];
 let info, commitBtn, resetTools;
-let viewMode = 'counts';
+let viewMode = 'variation';
 let allChannels = false;
 let editMode = false;
 let inTransaction = false;

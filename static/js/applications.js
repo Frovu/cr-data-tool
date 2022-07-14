@@ -26,8 +26,8 @@ const hierarchy = {
 };
 const publicApps = ['muon', 'neutron', 'temperature'];
 
-const DEFAULT = 'temperature';
-const DONT_SAVE = ['info-tab', 'graph-tab'];
+const DEFAULT = 'muon';
+const DONT_SAVE = ['info-tab', 'graph-tab', 'result-tab'];
 const tabsCache = {};
 const graphsCache = {};
 

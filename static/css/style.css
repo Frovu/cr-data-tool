@@ -86,9 +86,11 @@ select {
 	border: 2px outset;
 	border-radius: 4px;
 }
-
 select:hover {
 	background-color: var(--color-active);
+}
+option {
+	background-color: var(--color-input);
 }
 
 .graph {
