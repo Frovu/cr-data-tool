@@ -4,23 +4,31 @@ import * as plot from '../plot.js';
 
 const FIELDS = {
 	time: 'time',
-	source: {
-		isChannel: true,
-		label: 'source',
-		scale: 'n',
-		color: 'rgba(60,10,150,0.5)'
-	},
-	corrected_v: {
-		isChannel: true,
-		label: 'corrected_v',
-		scale: 'n',
-		color: 'rgba(255,100,60,0.8)'
-	},
 	corrected: {
 		isChannel: true,
 		label: 'corrected',
 		scale: 'n',
 		color: 'rgba(255,10,60,1)'
+	},
+	v_expected: {
+		label: 'v_gsm',
+		scale: '%',
+		color: 'rgba(0,255,200,0.6)',
+		precision: 1
+	},
+	source: {
+		isChannel: true,
+		label: 'source',
+		scale: 'n',
+		color: 'rgba(60,10,150,0.5)',
+		show: false
+	},
+	T_m: {
+		label: 'temperature',
+		scale: 'K',
+		color: 'rgba(255,155,50,1)',
+		precision: 1,
+		show: false
 	},
 	pressure: {
 		label: 'pressure',
@@ -29,25 +37,18 @@ const FIELDS = {
 		precision: 1,
 		show: false
 	},
-	v_expected: {
-		label: 'v_gsm',
-		scale: '% ',
-		color: 'rgba(0,255,200,0.6)',
-		precision: 1,
-		show: true
-	},
 	v_expected1: {
 		label: 'v_gsm_isotropic',
-		scale: '%',
+		scale: '% ',
 		color: 'rgba(0,255,100,0.6)',
 		precision: 1,
 		show: false
 	},
-	T_m: {
-		label: 'temperature',
-		scale: 'K',
-		color: 'rgba(255,155,50,1)',
-		precision: 1,
+	corrected_v: {
+		isChannel: true,
+		label: 'corrected_v',
+		scale: 'n',
+		color: 'rgba(255,100,60,0.8)',
 		show: false
 	},
 	T_eff: {
@@ -99,7 +100,8 @@ function receiveData(resp) {
 
 function countsToVariation(data) {
 	const newData = Object.assign([], data);
-	for (const i of info.coef_v0 ? [1, 2, 3] : [1, 3]) {
+	for (const [i, field] of Object.values(FIELDS).entries()) {
+		if (!field.isChannel) continue;
 		const avg = data[i].reduce((a,b) => (a+b)) / data[i].length;
 		newData[i] = data[i].map(c => (c / avg - 1) * 100);
 	}
@@ -131,8 +133,8 @@ async function plotClick(idx) {
 function plotInit() {
 	const axes = [
 		{ scale: 'n' , nounit: true, show: viewMode === 'counts' },
-		{ scale: '%' , side: viewMode === 'counts' ? 1 : 3, show: viewMode === 'variation' },
-		{ scale: '% ' , side: 1, show: viewMode === 'counts' },
+		{ scale: '%' , side: viewMode === 'counts' ? 1 : 3 },
+		{ scale: '% ' , side: 1 },
 		{ scale: 'mb', side: 1, size: 70 },
 		{ scale: 'K', side: 1 }
 	];

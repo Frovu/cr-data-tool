@@ -97,7 +97,7 @@ def corrected(channel, interval, coefs_action, temp_source='T_m'):
     if not coef_recalc or coef_retain:
         proxy.upsert(channel, np.column_stack((time, corrected)), 'corrected', epoch=True)
     result = [time, np.round(corrected, 2), raw, pr_src, np.round(tm_src, 2)] \
-        + ([np.round(corrected_v, 2), np.round(v_isotropic, 3), np.round(v_anisotropic, 3)] if coef_recalc and with_v else [])
+        + ([np.round(corrected_v, 2), np.round(v_isotropic + v_anisotropic, 3), np.round(v_anisotropic, 3)] if coef_recalc and with_v else [])
     fields = ['time', 'corrected', 'source', 'pressure', temp_source] \
         + (['corrected_v', 'v_expected', 'v_expected1'] if coef_recalc and with_v else [])
     return np.column_stack(result).tolist(), fields, {
