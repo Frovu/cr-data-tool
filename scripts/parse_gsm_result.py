@@ -15,10 +15,17 @@ def parse():
             if '-'*64 in line:
                 break
         data = []
-        for line in file:
-            split = line.split()
-            time = datetime(*[int(d) for d in split[0].split('.')], int(split[1])-1)
-            data.append((time, *[float(v) for v in split[3:]]))
+        for line_number, line in enumerate(file, 1):
+            if line == '\n': continue
+            try:
+                split = line.split()
+                time = datetime(*[int(d) for d in split[0].split('.')], int(split[1])-1)
+                data.append((time, *[float(v) for v in split[3:]]))
+            except Exception as e:
+                print(f'Failed on line header+{line_number}:')
+                print([line])
+                print(e)
+                return
     print(f'Parsed [{len(data)}] from {data[0][0]} to {data[-1][0]}')
     print('Inserting...', end='')
     with pg_conn.cursor() as cursor:
