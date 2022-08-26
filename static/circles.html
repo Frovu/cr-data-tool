@@ -28,14 +28,14 @@
 				font-style: italic;
 				color: var(--color-grid);
 				position: absolute;
-				left: 32px;
+				left: 56px;
 				bottom: 48px;
 			}
 			#warn {
 				font-style: italic;
 				color: var(--color-grid);
 				position: absolute;
-				left: 32px;
+				left: 56px;
 				bottom: 32px;
 			}
 			#popup {
@@ -63,6 +63,37 @@
 				top: 0;
 				display: inline-block;
 				box-shadow: 0 0 64px 64px rgba(0,0,0,.8);
+				visibility: hidden;
+				opacity:0;
+				transition:visibility 0.2s linear, opacity 0.2s linear;
+			}
+			#help.show {
+				visibility: visible;
+				opacity: 1;
+			}
+			#help-toggle {
+				z-index: 2;
+				user-select: none;
+				cursor: pointer;
+				display: inline-block;
+				position: absolute;
+				text-align: center;
+				font-weight: bold;
+				font-size: 13pt;
+				left: 22px;
+				bottom: 38px;
+				width: 21px;
+				height: 22px;
+				color: var(--color-inactive);
+				border: 2px var(--color-inactive) solid;
+			}
+			#help-toggle.show {
+				box-shadow: 0 0 16px 1px rgba(255,170,0,1);
+			}
+			#help-toggle.active {
+				color: rgba(255,170,0,1);
+				border-color: rgba(255,170,0,1);
+				box-shadow: 0 0 24px 2px rgba(255,170,0,1);
 			}
 			h4 {
 				margin: 0;
@@ -71,6 +102,7 @@
 		<title>Circles</title>
 	</head>
 	<body main-theme="dark" class="graph">
+		<div id="help-toggle">?</div>
 		<span id="updated">Loading..</span>
 		<span id="warn"></span>
 		<div id="popup"></div>
@@ -78,31 +110,33 @@
 			<h4>Description</h4>
 			<p>
 				Monitor cosmic rays variations in real time using <a target="_blank" href="https://www.researchgate.net/publication/341748269_Ring_of_Stations_Method_in_Cosmic_Rays_Variations_Research">Ring of Stations</a>
-				method with <a target="_blank" href="https://www.nmdb.eu/">NMDB</a> data. If you want to research past events with this tool please use <a href="../">CRDT interface.</a>
+				method with <a target="_blank" href="https://www.nmdb.eu/">NMDB</a> data. If you want to research past events with this tool, please use <a href="../">CRDT interface.</a>
 			</p>
 			<p>
-				Graph shows variation on each station as a circle, its amplitude is represented by circles size and sign by the color.
-				X axis shows time with resolution of one hour and Y shows asymptotic longitude.
+				The graph shows a variation on each station as a circle, its amplitude is represented by circle size and sign by the color.
+				X axis shows time with step of one hour and Y shows asymptotic longitude.
 				Stations asymptotic directions are precomputed.
 			</p>
 			<p>
-				Base period is picked automatically as window with highest average count rate while small standart deviation.
-				First hour of base period is peicted with <span style="color:rgba(100,0,200,1);"><u>purple</u></span> line.
+				Base period is picked automatically as window with highest average count rate while small standard deviation.
+				First hour of base period is depeicted with <span style="color:rgba(100,0,200,1);"><u>purple</u></span> line.
 				Some automatic filtering of faulty data is performed as well, however it shouldn't be relied upon.<br>
 				Stations of the ring are: <i>APTY DRBS FSMT INVK IRKT KERG KIEL2 NAIN NEWK NRLK OULU PWNK YKTK</i>
 			</p>
 			<h4>Precursor index</h4>
 			<p>
-				A precursor index is calculated for every hour and is shown by <span style="color:rgba(255,170,0,0.9);"><u>yellow</u></span> line on the graph. Its axis is proportional to longitude axis.
-				The index is dependet on amplitude of anisotropy and its steepness (how much it deviates from harmonic).
-				The index is experimental and meant to show likelihood of Forbush decrease onset in following hours. Values <u>above 1.0</u> should be thought of as "likely".
+				This experimental index is meant to demonstrate likelihood of Forbush decrease onset in the following hours. Values <u>above 1.0</u> should be thought of as "likely".
 			</p>
 			<p>
-				Click on the graph to bring up a subplot with angular distribution for a specific hour, you can move it using arrows and close it by clicking on it. Yellow sine wave here is responsible for index calculation.
+				The index is calculated for every hour and is shown by the <span style="color:rgba(255,170,0,1);"><u>yellow</u></span> line on the graph. Its axis is proportional to the longitude axis.
+				The index is dependent on anisotropy amplitude and steepness (how much it deviates from harmonic).
+			</p>
+			<p>
+				Click on the graph to bring up a subplot with angular distribution for a specific hour, you can move it in time using arrows and close it by clicking on it. Yellow sine wave here is responsible for index calculation.
 			</p>
 			<h4>Settings</h4>
 			<p style="line-height:2em;">
-				Use URI parameters to adjust the picture as follows:<br>
+				Please use URI parameters to adjust the picture as follows:<br>
 				&days= &nbsp; &nbsp;&nbsp;Number of days to draw (minimum = 2, default = 5)<br>
 				&window= &nbsp; Index window size in hours (default = 3)<br>
 				&minamp= &nbsp; Index cutoff by amplitude (ignore this)<br>
@@ -127,7 +161,34 @@
 			const popup = document.getElementById('popup');
 			const updt = document.getElementById('updated');
 			const warn = document.getElementById('warn');
-			popup.onclick = () => { popup.classList.remove('show') }
+			popup.onclick = () => { popup.classList.remove('show'); }
+			let helpOpen = false;
+			const help = document.getElementById('help');
+			const helpDiv = document.getElementById('help-toggle');
+			const helpOn = (strong) => {
+				help.classList.add('show');
+				helpDiv.classList.add('show');
+				if (strong) helpDiv.classList.add('active');
+			}
+			const helpOff = (strong) => {
+				help.classList.remove('show');
+				helpDiv.classList.remove('show');
+				helpDiv.classList.remove('active');
+			}
+			helpDiv.onmouseover = () => { helpOn(); };
+			helpDiv.onmouseout = () => { if (!helpOpen) helpOff(); };
+			helpDiv.onclick = () => {
+				helpOpen = !helpOpen;
+				if (helpOpen) helpOn(true);
+				else helpOff();
+			};
+			// window.addEventListener('keydown', e => {
+			// 	if (e.keyCode == 27) {
+			// 		helpOpen = false;
+			// 		helpOff();
+			// 		popup.classList.remove('show');
+			// 	}
+			// });
 			const query = constructQueryManager('api/neutron/circles', {
 				data: resp => {
 					updated = Date.now();
