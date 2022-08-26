@@ -253,7 +253,7 @@ function plotInit(clickCallback) {
 					})
 				},
 				{
-					label: 'asimptotic longitude, deg',
+					// label: 'asimptotic longitude, deg',
 					scale: 'y',
 					font: style.font,
 					stroke: style.text,

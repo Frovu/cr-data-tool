@@ -6,8 +6,9 @@
 		<link rel="stylesheet" href="css/uPlot.min.css">
 		<link rel="stylesheet" href="css/tab.css">
 		<style media="screen">
+			@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 			.graph {
-				--font: DejaVu Sans Mono, Liberation Mono, monospace;
+				--font: DejaVu Sans Mono, 'Roboto Mono', monospace;
 				background-color: var(--color-bg);
 				color: var(--color-text);
 				font-family: var(--font);
@@ -16,6 +17,12 @@
 			}
 			.u-series, .u-value, .u-title {
 				font-family: var(--font);
+			}
+			a:link {
+				color: cyan;
+			}
+			a:visited {
+				color: pink;
 			}
 			#updated {
 				font-style: italic;
@@ -45,6 +52,21 @@
 			#popup.show {
 				visibility: visible;
 			}
+			#help {
+				padding: 2em 0 0 2em;
+				width: 50%;
+				min-width: 480px;
+				max-width: 780px;
+				background-color: rgba(0, 0, 0, .8);
+				z-index: 1;
+				position: absolute;
+				top: 0;
+				display: inline-block;
+				box-shadow: 0 0 64px 64px rgba(0,0,0,.8);
+			}
+			h4 {
+				margin: 0;
+			}
 		</style>
 		<title>Circles</title>
 	</head>
@@ -52,6 +74,43 @@
 		<span id="updated">Loading..</span>
 		<span id="warn"></span>
 		<div id="popup"></div>
+		<div id="help">
+			<h4>Description</h4>
+			<p>
+				Monitor cosmic rays variations in real time using <a target="_blank" href="https://www.researchgate.net/publication/341748269_Ring_of_Stations_Method_in_Cosmic_Rays_Variations_Research">Ring of Stations</a>
+				method with <a target="_blank" href="https://www.nmdb.eu/">NMDB</a> data. If you want to research past events with this tool please use <a href="../">CRDT interface.</a>
+			</p>
+			<p>
+				Graph shows variation on each station as a circle, its amplitude is represented by circles size and sign by the color.
+				X axis shows time with resolution of one hour and Y shows asymptotic longitude.
+				Stations asymptotic directions are precomputed.
+			</p>
+			<p>
+				Base period is picked automatically as window with highest average count rate while small standart deviation.
+				First hour of base period is peicted with <span style="color:rgba(100,0,200,1);"><u>purple</u></span> line.
+				Some automatic filtering of faulty data is performed as well, however it shouldn't be relied upon.<br>
+				Stations of the ring are: <i>APTY DRBS FSMT INVK IRKT KERG KIEL2 NAIN NEWK NRLK OULU PWNK YKTK</i>
+			</p>
+			<h4>Precursor index</h4>
+			<p>
+				A precursor index is calculated for every hour and is shown by <span style="color:rgba(255,170,0,0.9);"><u>yellow</u></span> line on the graph. Its axis is proportional to longitude axis.
+				The index is dependet on amplitude of anisotropy and its steepness (how much it deviates from harmonic).
+				The index is experimental and meant to show likelihood of Forbush decrease onset in following hours. Values <u>above 1.0</u> should be thought of as "likely".
+			</p>
+			<p>
+				Click on the graph to bring up a subplot with angular distribution for a specific hour, you can move it using arrows and close it by clicking on it. Yellow sine wave here is responsible for index calculation.
+			</p>
+			<h4>Settings</h4>
+			<p style="line-height:2em;">
+				Use URI parameters to adjust the picture as follows:<br>
+				&days= &nbsp; &nbsp;&nbsp;Number of days to draw (minimum = 2, default = 5)<br>
+				&window= &nbsp; Index window size in hours (default = 3)<br>
+				&minamp= &nbsp; Index cutoff by amplitude (ignore this)<br>
+				&exclude= &nbsp;Stations to exclude (separated by comma)
+			</p>
+			<p>Example: <u>.../circles.html?days=5&exclude=KIEL2,PWNK&window=2</u></p>
+
+		</div>
 		<script type="module">
 			import {receiveData, initDetailsPlot} from './js/applications/circles.js';
 			import {constructQueryManager} from './js/lib/util.js';
@@ -60,7 +119,7 @@
 			});
 			if (opts.bg)
 				document.body.style.backgroundColor = '#' + opts.bg;
-			const days = parseInt(opts.days) || 7;
+			const days = parseInt(opts.days) || 5;
 			let updateDelay = parseInt(opts.update) || 20;
 			if (updateDelay < 5) updateDelay = 5;
 			const delayMs = updateDelay * 60 * 1000;
