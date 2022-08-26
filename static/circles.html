@@ -110,7 +110,7 @@
 			<h4>Description</h4>
 			<p>
 				Monitor cosmic rays variations in real time using <a target="_blank" href="https://www.researchgate.net/publication/341748269_Ring_of_Stations_Method_in_Cosmic_Rays_Variations_Research">Ring of Stations</a>
-				method with <a target="_blank" href="https://www.nmdb.eu/">NMDB</a> data. If you want to research past events with this tool, please use <a href="../">CRDT interface.</a>
+				method with <a target="_blank" href="https://www.nmdb.eu/">NMDB</a> data. If you want to research past events with this tool, please use <a href="./">CRDT interface.</a>
 			</p>
 			<p>
 				The graph shows a variation on each station as a circle, its amplitude is represented by circle size and sign by the color.
@@ -182,13 +182,13 @@
 				if (helpOpen) helpOn(true);
 				else helpOff();
 			};
-			// window.addEventListener('keydown', e => {
-			// 	if (e.keyCode == 27) {
-			// 		helpOpen = false;
-			// 		helpOff();
-			// 		popup.classList.remove('show');
-			// 	}
-			// });
+			window.addEventListener('keydown', e => {
+				if (e.keyCode == 27) {
+					helpOpen = false;
+					helpOff();
+					popup.classList.remove('show');
+				}
+			});
 			const query = constructQueryManager('api/neutron/circles', {
 				data: resp => {
 					updated = Date.now();
