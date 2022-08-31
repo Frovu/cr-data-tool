@@ -18,6 +18,9 @@
 			.u-series, .u-value, .u-title {
 				font-family: var(--font);
 			}
+			.u-title {
+				margin: 10px 0 12px 16px;
+			}
 			a:link {
 				color: cyan;
 			}
@@ -46,7 +49,7 @@
 				visibility: hidden;
 				z-index: 1;
 				top: 6px;
-				width: 475px;
+				width: 450px;
 				border: 2px var(--color-inactive) dashed;
 			}
 			#popup.show {
@@ -140,10 +143,11 @@
 				&days= &nbsp; &nbsp;&nbsp;Number of days to draw (minimum = 2, default = 5)<br>
 				&window= &nbsp; Index window size in hours (default = 3)<br>
 				&minamp= &nbsp; Index cutoff by amplitude (ignore this)<br>
-				&exclude= &nbsp;Stations to exclude (separated by comma)
+				&exclude= &nbsp;Stations to exclude (separated by comma)<br>
+				Example: <u>.../circles.html?days=5&exclude=KIEL2,PWNK&window=2</u>
 			</p>
-			<p>Example: <u>.../circles.html?days=5&exclude=KIEL2,PWNK&window=2</u></p>
-
+			<p><b>For any questions email to <a href="mailto:izmiran.crdt@gmail.com">izmiran.crdt@gmail.com</a></b></p>
+			<p style="text-align: right;">(c) 2022 Semyon Belov, IZMIRAN<p>
 		</div>
 		<script type="module">
 			import {receiveData, initDetailsPlot} from './js/applications/circles.js';
@@ -220,7 +224,7 @@
 					const body = await res.json();
 					console.log(body);
 					if (!body.time) return popup.classList.remove('show');
-					popup.style.left = time >= middle ? '76px' : 'unset';
+					popup.style.left = time >= middle ? '48px' : 'unset';
 					popup.style.right = time < middle ? '6px' : 'unset';
 					popup.classList.add('show');
 					initDetailsPlot(body, popup);

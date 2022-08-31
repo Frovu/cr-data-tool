@@ -314,8 +314,8 @@ export function initDetailsPlot(body, parent) {
 	const dt = new Date(body.time * 1000).toISOString().replace(/\..*|T/g, ' ');
 	const width = parent.offsetWidth - 32;
 	aplot = plot.initCustom(style => {
-		return {
-			title: `[ ${dt}] i=${body.index.toFixed(2)} f=${body.angle.toFixed(2)} amp=${body.amplitude.toFixed(2)}`,
+		return { // f=${body.angle.toFixed(2)}
+			title: `[ ${dt}] i=${body.index.toFixed(2)} a=${body.amplitude.toFixed(2)}`,
 			width, height: width,
 			mode: 2,
 			padding: [10, 0, 0, 0],
