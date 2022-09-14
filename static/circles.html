@@ -55,11 +55,9 @@
 			#popup.show {
 				visibility: visible;
 			}
-			#help {
-				padding: 2em 0 0 2em;
+			.text-popup {
+				padding: 2em 0 0 3em;
 				width: 50%;
-				min-width: 480px;
-				max-width: 780px;
 				background-color: rgba(0, 0, 0, .8);
 				z-index: 1;
 				position: absolute;
@@ -70,7 +68,7 @@
 				opacity:0;
 				transition:visibility 0.2s linear, opacity 0.2s linear;
 			}
-			#help.show {
+			.text-popup.show {
 				visibility: visible;
 				opacity: 1;
 			}
@@ -96,6 +94,13 @@
 				border-color: rgba(255,170,0,1);
 				box-shadow: 0 0 24px 2px rgba(255,170,0,1);
 			}
+			#help {
+				min-width: 480px;
+				max-width: 780px;
+			}
+			#settings {
+				width: fit-content;
+			}
 			#help-toggle {
 				left: 22px;
 				bottom: 38px;
@@ -104,11 +109,22 @@
 				left: 22px;
 				bottom: 68px;
 			}
-			#settings {
-				display: none;
-			}
 			h4 {
 				margin: 0;
+			}
+			input, button, select {
+				opacity: 1 !important;
+				width: 12em;
+				border: 2px var(--color-inactive) inset;
+				background-color: var(--color-bg);
+				text-align: center;
+				font-family: inherit;
+				font-size: inherit;
+				color: inherit;
+				transition: background-color 250ms;
+			}
+			input:focus {
+				outline: none;
 			}
 		</style>
 		<title>Circles</title>
@@ -119,8 +135,13 @@
 		<span id="updated">Loading..</span>
 		<span id="warn"></span>
 		<div id="popup"></div>
-		<div id="settings">
+		<div class="text-popup" id="settings">
 			<h4>Settings</h4>
+			<div style="text-align: right">
+			<p>
+				Exclude stations:
+				<input type="text" id="textExclude" value="" placeholder="KIEL2,IRKT">
+			</p>
 			<p>
 				Days (backward):
 				<input type="text" id="textDays" value="">
@@ -130,20 +151,17 @@
 				<input type="text" id="textDate" value="" placeholder="now">
 			</p>
 			<p>
-				Exclude stations:
-				<input type="text" id="textExclude" value="">
-			</p>
-			<p>
 				Window (h):
 				<input type="text" id="textWindow" value="">
 			</p>
 			<p>
 				Background color:
-				<input type="text" id="textWindow" value="">
+				<input type="text" id="textWindow" value="" placeholder="#000">
 			</p>
+		</div>
 
 		</div>
-		<div id="help">
+		<div class="text-popup" id="help">
 			<h4>Description</h4>
 			<p>
 				Monitor cosmic rays variations in real time using <a target="_blank" href="https://www.researchgate.net/publication/341748269_Ring_of_Stations_Method_in_Cosmic_Rays_Variations_Research">Ring of Stations</a>
@@ -177,24 +195,28 @@
 		<script type="module">
 			import {receiveData, initDetailsPlot} from './js/applications/circles.js';
 			import {constructQueryManager} from './js/lib/util.js';
-			const opts = new Proxy(new URLSearchParams(window.location.search), {
-				get: (searchParams, prop) => searchParams.get(prop),
-			});
+
+			const defaultOpts = {
+				days: 5,
+				window: 3
+			};
+			const savedOpts = JSON.parse(window.localStorage.getItem('opts')||'{}')
+			const saveOpts = () => window.localStorage.setItem('opts', JSON.stringify(opts));
+			const opts = Object.assign({}, defaultOpts, savedOpts)
 			if (opts.bg)
 				document.body.style.backgroundColor = '#' + opts.bg;
-			const userFrom = opts.from ? new Date(opts.from) : NaN;
-			const days = parseInt(opts.days) || 5;
-			let updateDelay = parseInt(opts.update) || 20;
-			if (updateDelay < 5) updateDelay = 5;
-			const delayMs = updateDelay * 60 * 1000;
-			let updated, params, middle, updater;
+
+			
+
 			const popup = document.getElementById('popup');
 			const updt = document.getElementById('updated');
 			const warn = document.getElementById('warn');
 			popup.onclick = () => { popup.classList.remove('show'); }
-			let helpOpen = false;
+			let helpOpen = false, settingsOpen = false;
 			const help = document.getElementById('help');
+			const settings = document.getElementById('settings');
 			const helpDiv = document.getElementById('help-toggle');
+			const settingsDiv = document.getElementById('settings-toggle');
 			const helpOn = (strong) => {
 				help.classList.add('show');
 				helpDiv.classList.add('show');
@@ -205,11 +227,28 @@
 				helpDiv.classList.remove('show');
 				helpDiv.classList.remove('active');
 			}
-			helpDiv.onmouseover = () => { helpOn(); };
+			helpDiv.onmouseover = () => { if (!settingsOpen) helpOn(); };
 			helpDiv.onmouseout = () => { if (!helpOpen) helpOff(); };
+			settingsDiv.onclick = () => {
+				settingsOpen = !settingsOpen;
+				if (helpOpen) {
+					helpOff();
+					helpOpen = false;
+				}
+				const action = settingsOpen ? 'add' : 'remove';
+				settings.classList[action]('show');
+				settingsDiv.classList[action]('show');
+				settingsDiv.classList[action]('active');
+			};
 			helpDiv.onclick = () => {
 				helpOpen = !helpOpen;
 				if (helpOpen) helpOn(true);
+				if (settingsOpen) {
+					settingsOpen = false;
+					settings.classList.remove('show');
+					settingsDiv.classList.remove('show');
+					settingsDiv.classList.remove('active');
+				}
 				else helpOff();
 			};
 			window.addEventListener('keydown', e => {
@@ -219,6 +258,10 @@
 					popup.classList.remove('show');
 				}
 			});
+
+			let updateDelay = 20;
+			const delayMs = updateDelay * 60 * 1000;
+			let updated, params, middle, updater;
 			const query = constructQueryManager('api/neutron/circles', {
 				data: resp => {
 					updated = Date.now();
@@ -259,7 +302,8 @@
 				}
 			}
 			function fetchdata() {
-				const from = isNaN(userFrom)
+				const days = parseInt(opts.days) || 5;
+				const from = true
 					? Math.floor(new Date().getTime() / 1000) - 86400 * days
 					: Math.floor(userFrom.getTime() / 1000)
 				params = {
