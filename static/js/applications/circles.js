@@ -224,8 +224,10 @@ function plotInit(clickCallback) {
 							if (detailsIdx !== null) {
 								if (e.keyCode == 39)
 									detailsIdx += 1;
-								if (e.keyCode == 37)
+								else if (e.keyCode == 37)
 									detailsIdx -= 1;
+								else
+									return;
 								if (detailsIdx < 0)
 									detailsIdx = 0;
 								else if (detailsIdx >= prec_idx[0].length)

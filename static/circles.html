@@ -74,7 +74,7 @@
 				visibility: visible;
 				opacity: 1;
 			}
-			#help-toggle {
+			.button {
 				z-index: 2;
 				user-select: none;
 				cursor: pointer;
@@ -83,20 +83,29 @@
 				text-align: center;
 				font-weight: bold;
 				font-size: 13pt;
-				left: 22px;
-				bottom: 38px;
 				width: 21px;
 				height: 22px;
 				color: var(--color-inactive);
 				border: 2px var(--color-inactive) solid;
 			}
-			#help-toggle.show {
+			.button.show {
 				box-shadow: 0 0 16px 1px rgba(255,170,0,1);
 			}
-			#help-toggle.active {
+			.button.active {
 				color: rgba(255,170,0,1);
 				border-color: rgba(255,170,0,1);
 				box-shadow: 0 0 24px 2px rgba(255,170,0,1);
+			}
+			#help-toggle {
+				left: 22px;
+				bottom: 38px;
+			}
+			#settings-toggle {
+				left: 22px;
+				bottom: 68px;
+			}
+			#settings {
+				display: none;
 			}
 			h4 {
 				margin: 0;
@@ -105,10 +114,35 @@
 		<title>Circles</title>
 	</head>
 	<body main-theme="dark" class="graph">
-		<div id="help-toggle">?</div>
+		<div class="button" id="help-toggle">?</div>
+		<div class="button" id="settings-toggle">S</div>
 		<span id="updated">Loading..</span>
 		<span id="warn"></span>
 		<div id="popup"></div>
+		<div id="settings">
+			<h4>Settings</h4>
+			<p>
+				Days (backward):
+				<input type="text" id="textDays" value="">
+			</p>
+			<p>
+				Date:
+				<input type="text" id="textDate" value="" placeholder="now">
+			</p>
+			<p>
+				Exclude stations:
+				<input type="text" id="textExclude" value="">
+			</p>
+			<p>
+				Window (h):
+				<input type="text" id="textWindow" value="">
+			</p>
+			<p>
+				Background color:
+				<input type="text" id="textWindow" value="">
+			</p>
+
+		</div>
 		<div id="help">
 			<h4>Description</h4>
 			<p>
@@ -137,15 +171,6 @@
 			<p>
 				Click on the graph to bring up a subplot with angular distribution for a specific hour, you can move it in time using arrows and close it by clicking on it. Yellow sine wave here is responsible for index calculation.
 			</p>
-			<h4>Settings</h4>
-			<p style="line-height:2em;">
-				Please use URI parameters to adjust the picture as follows:<br>
-				&days= &nbsp; &nbsp;&nbsp;Number of days to draw (minimum = 2, default = 5)<br>
-				&window= &nbsp; Index window size in hours (default = 3)<br>
-				&minamp= &nbsp; Index cutoff by amplitude (ignore this)<br>
-				&exclude= &nbsp;Stations to exclude (separated by comma)<br>
-				Example: <u>.../circles.html?days=5&exclude=KIEL2,PWNK&window=2</u>
-			</p>
 			<p><b>For any questions email to <a href="mailto:izmiran.crdt@gmail.com">izmiran.crdt@gmail.com</a></b></p>
 			<p style="text-align: right;">(c) 2022 Semyon Belov, IZMIRAN<p>
 		</div>
@@ -157,6 +182,7 @@
 			});
 			if (opts.bg)
 				document.body.style.backgroundColor = '#' + opts.bg;
+			const userFrom = opts.from ? new Date(opts.from) : NaN;
 			const days = parseInt(opts.days) || 5;
 			let updateDelay = parseInt(opts.update) || 20;
 			if (updateDelay < 5) updateDelay = 5;
@@ -233,9 +259,12 @@
 				}
 			}
 			function fetchdata() {
+				const from = isNaN(userFrom)
+					? Math.floor(new Date().getTime() / 1000) - 86400 * days
+					: Math.floor(userFrom.getTime() / 1000)
 				params = {
-					from: Math.floor(new Date().getTime() / 1000 - 86400 * days),
-					to:   Math.floor(new Date().getTime() / 1000),
+					from,
+					to: from + 86400 * days,
 					exclude: opts.exclude || null,
 					window: opts.window || null,
 					minamp: opts.minamp || 0.7
