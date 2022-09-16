@@ -103,11 +103,11 @@
 			}
 			#help-toggle {
 				left: 22px;
-				bottom: 38px;
+				bottom: 18px;
 			}
 			#settings-toggle {
 				left: 22px;
-				bottom: 68px;
+				bottom: 48px;
 			}
 			h4 {
 				margin: 0;
@@ -122,6 +122,15 @@
 				font-size: inherit;
 				color: inherit;
 				transition: background-color 250ms;
+			}
+			#update {
+				margin-top: 1em;
+				width: 8em;
+				border-style: outset;
+			}
+			#update:active {
+				color: var(--color-inactive);
+				border-style: inset;
 			}
 			input:focus {
 				outline: none;
@@ -156,8 +165,9 @@
 			</p>
 			<p>
 				Background color:
-				<input type="text" id="textWindow" value="" placeholder="#000">
+				<input type="text" id="textBg" value="" placeholder="#000">
 			</p>
+			<button id="update">Update</button>
 		</div>
 
 		</div>
@@ -204,9 +214,35 @@
 			const saveOpts = () => window.localStorage.setItem('opts', JSON.stringify(opts));
 			const opts = Object.assign({}, defaultOpts, savedOpts)
 			if (opts.bg)
-				document.body.style.backgroundColor = '#' + opts.bg;
+				document.body.style.backgroundColor = opts.bg;
 
-			
+			const form = {
+				days: document.getElementById('textDays'),
+				date: document.getElementById('textDate'),
+				exclude: document.getElementById('textExclude'),
+				window: document.getElementById('textWindow'),
+				bg: document.getElementById('textBg')
+			}
+
+			for (const i in form) {
+				if (opts[i])
+					form[i].value = opts[i];
+			}
+
+			form.bg.onchange = () => {
+				opts.bg = form.bg.value;
+				document.body.style.backgroundColor = opts.bg;
+			}
+
+			document.getElementById('update').onclick = () => {
+				for (const i in form) {
+					if (form[i].value || opts[i])
+						opts[i] = form[i].value;
+				}
+				console.log(opts)
+				saveOpts();
+				fetchdata();
+			};
 
 			const popup = document.getElementById('popup');
 			const updt = document.getElementById('updated');
@@ -293,8 +329,9 @@
 					const body = await res.json();
 					console.log(body);
 					if (!body.time) return popup.classList.remove('show');
-					popup.style.left = time >= middle ? '48px' : 'unset';
-					popup.style.right = time < middle ? '6px' : 'unset';
+					const isLeft = time >= middle && !helpOpen && !settingsOpen;
+					popup.style.left = isLeft ? '48px' : 'unset';
+					popup.style.right = !isLeft ? '6px' : 'unset';
 					popup.classList.add('show');
 					initDetailsPlot(body, popup);
 				} else {
@@ -303,18 +340,18 @@
 			}
 			function fetchdata() {
 				const days = parseInt(opts.days) || 5;
-				const from = true
-					? Math.floor(new Date().getTime() / 1000) - 86400 * days
-					: Math.floor(userFrom.getTime() / 1000)
+				const userTo = (opts.date && new Date(opts.date)) || new Date();
+				const to = Math.floor(userTo.getTime() / 1000)
 				params = {
-					from,
-					to: from + 86400 * days,
+					from: to - 86400 * days,
+					to,
 					exclude: opts.exclude || null,
 					window: opts.window || null,
-					minamp: opts.minamp || 0.7
+					minamp: opts.minamp || null
 				};
 				updt.innerHTML = `Updating...`;
 				query.fetch(params);
+				clearInterval(updater);
 				updater = setTimeout(fetchdata, delayMs);
 			}
 			fetchdata();
