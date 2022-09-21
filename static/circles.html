@@ -279,13 +279,13 @@
 			helpDiv.onclick = () => {
 				helpOpen = !helpOpen;
 				if (helpOpen) helpOn(true);
+				else helpOff();
 				if (settingsOpen) {
 					settingsOpen = false;
 					settings.classList.remove('show');
 					settingsDiv.classList.remove('show');
 					settingsDiv.classList.remove('active');
 				}
-				else helpOff();
 			};
 			window.addEventListener('keydown', e => {
 				if (e.keyCode == 27) {
