@@ -235,8 +235,11 @@
 			}
 
 			for (const i in form) {
-				if (opts[i])
-					form[i].value = opts[i];
+				try {
+					if (opts[i])
+						form[i].value = !['date', 'base'].includes(i) ? opts[i]
+							: new Date(opts[i]*1000).toISOString().replace('T', ' ').replace(/\..*/, '');
+				} catch(e) {}
 			}
 
 			form.bg.onchange = () => {
@@ -248,9 +251,12 @@
 				for (const i in form) {
 					if (form[i].value || opts[i])
 						opts[i] = form[i].value.trim();
-					for (const i of ['date', 'base'])
-						if (opts[i].length < 14)
-							opts[i] = opts[i].split(' ')[0] + ' 00:00'
+				}
+				for (const i of ['date', 'base']) {
+					if (opts[i] && opts[i].length < 14)
+						opts[i] = opts[i].split(' ')[0] + ' 00:00';
+					opts[i] = Math.floor(Date.parse(opts[i] + 'Z') / 1000);
+
 				}
 				console.log(opts)
 				saveOpts();
@@ -333,10 +339,11 @@
 			}, false, 5000);
 			async function plotClick(time) {
 				console.log('%cclick', 'color: #f0f', time);
-				let q = `api/neutron/circles?from=${params.from}&to=${params.to}&details=${time}`
-				if (params.exclude?.length) q += `&exclude=${params.exclude}`
-				if (opts.window) q += `&window=${opts.window}`
-				if (opts.minamp) q += `&minamp=${opts.minamp}`
+				let q = `api/neutron/circles?from=${params.from}&to=${params.to}&details=${time}`;
+				if (params.exclude?.length) q += `&exclude=${params.exclude}`;
+				if (opts.base) q += `&base=${opts.base}`;
+				if (opts.window) q += `&window=${opts.window}`;
+				if (opts.minamp) q += `&minamp=${opts.minamp}`;
 				const res = await fetch(q);
 				if (res.status == 200) {
 					const body = await res.json();
@@ -353,14 +360,11 @@
 			}
 			function fetchdata() {
 				const days = parseInt(opts.days) || 5;
-				const userTo = opts.date && new Date(opts.date + 'Z');
-				const userBase = opts.base && new Date(opts.base + 'Z')
-				console.log(userBase)
-				const to = Math.floor(((userTo && !isNaN(userTo)) ? userTo : new Date()).getTime() / 1000)
+				const to = opts.date || Math.floor(Date.now() / 1000)
 				params = {
 					from: to - 86400 * days,
 					to,
-					base: userBase && !isNaN(userBase) ? Math.floor(userBase.getTime() / 1000).toFixed() : null,
+					base: opts.base || null,
 					exclude: opts.exclude || null,
 					window: opts.window || null,
 					minamp: opts.minamp || null
