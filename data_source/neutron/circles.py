@@ -121,13 +121,18 @@ def index_details(time, variations, directions, when, window, amp_cutoff):
         'angle': angle
     })
 
-def get(t_from, t_to, exclude, details, window, amp_cutoff):
+def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base):
     if window > 12 or window < 1: window = 3
-    if amp_cutoff < 0 or amp_cutoff > 10: amp_cutoff = 1.0
+    if amp_cutoff < 0 or amp_cutoff > 10: amp_cutoff = .7
     t_from = t_from // database.PERIOD * database.PERIOD
     stations = [k for k in RING.keys() if k not in exclude]
     data, filtered, excluded = _filter(database.fetch((t_from, t_to), stations))
-    base_idx = _determine_base(data)
+    if user_base and user_base >= t_from and user_base <= t_to - 3600 * BASE_LENGTH_H:
+        user_base = user_base // 3600 * 3600
+        idx = np.where(data[:,0] == user_base)[0][0]
+        base_idx = [idx, idx + 24]
+    else:
+        base_idx = _determine_base(data)
     base_data = data[base_idx[0]:base_idx[1], 1:]
     time = np.uint64(data[:,0])
     with warnings.catch_warnings():
