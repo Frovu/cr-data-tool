@@ -359,8 +359,8 @@ export function initDetailsPlot(body, parent) {
 					paths:  plot.pointPaths(10)
 				},
 				{
-					stroke: 'rgba(255,170,0,1)',
-					paths: plot.linePaths(2.5)
+					stroke: 'rgb(100,0,200)',
+					paths: plot.linePaths(2)
 				}
 			]
 		};

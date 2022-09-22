@@ -30,5 +30,5 @@ def get_circles():
 
     body = circles.get(t_from, t_to, exclude, details, window, minamp, base)
     body['status'] = 'ok'
-    permissions.log_action('get_result', 'neutron/circle', f'{t_from}')
+    permissions.log_action('get_result', 'neutron/details' if details else 'neutron/circles', f'{t_from}')
     return body

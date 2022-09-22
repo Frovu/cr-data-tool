@@ -58,19 +58,19 @@
 			.text-popup {
 				padding: 2em 0 0 3em;
 				width: 50%;
-				background-color: rgba(0, 0, 0, .8);
+				background-color: var(--color-bg);
 				z-index: 1;
 				position: absolute;
 				top: 0;
 				display: inline-block;
-				box-shadow: 0 0 64px 64px rgba(0,0,0,.8);
+				box-shadow: 0 0 64px 64px var(--color-bg);
 				visibility: hidden;
-				opacity:0;
+				opacity: 0;
 				transition:visibility 0.2s linear, opacity 0.2s linear;
 			}
 			.text-popup.show {
 				visibility: visible;
-				opacity: 1;
+				opacity: .8;
 			}
 			.button {
 				z-index: 2;
@@ -222,7 +222,7 @@
 			const saveOpts = () => window.localStorage.setItem('opts', JSON.stringify(opts));
 			const opts = Object.assign({}, defaultOpts, savedOpts)
 			if (opts.bg)
-				document.body.style.backgroundColor = opts.bg;
+				document.body.style.setProperty('--color-bg', opts.bg);
 
 			const form = {
 				days: document.getElementById('textDays'),
@@ -238,16 +238,16 @@
 				try {
 					if (opts[i])
 						form[i].value = !['date', 'base'].includes(i) ? opts[i]
-							: new Date(opts[i]*1000).toISOString().replace('T', ' ').replace(/\..*/, '');
+							: new Date(opts[i]*1000).toISOString().replace('T', ' ').replace(/:00\..*/, '');
 				} catch(e) {}
 			}
 
 			form.bg.onchange = () => {
 				opts.bg = form.bg.value;
-				document.body.style.backgroundColor = opts.bg;
+				document.body.style.setProperty('--color-bg', opts.bg);
 			}
 
-			document.getElementById('update').onclick = () => {
+			function updateSettings() {
 				for (const i in form) {
 					if (form[i].value || opts[i])
 						opts[i] = form[i].value.trim();
@@ -261,12 +261,13 @@
 				console.log(opts)
 				saveOpts();
 				fetchdata();
-			};
+			}
+			document.getElementById('update').onclick = updateSettings;
 
 			const popup = document.getElementById('popup');
 			const updt = document.getElementById('updated');
 			const warn = document.getElementById('warn');
-			popup.onclick = () => { popup.classList.remove('show'); }
+			popup.onclick = () => { popup.classList.remove('show'); lastDetails = null; }
 			let helpOpen = false, settingsOpen = false;
 			const help = document.getElementById('help');
 			const settings = document.getElementById('settings');
@@ -282,6 +283,12 @@
 				helpDiv.classList.remove('show');
 				helpDiv.classList.remove('active');
 			}
+			const settingsClose = () => {
+				settingsOpen = false;
+				settings.classList.remove('show');
+				settingsDiv.classList.remove('show');
+				settingsDiv.classList.remove('active');
+			}
 			helpDiv.onmouseover = () => { if (!settingsOpen) helpOn(); };
 			helpDiv.onmouseout = () => { if (!helpOpen) helpOff(); };
 			settingsDiv.onclick = () => {
@@ -291,6 +298,8 @@
 					helpOpen = false;
 				}
 				const action = settingsOpen ? 'add' : 'remove';
+				if (settingsOpen && lastDetails) // move details plot
+					plotClick(lastDetails)
 				settings.classList[action]('show');
 				settingsDiv.classList[action]('show');
 				settingsDiv.classList[action]('active');
@@ -299,24 +308,24 @@
 				helpOpen = !helpOpen;
 				if (helpOpen) helpOn(true);
 				else helpOff();
-				if (settingsOpen) {
-					settingsOpen = false;
-					settings.classList.remove('show');
-					settingsDiv.classList.remove('show');
-					settingsDiv.classList.remove('active');
-				}
+				if (settingsOpen)
+					settingsClose();
 			};
 			window.addEventListener('keydown', e => {
-				if (e.keyCode == 27) {
+				if (e.keyCode === 27) {
 					helpOpen = false;
 					helpOff();
+					settingsClose();
+					lastDetails = null;
 					popup.classList.remove('show');
 				}
+				if (e.keyCode === 13 && settingsOpen)
+					updateSettings();
 			});
 
 			let updateDelay = 20;
 			const delayMs = updateDelay * 60 * 1000;
-			let updated, params, middle, updater;
+			let updated, params, middle, updater, lastDetails;
 			const query = constructQueryManager('api/neutron/circles', {
 				data: resp => {
 					updated = Date.now();
@@ -335,9 +344,12 @@
 						else
 							updt.innerHTML = `Updated ${Math.floor(sec/60)} minute${sec<120?'':'s'} ago`;
 					}, 1000);
+					if (lastDetails)
+						plotClick(lastDetails);
 				}
 			}, false, 5000);
 			async function plotClick(time) {
+				lastDetails = time;
 				console.log('%cclick', 'color: #f0f', time);
 				let q = `api/neutron/circles?from=${params.from}&to=${params.to}&details=${time}`;
 				if (params.exclude?.length) q += `&exclude=${params.exclude}`;
