@@ -249,8 +249,8 @@ function plotInit(clickCallback) {
 					size: 40,
 					values: (u, vals) => vals.map(v => {
 						const d = new Date(v * 1000);
-						const day = String(d.getDate()).padStart(2, '0');
-						const hour =  String(d.getHours()).padStart(2, '0');
+						const day = String(d.getUTCDate()).padStart(2, '0');
+						const hour =  String(d.getUTCHours()).padStart(2, '0');
 						return day + '\'' + hour;
 					})
 				},
