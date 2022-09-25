@@ -260,9 +260,11 @@
 				}
 				console.log(opts)
 				saveOpts();
+				updateButton.innerHTML = 'Loading...';
 				fetchdata();
 			}
-			document.getElementById('update').onclick = updateSettings;
+			const updateButton = document.getElementById('update');
+			updateButton.onclick = updateSettings;
 
 			const popup = document.getElementById('popup');
 			const updt = document.getElementById('updated');
@@ -346,6 +348,7 @@
 					}, 1000);
 					if (lastDetails)
 						plotClick(lastDetails);
+					updateButton.innerHTML = 'Update';
 				}
 			}, false, 5000);
 			async function plotClick(time) {
