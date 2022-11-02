@@ -21,24 +21,32 @@ const params = util.storage.getObject('circles-params') || {
 	to: new Date(2021, 10, 5).getTime() / 1000,
 };
 let pdata = [], ndata = [], prec_idx = [];
-let stations = [], shifts = [], base = 0;
+let resp, stations = [], shifts = [], base = 0;
 let qt = null;
 let aplot, mplot;
+let clickCallback;
 
 const MAX_VAR = 10;
 let maxVar = MAX_VAR, variationShift = 0;
 
-export function receiveData(resp, opts = null) {
+export function receiveData(data, click = null) {
+	resp = data;
+	stations = data.station, shifts = data.shift, base = parseInt(data.base);
+	clickCallback = click;
+	render();
+}
+
+function render() {
+	if (!resp) return;
 	const slen = resp.shift.length, tlen = resp.time.length;
 	if (tlen < 10) return;
-	stations = resp.station, shifts = resp.shift, base = parseInt(resp.base);
 	const data = Array.from(Array(4), () => new Array(slen*tlen));
 	let posCount = 0, nullCount = 0;
 	maxVar = MAX_VAR;
 	console.time('restructure');
 	for (let ti = 0; ti < tlen; ++ti) {
 		for (let si = 0; si < slen; ++si) {
-			const time = resp.time[ti], vv = resp.variation[ti][si];
+			const time = resp.time[ti], vv = resp.variation[ti][si] + variationShift;
 			const idx = ti*slen + si;
 			// if (vv < maxVar) maxVar = vv;
 			if (vv == null) ++nullCount;
@@ -73,7 +81,7 @@ export function receiveData(resp, opts = null) {
 	}
 	prec_idx = resp.precursor_idx;
 	console.timeEnd('restructure');
-	plotInit(opts);
+	plotInit();
 }
 
 function drawCircles(u, seriesIdx) {
@@ -100,9 +108,9 @@ function drawCircles(u, seriesIdx) {
 		for (let i = 0; i < d[0].length; i++) {
 			let xVal = d[0][i];
 			let yVal = d[1][i];
-
-			let size = Math.abs(d[2][i] + variationShift) / maxVar * maxSize * devicePixelRatio;
+			let size = (Math.abs(d[2][i]) / maxVar * maxSize + 1) * devicePixelRatio;
 			if (size > maxSize) size = maxSize;
+
 			if (xVal >= filtLft && xVal <= filtRgt && yVal >= filtBtm && yVal <= filtTop) {
 				let cx = valToPosX(xVal, scaleX, xDim, xOff);
 				let cy = valToPosY(yVal, scaleY, yDim, yOff);
@@ -393,7 +401,7 @@ const query = util.constructQueryManager(URL, {
 
 export function setVariationShift(shift) {
 	variationShift = shift;
-	if (mplot) mplot.redraw(true);
+	render();
 }
 
 export function initTabs() {
