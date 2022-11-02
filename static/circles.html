@@ -7,6 +7,7 @@
 		<link rel="stylesheet" href="css/tab.css">
 		<style media="screen">
 			@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+			body { color-scheme: dark; }
 			.graph {
 				--font: DejaVu Sans Mono, 'Roboto Mono', monospace;
 				background-color: var(--color-bg);
@@ -109,6 +110,19 @@
 				left: 22px;
 				bottom: 48px;
 			}
+			#shift {
+				font-size: 14px;
+				color: var(--color-inactive);
+				position: fixed;
+				right: 22px;
+				bottom: 48px;
+			}
+			#shift input {
+				color: var(--color-text);
+				padding: 2px;
+				width: 4em;
+				border: 2px var(--color-grid) solid;
+			}
 			h4 {
 				margin: 0;
 			}
@@ -144,6 +158,9 @@
 		<span id="updated">Loading..</span>
 		<span id="warn"></span>
 		<div id="popup"></div>
+		<div id="shift">
+			Shift:<input id="var-shift" type="number" step="0.1" max="10" min="-10" value="0">
+		</div>
 		<div class="text-popup" id="settings">
 			<h4>Settings</h4>
 			<div style="text-align: right">
@@ -211,7 +228,7 @@
 			<p style="text-align: right;">(c) 2022 Semyon Belov, IZMIRAN<p>
 		</div>
 		<script type="module">
-			import {receiveData, initDetailsPlot} from './js/applications/circles.js';
+			import {receiveData, initDetailsPlot, setVariationShift} from './js/applications/circles.js';
 			import {constructQueryManager} from './js/lib/util.js';
 
 			const defaultOpts = {
@@ -265,6 +282,14 @@
 			}
 			const updateButton = document.getElementById('update');
 			updateButton.onclick = updateSettings;
+			const shiftInput = document.getElementById('var-shift');
+			const setShift = () => {
+				const val = parseFloat(shiftInput.value)
+				if (!isNaN(val))
+					setVariationShift(val);
+			}
+			shiftInput.onchange = setShift;
+			setShift();
 
 			const popup = document.getElementById('popup');
 			const updt = document.getElementById('updated');
@@ -279,18 +304,18 @@
 				help.classList.add('show');
 				helpDiv.classList.add('show');
 				if (strong) helpDiv.classList.add('active');
-			}
+			};
 			const helpOff = (strong) => {
 				help.classList.remove('show');
 				helpDiv.classList.remove('show');
 				helpDiv.classList.remove('active');
-			}
+			};
 			const settingsClose = () => {
 				settingsOpen = false;
 				settings.classList.remove('show');
 				settingsDiv.classList.remove('show');
 				settingsDiv.classList.remove('active');
-			}
+			};
 			helpDiv.onmouseover = () => { if (!settingsOpen) helpOn(); };
 			helpDiv.onmouseout = () => { if (!helpOpen) helpOff(); };
 			settingsDiv.onclick = () => {

@@ -23,7 +23,7 @@ const params = util.storage.getObject('circles-params') || {
 let pdata = [], ndata = [], prec_idx = [];
 let stations = [], shifts = [], base = 0;
 let qt = null;
-let aplot;
+let aplot, mplot;
 
 const MAX_VAR = 10;
 let maxVar = MAX_VAR, variationShift = 0;
@@ -129,7 +129,8 @@ function drawCircles(u, seriesIdx) {
 function plotInit(clickCallback) {
 	if (!clickCallback) clickCallback = plotClick;
 	if (!ndata.length) return;
-	plot.initCustom(style => {
+	if (mplot) mplot.destroy();
+	mplot = plot.initCustom(style => {
 		let hRect; // hovered
 		const legendValue = u => {
 			if (u.data == null || hRect == null)
@@ -389,6 +390,11 @@ const query = util.constructQueryManager(URL, {
 	data: receiveData,
 	params: p => util.storage.setObject('circles-params', p)
 });
+
+export function setVariationShift(shift) {
+	variationShift = shift;
+	if (mplot) mplot.redraw(true);
+}
 
 export function initTabs() {
 	tabs.fill('app', [
