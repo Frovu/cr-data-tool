@@ -25,22 +25,22 @@ let stations = [], shifts = [], base = 0;
 let qt = null;
 let aplot;
 
-let maxSize = 72;
+const MAX_VAR = 10;
+let maxVar = MAX_VAR, variationShift = 0;
 
 export function receiveData(resp, opts = null) {
 	const slen = resp.shift.length, tlen = resp.time.length;
 	if (tlen < 10) return;
 	stations = resp.station, shifts = resp.shift, base = parseInt(resp.base);
 	const data = Array.from(Array(4), () => new Array(slen*tlen));
-	let maxVar = 0, posCount = 0, nullCount = 0;
-	maxSize = 5 + plot.getPlotSize(false).height / 10;
-	console.log('max size', maxSize);
+	let posCount = 0, nullCount = 0;
+	maxVar = MAX_VAR;
 	console.time('restructure');
 	for (let ti = 0; ti < tlen; ++ti) {
 		for (let si = 0; si < slen; ++si) {
 			const time = resp.time[ti], vv = resp.variation[ti][si];
 			const idx = ti*slen + si;
-			if (vv < maxVar) maxVar = vv;
+			// if (vv < maxVar) maxVar = vv;
 			if (vv == null) ++nullCount;
 			else if (vv >= 0) ++posCount;
 			data[0][idx] = time;
@@ -49,29 +49,25 @@ export function receiveData(resp, opts = null) {
 			data[3][idx] = si;
 		}
 	}
-	maxVar = Math.abs(maxVar);
-	if (maxVar < 8) maxVar = 8;
+	// maxVar = Math.abs(maxVar);
+	// if (maxVar < MAX_VAR) maxVar = MAX_VAR;
 	ndata = Array.from(Array(5), () => new Array(slen*tlen - posCount - nullCount));
 	pdata = Array.from(Array(5), () => new Array(posCount));
 	let pi = 0, ni = 0, len = slen*tlen;
 	for (let idx = 0; idx < len; ++idx) {
 		const vv = data[2][idx];
 		if (vv == null) continue;
-		let size = Math.abs(vv) / maxVar * maxSize;
-		if (size > maxSize) size = maxSize;
 		if (vv >= 0) {
 			pdata[0][pi] = data[0][idx];
 			pdata[1][pi] = data[1][idx];
-			pdata[2][pi] = size + 1;
+			pdata[2][pi] = vv;
 			pdata[3][pi] = data[3][idx];
-			pdata[4][pi] = vv;
 			pi++;
 		} else {
 			ndata[0][ni] = data[0][idx];
 			ndata[1][ni] = data[1][idx];
-			ndata[2][ni] = size;
+			ndata[2][ni] = vv;
 			ndata[3][ni] = data[3][idx];
-			ndata[4][ni] = vv;
 			ni++;
 		}
 	}
@@ -86,6 +82,8 @@ function drawCircles(u, seriesIdx) {
 		let deg360 = 2 * Math.PI;
 		let d = u.data[seriesIdx];
 
+		let maxSize = 5 + plot.getPlotSize(false).height / 10;
+		console.log('max size', maxSize);
 		console.time('circles');
 
 		u.ctx.save();
@@ -102,7 +100,9 @@ function drawCircles(u, seriesIdx) {
 		for (let i = 0; i < d[0].length; i++) {
 			let xVal = d[0][i];
 			let yVal = d[1][i];
-			let size = d[2][i] * devicePixelRatio;
+
+			let size = Math.abs(d[2][i] + variationShift) / maxVar * maxSize * devicePixelRatio;
+			if (size > maxSize) size = maxSize;
 			if (xVal >= filtLft && xVal <= filtRgt && yVal >= filtBtm && yVal <= filtTop) {
 				let cx = valToPosX(xVal, scaleX, xDim, xOff);
 				let cy = valToPosY(yVal, scaleY, yDim, yOff);
@@ -137,7 +137,7 @@ function plotInit(clickCallback) {
 			const d = u.data[hRect.sidx];
 			const stIdx = d[3][hRect.didx], lon = d[1][hRect.didx].toFixed(2);
 			const time = new Date(d[0][hRect.didx] * 1000).toISOString().replace(/\..*|T/g, ' ');
-			return `[ ${stations[stIdx]} ] v = ${d[4][hRect.didx]}%, aLon = ${lon} (${shifts[stIdx]}), time = ${time}`;
+			return `[ ${stations[stIdx]} ] v = ${d[2][hRect.didx]}%, aLon = ${lon} (${shifts[stIdx]}), time = ${time}`;
 		};
 		return {
 			...plot.getPlotSize(false),
