@@ -134,7 +134,7 @@ function drawCircles(u, seriesIdx) {
 	});
 }
 
-function plotInit(clickCallback) {
+function plotInit() {
 	if (!clickCallback) clickCallback = plotClick;
 	if (!ndata.length) return;
 	if (mplot) mplot.destroy();
