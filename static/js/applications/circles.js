@@ -24,15 +24,16 @@ let pdata = [], ndata = [], prec_idx = [];
 let resp, stations = [], shifts = [], base = 0;
 let qt = null;
 let aplot, mplot;
-let clickCallback;
+let clickCallback, baseCallback;
 
 const MAX_VAR = 10;
 let maxVar = MAX_VAR, variationShift = 0;
 
-export function receiveData(data, click = null) {
+export function receiveData(data, clickCbk = null, baseCbk = null) {
 	resp = data;
 	stations = data.station, shifts = data.shift, base = parseInt(data.base);
-	clickCallback = click;
+	clickCallback = clickCbk;
+	baseCallback = baseCbk;
 	render();
 }
 
@@ -59,8 +60,8 @@ function render() {
 	}
 	// maxVar = Math.abs(maxVar);
 	// if (maxVar < MAX_VAR) maxVar = MAX_VAR;
-	ndata = Array.from(Array(5), () => new Array(slen*tlen - posCount - nullCount));
-	pdata = Array.from(Array(5), () => new Array(posCount));
+	ndata = Array.from(Array(4), () => new Array(slen*tlen - posCount - nullCount));
+	pdata = Array.from(Array(4), () => new Array(posCount));
 	let pi = 0, ni = 0, len = slen*tlen;
 	for (let idx = 0; idx < len; ++idx) {
 		const vv = data[2][idx];
@@ -146,14 +147,15 @@ function plotInit() {
 			const d = u.data[hRect.sidx];
 			const stIdx = d[3][hRect.didx], lon = d[1][hRect.didx].toFixed(2);
 			const time = new Date(d[0][hRect.didx] * 1000).toISOString().replace(/\..*|T/g, ' ');
-			return `[ ${stations[stIdx]} ] v = ${d[2][hRect.didx]}%, aLon = ${lon} (${shifts[stIdx]}), time = ${time}`;
+			return `[ ${stations[stIdx]} ] v = ${d[2][hRect.didx].toFixed(2)}%, aLon = ${lon} (${shifts[stIdx]}), time = ${time}`;
 		};
 		return {
 			...plot.getPlotSize(false),
 			padding: [0, 0, 0, 0],
 			mode: 2,
+			// select: { over: false }, 
 			cursor: {
-				drag: { x: false, y: false },
+				drag: { x: false, y: false, setScale: false },
 				dataIdx: (u, seriesIdx) => {
 					if (seriesIdx == 3) {
 						return u.posToIdx(u.cursor.left * devicePixelRatio);
@@ -197,15 +199,6 @@ function plotInit() {
 			hooks: {
 				drawClear: [
 					u => {
-						const baseX = u.valToPos(base, 'x');
-						u.ctx.save();
-						u.ctx.strokeStyle = 'rgba(100,0,200,1)';
-						u.ctx.lineWidth = 1;
-						u.ctx.beginPath();
-						u.ctx.moveTo(u.bbox.left + baseX, u.bbox.top);
-						u.ctx.lineTo(u.bbox.left + baseX, u.bbox.top + u.bbox.height);
-						u.ctx.stroke();
-						u.ctx.restore();
 
 						qt = qt || new qtree.Quadtree(0, 0, u.bbox.width, u.bbox.height);
 						qt.clear();
@@ -217,17 +210,45 @@ function plotInit() {
 				],
 				ready: [
 					u => {
-						let clickX, clickY, detailsIdx = null;
+						let currentBase = base;
+						const setSelect = (val) => u.setSelect({
+							left: u.valToPos(val, 'x'),
+							top: 0,
+							width: u.valToPos(val + 86400, 'x') - u.valToPos(val, 'x'),
+							height: u.over.offsetHeight
+						});
+						console.log(u.scales)
+						setSelect(currentBase);
+						let dragBase, clickX, clickY, detailsIdx = null;
+						u.over.addEventListener('mousemove', e => {
+							if (dragBase) {
+								const dragValue = u.posToVal(e.clientX, 'x') - u.posToVal(clickX, 'x');
+								currentBase = Math.round((base + dragValue) / 3600) * 3600;
+								if (currentBase < u.scales.x.min)
+									currentBase = u.scales.x.min;
+								if (currentBase > u.scales.x.max - 86400)
+									currentBase = u.scales.x.max - 86400;
+
+							}
+							setSelect(currentBase);
+						});
 						u.over.addEventListener('mousedown', e => {
 							clickX = e.clientX;
 							clickY = e.clientY;
+							dragBase = u.valToPos(base, 'x') < clickX && clickX < u.valToPos(base + 86400, 'x');
 						});
 						u.over.addEventListener('mouseup', e => {
+							dragBase = false;
+							if (currentBase !== base) {
+								baseCallback && baseCallback(currentBase);
+							}
 							if (Math.abs(e.clientX - clickX) + Math.abs(e.clientY - clickY) < 30) {
 								detailsIdx = u.posToIdx(u.cursor.left * devicePixelRatio);
 								if (detailsIdx != null)
 									clickCallback(prec_idx[0][detailsIdx]);
 							}
+							clickX = clickY = null;
+							setSelect(currentBase);
 						});
 						window.onkeydown = e => {
 							if (detailsIdx !== null) {
@@ -290,7 +311,7 @@ function plotInit() {
 				}
 			},
 			series: [
-				{},
+				{ facets: [ { scale: 'x', auto: true } ] },
 				{
 					label: '+',
 					facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
