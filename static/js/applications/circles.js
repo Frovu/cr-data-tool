@@ -199,7 +199,12 @@ function plotInit() {
 			hooks: {
 				drawClear: [
 					u => {
-
+						u.setSelect({
+							left: u.valToPos(base, 'x'),
+							top: 0,
+							width: u.valToPos(base + 86400, 'x') - u.valToPos(base, 'x'),
+							height: u.over.offsetHeight
+						});
 						qt = qt || new qtree.Quadtree(0, 0, u.bbox.width, u.bbox.height);
 						qt.clear();
 						u.series.forEach((s, i) => {
@@ -234,7 +239,7 @@ function plotInit() {
 						u.over.addEventListener('mousedown', e => {
 							clickX = e.clientX;
 							clickY = e.clientY;
-							dragBase = u.valToPos(base, 'x') < clickX && clickX < u.valToPos(base + 86400, 'x');
+							dragBase = u.valToPos(base, 'x', true) < clickX && clickX < u.valToPos(base + 86400, 'x', true);
 						});
 						u.over.addEventListener('mouseup', e => {
 							dragBase = false;
