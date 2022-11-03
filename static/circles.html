@@ -117,6 +117,13 @@
 				right: 22px;
 				bottom: 48px;
 			}
+			#jingle {
+				cursor: pointer;
+				opacity: .03;
+				position: fixed;
+				right: 8px;
+				bottom: 8px;
+			}
 			#shift input {
 				color: var(--color-text);
 				padding: 2px;
@@ -162,6 +169,7 @@
 		<span id="updated">Loading..</span>
 		<span id="warn"></span>
 		<div id="popup"></div>
+		<div id="jingle">Jingle Bells</div>
 		<div id="shift">
 			Shift:<input id="var-shift" type="number" step="0.1" max="10" min="-10" value="0">
 		</div>
@@ -290,15 +298,6 @@
 			}
 			const updateButton = document.getElementById('update');
 			updateButton.onclick = updateSettings;
-			const shiftInput = document.getElementById('var-shift');
-			const setShift = () => {
-				const val = parseFloat(shiftInput.value)
-				if (!isNaN(val))
-					setVariationShift(val);
-			}
-			shiftInput.onchange = setShift;
-			setShift();
-
 			const popup = document.getElementById('popup');
 			const updt = document.getElementById('updated');
 			const warn = document.getElementById('warn');
@@ -353,6 +352,7 @@
 					settingsClose();
 					lastDetails = null;
 					popup.classList.remove('show');
+					stopJingle();
 				}
 				if (e.keyCode === 13 && settingsOpen)
 					updateSettings();
@@ -406,6 +406,15 @@
 					console.log('%cfailed to get details:', 'color: #f0a', res.status);
 				}
 			}
+			const shiftInput = document.getElementById('var-shift');
+			const setShift = () => {
+				const val = parseFloat(shiftInput.value)
+				if (!isNaN(val))
+					setVariationShift(val);
+			}
+			shiftInput.onchange = setShift;
+			setShift();
+
 			function setBase(base) {
 				console.log('%cnew base', 'color: #f0f', base);
 				opts.base = base;
@@ -435,6 +444,51 @@
 				else
 					fetchdata();
 			});
+
+
+			let jingleBells, jingleMode = 0;
+			const jingle = document.getElementById('jingle');
+			function stopJingle() {
+				clearInterval(jingleBells);
+				jingleMode = 0;
+				setShift();
+			}
+			jingle.onclick = () => {
+				++jingleMode;
+				clearInterval(jingleBells);
+				if (jingleMode == 1) {
+					let shift = 0, dir = 1;
+					jingleBells = setInterval(() => {
+						const step = Math.abs(shift / 15);
+						shift += (step < .04 ? .04 : step) * dir;
+						if (shift > 1 || shift < -1.5)
+							dir *= -1;
+						setVariationShift(shift);
+					}, 50);
+				} else if (jingleMode == 2) {
+					let step = .1, shift = 0, shiftDir = 1, stepDir = 1;
+					jingleBells = setInterval(() => {
+						shift += step * shiftDir;
+						step  += .005 * stepDir;
+						if (shift > .7 || shift < -1)
+							shiftDir *= -1;
+						if (step > .1 || step < .05)
+							stepDir *= -1;
+						setVariationShift(shift);
+					}, 50);
+				} else if (jingleMode == 3) {
+					let shift = 0, shifts = [.1, .3, .7, .3, .1, -.2, -.5, -.2];
+					jingleBells = setInterval(() => {
+						++shift;
+						if (shift >= shifts.length) shift = 0;
+						setVariationShift(shifts[shift]);
+					}, 2000 / shifts.length);
+				} else {
+					stopJingle();
+				}
+				console.log('%cjingle mode: ', 'color: #0ff', jingleMode);
+			};
+
 		</script>
 
 	</body>
