@@ -217,7 +217,6 @@ function plotInit() {
 							width: u.valToPos(val + 86400, 'x') - u.valToPos(val, 'x'),
 							height: u.over.offsetHeight
 						});
-						console.log(u.scales)
 						setSelect(currentBase);
 						let dragBase, clickX, clickY, detailsIdx = null;
 						u.over.addEventListener('mousemove', e => {
@@ -242,7 +241,7 @@ function plotInit() {
 							if (currentBase !== base) {
 								baseCallback && baseCallback(currentBase);
 							}
-							if (Math.abs(e.clientX - clickX) + Math.abs(e.clientY - clickY) < 30) {
+							else if (Math.abs(e.clientX - clickX) + Math.abs(e.clientY - clickY) < 30) {
 								detailsIdx = u.posToIdx(u.cursor.left * devicePixelRatio);
 								if (detailsIdx != null)
 									clickCallback(prec_idx[0][detailsIdx]);

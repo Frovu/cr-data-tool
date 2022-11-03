@@ -14,7 +14,7 @@
 				color: var(--color-text);
 				font-family: var(--font);
 				font-size: 14px;
-				margin: 8px 2px 0 0;
+				margin: 0 2px 0 0;
 			}
 			.u-series, .u-value, .u-title {
 				font-family: var(--font);
@@ -149,6 +149,10 @@
 			input:focus {
 				outline: none;
 			}
+			.u-select {
+				cursor: grab;
+				background: rgba(110,0,200,.1);
+			}
 		</style>
 		<title>Circles</title>
 	</head>
@@ -273,6 +277,10 @@
 					if (opts[i] && opts[i].length < 14)
 						opts[i] = opts[i].split(' ')[0] + ' 00:00';
 					opts[i] = Math.floor(Date.parse(opts[i] + 'Z') / 1000);
+				}
+				if (opts.base < opts.date - opts.days * 86400 || opts.base > opts.date - 86400) {
+					opts.base = null;
+					form.base.value = '';
 
 				}
 				console.log(opts)
@@ -362,7 +370,7 @@
 						warn.innerHTML += `Excluded: ${resp.excluded.join()}`
 					if (resp.filtered)
 						warn.innerHTML += ` Filtered: ${resp.filtered}`
-					receiveData(resp, plotClick);
+					receiveData(resp, plotClick, setBase);
 					middle = resp.time[Math.floor(resp.time.length / 2)]
 					setInterval(() => {
 						const sec = (Date.now() - updated) / 1000;
@@ -397,6 +405,11 @@
 				} else {
 					console.log('%cfailed to get details:', 'color: #f0a', res.status);
 				}
+			}
+			function setBase(base) {
+				console.log('%cnew base', 'color: #f0f', base);
+				opts.base = base;
+				fetchdata();
 			}
 			function fetchdata() {
 				const days = parseInt(opts.days) || 5;
