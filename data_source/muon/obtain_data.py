@@ -4,15 +4,6 @@ import psycopg2, logging, os
 import requests, json
 from subprocess import Popen, PIPE, check_output
 
-def _psql_query(table, period, t_from, t_to, fields, epoch=False, count=False, cond=''):
-    interval = f'interval \'{period} seconds\''
-    return f'''WITH periods AS
-(SELECT generate_series(to_timestamp({t_from}), to_timestamp({t_to}), {interval}) period)
-SELECT {'EXTRACT(EPOCH FROM period)::integer' if epoch else 'period'} AS time,{'COUNT(*),'if count else ''}{', '.join([f'ROUND(AVG({f})::numeric, 3)::real as {f}' for f in fields[1:]])}
-FROM periods LEFT JOIN {table} ON (period <= {fields[0]} AND {fields[0]} < period + {interval} {cond})
-GROUP BY period ORDER BY period
-'''
-
 def _obtain_local(station, dt_from, dt_to, what):
     year, month = dt_from.year, dt_from.month
     dir = f'tmp/{station}'
@@ -82,6 +73,29 @@ f'&interval_type=from_to&separator=Space&ors=UNIX&oformlenie=stub&field={target}
         result = [(dt_from + timedelta(hours=h), -1) for h in range(hours)]
         logging.info(f'Muones: closed gap [{len(result)}] {station}:{what} {dt_from}:')
     return result
+
+def _obtain_moscow(station: str, t_from: int, t_to: int, period: int=3600, fields: list=[], date: bool=True):
+    dev = 'muon-pioneer' if station == 'Moscow-pioneer' else None
+    assert dev is not None
+    query = f'http://tools.izmiran.ru/nm/api/data?from={t_from}&to={t_to+period}&dev={dev}&period={period}'
+    res = requests.get(query + (f'&fields={",".join(fields)}' if len(fields) > 0 else ''))
+    if res.status_code != 200:
+        logging.warning(f'Muones: failed raw -{res.status_code}- {station} {t_from}:{t_to}')
+        return [], []
+    json_data = json.loads(res.text)
+    res_fields = json_data['fields']
+    data = json_data['rows']
+    if not data:
+        trim = datetime.now().timestamp() // period * period - period
+        stop = int(trim) if t_to > trim else t_to
+        return [((datetime.utcfromtimestamp(t) if date else t), -1) for t in range(t_from, stop+1, period)], []
+    result = []
+    for line in data:
+        time = datetime.utcfromtimestamp(line[0]) if date else line[0]
+        result.append([time, *line[1:1 + (len(res_fields) if len(fields) == 0 else 1)]])
+    logging.debug(f'Muones: got raw [{len(result)}/{(t_to-t_from)//period+1}] {station}:{",".join(fields)} {t_from}:{t_to}')
+    print(result)
+    return result, res_fields
 
 def _obtain_apatity(station, t_from, t_to, channel='V', what='source', period=3600):
     url = 'https://cosmicray.pgia.ru/json/db_query_mysql.php'
@@ -166,15 +180,8 @@ def obtain(channel, t_from, t_to, column):
     what = column if column == 'pressure' else channel.name
     logging.debug(f'Muones: querying {what} {station}:{channel.name} {t_from}:{t_to}')
     if station == 'Moscow-pioneer':
-        with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
-            user = os.environ.get('MUON_MSK_USER'),
-            password = os.environ.get('MUON_MSK_PASS'),
-            host = os.environ.get('MUON_MSK_HOST')) as conn:
-            with conn.cursor() as cursor:
-                col = 'n_v' if column == 'source' else column
-                cursor.execute(_psql_query('muon_data', channel.period, t_from, t_to, ['dt', col]))
-                resp = cursor.fetchall()
-                return resp, column
+        data, fields = _obtain_moscow(station, t_from, t_to, 3600, [what] if what == 'pressure' else ['vertical'])
+        return data, column
     elif station in ['Apatity', 'Barentsburg']:
         data = _obtain_apatity(station, t_from, t_to, channel.name, column)
         return data, column
@@ -202,12 +209,4 @@ def obtain(channel, t_from, t_to, column):
 
 def obtain_raw(station, t_from, t_to, period, fields=None):
     if station == 'Moscow-pioneer':
-        with psycopg2.connect(dbname = os.environ.get('MUON_MSK_DB'),
-            user = os.environ.get('MUON_MSK_USER'),
-            password = os.environ.get('MUON_MSK_PASS'),
-            host = os.environ.get('MUON_MSK_HOST')) as conn:
-            fl = ['dt', 'c0', 'c1', 'n_v', 'pressure', 'temperature', 'temperature_ext', 'voltage']
-            with conn.cursor() as cursor:
-                q = _psql_query('muon_data', period, t_from, t_to, [fl[0]] + fields if fields else fl, epoch=True, count=False)
-                cursor.execute(q)
-                return cursor.fetchall(), [desc[0] for desc in cursor.description]
+        return _obtain_moscow(station, t_from, t_to, period, [], False)

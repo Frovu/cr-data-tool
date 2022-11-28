@@ -5,20 +5,20 @@ import * as plot from '../plot.js';
 const FIELDS = {
 	'Moscow-pioneer': {
 		time: 'time',
-		c0: {
-			label: 'c1',
+		upper: {
+			label: 'upper',
 			scale: 'n',
 			color: 'rgba(255,200,100,1)',
 			nounit: true
 		},
-		c1: {
-			label: 'c2',
+		lower: {
+			label: 'lower',
 			scale: 'n',
 			color: 'rgba(255,150,100,1)',
 			nounit: true
 		},
-		n_v: {
-			label: 'n_v',
+		vertical: {
+			label: 'vertical',
 			scale: 'n',
 			color: 'rgba(255,0,0,1)',
 			nounit: true
