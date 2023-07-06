@@ -1,7 +1,5 @@
 tmp
-logs
+log
 .env
-*.log
 __pycache__
-a.py
 flask_session

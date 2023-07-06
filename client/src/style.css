@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+:root {
+	--font: 'Roboto Mono', monospace;
+
+	font-size: 16px;
+	font-family: var(--font);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+
+	background-color: var(--c-bg);
+	color: var(--c-text);
+
+	--c-crimson: rgb(165, 0, 22);
+	--c-magenta: rgb(255, 10, 110);
+	--c-red: rgb(255, 24, 24);
+	--c-orange: rgb(255, 106, 20);
+	--c-peach: rgb(255, 99, 72);
+	--c-gold: rgb(255, 219, 16);
+	--c-acid: rgb(217, 255, 0);
+	--c-green: rgb(20, 255, 20);
+	--c-skyblue: rgb(155, 255, 255);
+	--c-cyan: rgb(0, 255, 255);
+	--c-blue: rgb(0, 0, 255);
+	--c-purple: rgb(128, 0, 255);
+	--c-white: rgb(255,255,255);
+
+	--c-bg: rgb(0,0,0);
+	--c-text: rgb(190,190,190);
+	--c-text-dark: rgb(76,76,76);
+	--c-border: grey;
+	--c-grid: rgb(33,33,33);
+  --c-active: var(--c-gold);
+	--c-area: rgba(95, 0, 175, 0.17);
+	--c-area2: rgb(155, 255, 255);
+
+	color-scheme: dark;
+}
+
+body {
+	-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+	-moz-box-sizing: border-box;    /* Firefox, other Gecko */
+	box-sizing: border-box;         /* Opera/IE 8+ */
+	margin: 0;
+}
+
+input, button, select {
+	-ms-box-sizing:content-box;
+	-moz-box-sizing:content-box;
+	-webkit-box-sizing:content-box; 
+	box-sizing:content-box;
+	background-color: var(--c-bg);
+	font-family: inherit;
+	font-size: inherit;
+	color: inherit;
+	outline: none;
+}
+option {
+	color: var(--c-text);
+}
+button {
+	cursor: pointer;
+	border-style: outset;
+}
+select {
+	cursor: pointer;
+}
+
+input:focus-visible, button:focus-visible, select:focus-visible {
+	border: 1px var(--color-active) solid;
+}
+
+input[type='checkbox'] {
+	cursor: pointer;
+}
+
+button:hover:enabled, select:hover:enabled {
+	border-color: var(--color-active) !important;
+}
+
+input:disabled, button:disabled, select:disabled {
+	border: 1px var(--color-text-dark) solid;
+	color: var(--color-text-dark);
+}
+
+details:hover {
+	text-decoration: underline;
+}
+
+.PopupBackground {
+	background-color: var(--color-bg);
+	opacity: 0.7;
+	position: fixed;
+	top: 0;
+	left: 0;
+	height: 100vh;
+	width: 100vw;
+	z-index: 128;
+}
+
+.Popup {
+	position: fixed;
+	transform: translate(-50%);
+	background-color: var(--color-bg);
+	border: 2px var(--color-border) solid;
+	padding: 1em 2em 1.5em 2em;
+	text-align: center;
+	z-index: 129;
+}
+
+.Center {
+	position: absolute;
+	width: fit-content;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.CloseButton {
+	display: inline-block;
+	user-select: none;
+	cursor: pointer;
+	margin: 0 4px 0 4px;
+	font-size: 24px;
+	color: var(--color-red);
+	max-height: 1em;
+	transform: translateY(-5px);
+}
+.CloseButton:hover {
+	color: var(--color-active) !important;
+}
+
+.u-series, .u-value, .u-title {
+	font-family: var(--font);
+}
+
+.u-legend {
+	user-select: none;
+}
+
+.u-title {
+	font-size: 16px;
+	margin: 2px;
+}
+
+.u-select {
+	cursor: grab;
+}
