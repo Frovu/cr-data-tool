@@ -14,14 +14,22 @@ CREATE TABLE IF NOT EXISTS neutron.result (
 	time TIMESTAMPTZ PRIMARY KEY
 );
 
+CREATE TABLE IF NOT EXISTS neutron.integrity_state (
+	id INT PRIMARY KEY,
+	full_from TIMESTAMPTZ,
+	full_to TIMESTAMPTZ,
+	partial_from TIMESTAMPTZ,
+	partial_to TIMESTAMPTZ,
+);
+INSERT INTO neutron.integrity_state(id) VALUES(1) ON CONFLICT DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS neutron.obtain_log (
 	id SERIAL PRIMARY KEY,
 	time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-	target TEXT NOT NULL,
+	stations TEXT[],
 	source TEXT NOT NULL,
 	interval_start TIMESTAMPTZ NOT NULL,
-	interval_end TIMESTAMPTZ NOT NULL,
-	is_outdated BOOLEAN NOT NULL DEFAULT false
+	interval_end TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS neutron.revision_log (
