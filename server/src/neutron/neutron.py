@@ -1,7 +1,7 @@
 from database import pool, upsert_many
 from math import floor, ceil
 from threading import Lock
-from datetime import datetime
+from datetime import datetime, timezone
 import os, logging
 import numpy as np
 
@@ -39,7 +39,7 @@ def filter_for_integration(data):
 
 def integrate(data):
 	data = filter_for_integration(data)
-	return np.sum(data, axis=0) / len(data)
+	return np.round(np.sum(data, axis=0) / len(data), 3)
 
 def _obtain_similar(interval, stations, source, src_res=60):
 	src_data = { 'nmdb': obtain_from_nmdb, 'archive': obtain_from_archive }[source](interval, stations)
@@ -47,22 +47,22 @@ def _obtain_similar(interval, stations, source, src_res=60):
 		log.warn(f'Empty obtain ({source})!')
 		return # TODO: handle smh
 	
-	# TODO: use float dtype in array
 	src_data = np.array(src_data)
 
 	res_dt_interval = [src_data[0][0], src_data[-1][0]]
 	log.debug(f'Neutron: got [{len(src_data)} * {len(stations)}] /{src_res}')
 
 	if src_res < HOUR:
-		r_start, r_end = [d.timestamp() for d in res_dt_interval]
+		r_start, r_end = [d.replace(tzinfo=timezone.utc).timestamp() for d in res_dt_interval]
 		first_full_h, last_full_h = ceil(r_start / HOUR) * HOUR, floor((r_end + src_res) / HOUR) * HOUR - HOUR
 		length = (last_full_h - first_full_h) // HOUR + 1
-		data = np.full((length, src_data.shape[1]), np.nan, src_data.dtype)
+		data = np.full((length, len(stations)+1), np.nan, src_data.dtype)
 		data[:,0] = [datetime.utcfromtimestamp(t) for t in range(first_full_h, last_full_h+1, HOUR)]
 		step = floor(HOUR / src_res)
 		offset = floor((first_full_h - r_start) / src_res)
-		integrated = (integrate(src_data[offset+i*step:offset+(i+1)*step, 1:]) for i in range(length))
-		res = np.fromiter(integrated, np.dtype((float, data.shape[1]-1)))
+		fdata = src_data[:,1:].astype(float)
+		integrated = (integrate(fdata[offset+i*step:offset+(i+1)*step]) for i in range(length))
+		res = np.fromiter(integrated, np.dtype((float, len(stations))))
 		data[:,1:] = res
 	else:
 		data = src_data
