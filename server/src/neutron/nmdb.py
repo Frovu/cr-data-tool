@@ -2,7 +2,7 @@
 import os, logging, pymysql.cursors, numpy
 from datetime import datetime
 from threading import Timer, Lock, Thread
-log = logging.getLogger('aides')
+log = logging.getLogger('crdt')
 
 NMDB_KEEP_CONN_S = 180
 nmdb_conn = None
@@ -40,18 +40,15 @@ def obtain(interval, stations):
 	query = f'''
 WITH RECURSIVE ser(time) AS (
 	SELECT TIMESTAMP(%(from)s) UNION ALL 
-	SELECT DATE_ADD(time, INTERVAL 1 minute) FROM ser WHERE time < %(to)s)
-SELECT ser.time, {", ".join([st + '.val' for st in stations])} FROM ser\n'''
+	SELECT DATE_ADD(time, INTERVAL 1 minute) FROM ser WHERE time < %(to)s + interval 59 minute)
+SELECT ser.time, {", ".join([st + '_revori.corr_for_efficiency' for st in stations])} FROM ser\n'''
 	for station in stations:
-		query += f'''LEFT OUTER JOIN
-(SELECT start_date_time as time, corr_for_efficiency as val
-	FROM {station}_revori WHERE start_date_time >= %(from)s AND start_date_time < %(to)s + interval 1 hour
-) {station} ON {station}.time = ser.time\n'''
+		query += f'LEFT OUTER JOIN {station}_revori ON {station}_revori.start_date_time = ser.time\n'
 	with nmdb_conn.cursor() as curs:
 		try:
 			curs.execute(query, {'from': dt_interval[0], 'to': dt_interval[1]})
-		except:
-			log.warning('Failed to query nmdb, disconnecting')
+		except Exception as e:
+			log.warning('Failed to query nmdb, disconnecting ' + str(e))
 			return _disconnect_nmdb()
 		data = curs.fetchall()
 	return data
