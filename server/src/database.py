@@ -1,5 +1,5 @@
 
-import logging
+import os, logging
 from psycopg_pool import ConnectionPool
 
 log = logging.getLogger('crdt')

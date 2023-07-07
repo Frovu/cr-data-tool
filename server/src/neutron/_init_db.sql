@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS neutron.integrity_state (
 	full_from TIMESTAMPTZ,
 	full_to TIMESTAMPTZ,
 	partial_from TIMESTAMPTZ,
-	partial_to TIMESTAMPTZ,
+	partial_to TIMESTAMPTZ
 );
 INSERT INTO neutron.integrity_state(id) VALUES(1) ON CONFLICT DO NOTHING;
 
