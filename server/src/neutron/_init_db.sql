@@ -16,10 +16,10 @@ CREATE TABLE IF NOT EXISTS neutron.result (
 
 CREATE TABLE IF NOT EXISTS neutron.integrity_state (
 	id INT PRIMARY KEY,
-	full_from TIMESTAMPTZ,
-	full_to TIMESTAMPTZ,
-	partial_from TIMESTAMPTZ,
-	partial_to TIMESTAMPTZ
+	full_from INTEGER,
+	full_to INTEGER,
+	partial_from INTEGER,
+	partial_to INTEGER
 );
 INSERT INTO neutron.integrity_state(id) VALUES(1) ON CONFLICT DO NOTHING;
 

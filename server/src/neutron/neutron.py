@@ -41,8 +41,9 @@ def _init():
 		integrity_full, integrity_partial = [ff, ft], [pf, pt]
 _init()
 
-def _save_integrity_state(conn):
-	conn.execute('UPDATE neutron.integrity_state SET full_from=%s, full_to=%s, partial_from=%s, partial_to=%s', [*integrity_full, *integrity_partial])
+def _save_integrity_state():
+	with pool.connection() as conn:
+		conn.execute('UPDATE neutron.integrity_state SET full_from=%s, full_to=%s, partial_from=%s, partial_to=%s', [*integrity_full, *integrity_partial])
 
 # filter everything <= 0
 # filter spikes > 5 sigma
@@ -77,13 +78,14 @@ def _obtain_similar(interval, stations, source):
 		r_start, r_end = [d.replace(tzinfo=timezone.utc).timestamp() for d in res_dt_interval]
 		first_full_h, last_full_h = ceil(r_start / HOUR) * HOUR, floor((r_end + src_res) / HOUR) * HOUR - HOUR
 		length = (last_full_h - first_full_h) // HOUR + 1
-		data = np.full((length, len(stations)+1), np.nan, src_data.dtype)
+		data = np.full((length, len(stations)+1), 'o', src_data.dtype)
 		data[:,0] = [datetime.utcfromtimestamp(t) for t in range(first_full_h, last_full_h+1, HOUR)]
 		step = floor(HOUR / src_res)
 		offset = floor((first_full_h - r_start) / src_res)
 		for si in range(len(stations)):
 			integrated = (integrate(src_data[offset+i*step:offset+(i+1)*step,si+1].astype(float)) for i in range(length))
-			data[:,si+1] = np.fromiter(integrated, 'f8')
+			result = np.fromiter(integrated, 'f8')
+			data[:,si+1] = np.where(np.isnan(result), None, result)
 	else:
 		data = src_data
 
@@ -102,9 +104,12 @@ def _obtain_similar(interval, stations, source):
 		conn.execute('INSERT INTO neutron.obtain_log(stations, source, interval_start, interval_end) ' +\
 			'VALUES (%s, %s, %s, %s)', [stations, source, *res_dt_interval])
 
-def _obtain_group(interval, group_partial=False):
+def get_stations(group_partial=False, ids=False):
 	# TODO: another criteria
-	stations = [s for s in all_stations if not group_partial or s.prefer_nmdb]
+	return [(s.id if ids else s) for s in all_stations if not group_partial or s.prefer_nmdb]
+
+def _obtain_group(interval, group_partial=False):
+	stations = get_stations(group_partial)
 	
 	assert group_partial
 
@@ -124,12 +129,13 @@ def _obtain_group(interval, group_partial=False):
 
 def fetch(interval: [int, int], stations: list[str]):
 	interval = (
-		floor(interval[0] / HOUR) * HOUR,
+		floor(max(interval[0], datetime(1957, 1, 1).timestamp()) / HOUR) * HOUR,
 		 ceil(min(interval[1], datetime.now().timestamp() - 2*HOUR) / HOUR) * HOUR
 	)
 
 	group_partial = True # TODO: actually distinguish full and partial integrity
 
+	global integrity_partial, integrity_full
 	ips, ipe = integrity_partial if group_partial else integrity_full
 	satisfied = ips and ipe and ips <= interval[0] and interval[1] <= ipe 
 
@@ -140,11 +146,12 @@ def fetch(interval: [int, int], stations: list[str]):
 				ips if ips and interval[1] <= ipe else interval[1]
 			)
 			_obtain_group(req, group_partial)
-			res_coverage = [min(interval[0], ips), max(ipe, interval[1])]
+			res_coverage = [min(interval[0], ips or interval[0]), max(ipe or interval[1], interval[1])]
 			if group_partial: integrity_partial = res_coverage
 			else: integrity_full = res_coverage
+			_save_integrity_state()
 	
 	with pool.connection() as conn:
-		curs = conn.execute(f'SELECT EXTRACT(EPOCH FROM ts)::integer as time, {",".join(stations)}' + \
-			'FROM neutron.result WHERE %s <= time AND time <= %s', [*interval])
+		curs = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {",".join(stations)} ' + \
+			'FROM neutron.result WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)', [*interval])
 		return curs.fetchall(), [desc[0] for desc in curs.description]

@@ -49,5 +49,14 @@ app.config['SESSION_FILE_THRESHOLD'] = 32
 Session(app)
 bcrypt = Bcrypt(app)
 
+@app.after_request
+def after_request(response):
+    if cors := os.environ.get('CORS_ORIGIN'):
+        response.headers['Access-Control-Allow-Origin'] = cors
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+        response.headers['Access-Control-Allow-Methods'] = '*'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
+
 from routers import neutron
 app.register_blueprint(neutron.bp)
