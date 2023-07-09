@@ -9,19 +9,17 @@ export default function Neutron() {
 	const [monthCount, setMonthCount] = useState(1);
 	const interval = [0, monthCount].map(inc => new Date(Date.UTC(year, month + inc))) as [Date, Date];
 
-	return <div style={{ display: 'grid', height: 'calc(100% - 4px)', gridTemplateColumns: '360px 1fr' }}>
-		<div>
-			Date:
-			<select style={{ margin: '0 1ch' }} onWheel={e => setMonth(m => Math.max(0, Math.min(m + Math.sign(e.deltaY), 11)))}
+	return <div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4 }}>
+		<div style={{ textAlign: 'center', marginRight: 16 }}>
+			[ <select onWheel={e => setMonth(m => Math.max(0, Math.min(m + Math.sign(e.deltaY), 11)))}
 				value={monthNames[month]} onChange={e => setMonth(monthNames.indexOf(e.target.value))}>
 				{monthNames.map(mon => <option key={mon} id={mon}>{mon}</option>)}
-			</select>
-			<input style={{ width: '6ch' }} type='number' min='1957' max={new Date().getFullYear()}
+			</select> <input style={{ width: '6ch' }} type='number' min='1957' max={new Date().getFullYear()}
 				value={year} onChange={e => setYear(e.target.valueAsNumber)}
 			/> + <input style={{ width: '3ch' }} type='number' min='1' max='24' value={monthCount} onChange={e => setMonthCount(e.target.valueAsNumber)}
-			/> month{monthCount === 1 ? '' : 's'}
+			/> month{monthCount === 1 ? '' : 's'} ]
 		</div>
-		<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--c-border) solid' }}>
+		<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
 			<ManyStationsView interval={interval}/>
 		</div>
 	</div>;

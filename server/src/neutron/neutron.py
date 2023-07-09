@@ -153,5 +153,5 @@ def fetch(interval: [int, int], stations: list[str]):
 	
 	with pool.connection() as conn:
 		curs = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {",".join(stations)} ' + \
-			'FROM neutron.result WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)', [*interval])
+			'FROM neutron.result WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', [*interval])
 		return curs.fetchall(), [desc[0] for desc in curs.description]
