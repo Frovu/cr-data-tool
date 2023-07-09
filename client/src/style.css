@@ -29,14 +29,14 @@
 	--c-text-dark: rgb(76,76,76);
 	--c-border: grey;
 	--c-grid: rgb(33,33,33);
-  --c-active: var(--c-gold);
+	--c-active: var(--c-gold);
 	--c-area: rgba(95, 0, 175, 0.17);
 	--c-area2: rgb(155, 255, 255);
 
 	color-scheme: dark;
 }
 
-body {
+body, .bbox {
 	-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
 	-moz-box-sizing: border-box;    /* Firefox, other Gecko */
 	box-sizing: border-box;         /* Opera/IE 8+ */
@@ -53,6 +53,7 @@ input, button, select {
 	font-size: inherit;
 	color: inherit;
 	outline: none;
+	border: 1px transparent solid
 }
 option {
 	color: var(--c-text);
@@ -66,7 +67,7 @@ select {
 }
 
 input:focus-visible, button:focus-visible, select:focus-visible {
-	border: 1px var(--color-active) solid;
+	border: 1px var(--c-active) solid;
 }
 
 input[type='checkbox'] {
@@ -74,12 +75,12 @@ input[type='checkbox'] {
 }
 
 button:hover:enabled, select:hover:enabled {
-	border-color: var(--color-active) !important;
+	border-color: var(--c-active) !important;
 }
 
 input:disabled, button:disabled, select:disabled {
-	border: 1px var(--color-text-dark) solid;
-	color: var(--color-text-dark);
+	border: 1px var(--c-text-dark) solid;
+	color: var(--c-text-dark);
 }
 
 details:hover {
@@ -87,7 +88,7 @@ details:hover {
 }
 
 .PopupBackground {
-	background-color: var(--color-bg);
+	background-color: var(--c-bg);
 	opacity: 0.7;
 	position: fixed;
 	top: 0;
@@ -100,8 +101,8 @@ details:hover {
 .Popup {
 	position: fixed;
 	transform: translate(-50%);
-	background-color: var(--color-bg);
-	border: 2px var(--color-border) solid;
+	background-color: var(--c-bg);
+	border: 2px var(--c-border) solid;
 	padding: 1em 2em 1.5em 2em;
 	text-align: center;
 	z-index: 129;
@@ -121,12 +122,12 @@ details:hover {
 	cursor: pointer;
 	margin: 0 4px 0 4px;
 	font-size: 24px;
-	color: var(--color-red);
+	color: var(--c-red);
 	max-height: 1em;
 	transform: translateY(-5px);
 }
 .CloseButton:hover {
-	color: var(--color-active) !important;
+	color: var(--c-active) !important;
 }
 
 .u-series, .u-value, .u-title {

@@ -59,10 +59,10 @@ INSERT INTO neutron.stations(id, drift_longitude, prefer_nmdb, closed_at) VALUES
 ('MGDN', 196.00, 'f', '2018-02-01'),
 ('NAIN',  18.32, 't', NULL),
 ('NEWK', 331.49, 't', NULL),
-('NVBK',  136.0, 't', NULL),
+('NVBK',  136.0, 'f', NULL),
 ('OULU',  67.42, 't', NULL),
 ('PWNK', 349.56, 't', NULL),
-('SNAE',   17.2, 't', NULL),
+('SNAE',   17.2, 'f', NULL),
 ('TXBY',  161.9, 't', NULL),
 ('YKTK', 174.02, 't', NULL)
 ON CONFLICT(id) DO NOTHING;

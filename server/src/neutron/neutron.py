@@ -48,28 +48,25 @@ def _save_integrity_state(conn):
 # filter spikes > 5 sigma
 # filter station periods with < 50% coverage
 def filter_for_integration(data):
-	print(data)
 	data[data <= 0] = np.nan
-	std = np.nanstd(data, axis=0)
-	med = np.nanmean(data, axis=0)
-	print(np.where(np.abs(med - data) / std > 5))
-	print()
-	print(med, std)
-	print()
-	data[np.where(np.abs(med - data) / std > 5)] = np.nan
-	data[:,np.where(np.count_nonzero(np.isfinite(data), axis=0) < len(data) / 2)] = np.nan
+	std = np.nanstd(data)
+	med = np.nanmean(data)
+	data[np.abs(med - data) / std > 5] = np.nan
+	data[np.count_nonzero(np.isfinite(data)) < len(data) / 2] = np.nan
 	return data
 
 def integrate(data):
 	data = filter_for_integration(data)
-	return np.round(np.sum(data, axis=0) / len(data), 3)
+	if not np.any(np.isfinite(data)):
+		return np.nan
+	return np.round(np.nansum(data) / len(data), 3)
 
 def _obtain_similar(interval, stations, source):
 	obtain_fn, src_res = { 'nmdb': (obtain_from_nmdb, 60), 'archive': (obtain_from_archive, 3600) }[source]
 	src_data = obtain_fn(interval, stations)
 	if not src_data:
 		log.warn(f'Empty obtain ({source})!')
-		return # TODO: handle smh
+		return # FIXME: handle smh
 	
 	src_data = np.array(src_data)
 
@@ -84,11 +81,9 @@ def _obtain_similar(interval, stations, source):
 		data[:,0] = [datetime.utcfromtimestamp(t) for t in range(first_full_h, last_full_h+1, HOUR)]
 		step = floor(HOUR / src_res)
 		offset = floor((first_full_h - r_start) / src_res)
-		fdata = np.vstack(src_data[:,1:].astype(float))
-		integrated = (integrate(fdata[offset+i*step:offset+(i+1)*step]) for i in range(length))
-		res = np.fromiter(integrated, np.dtype((float, len(stations))))
-		# for i in range(len(stations))
-		data[:,1:] = res
+		for si in range(len(stations)):
+			integrated = (integrate(src_data[offset+i*step:offset+(i+1)*step,si+1].astype(float)) for i in range(length))
+			data[:,si+1] = np.fromiter(integrated, 'f8')
 	else:
 		data = src_data
 
@@ -119,7 +114,6 @@ def _obtain_group(interval, group_partial=False):
 		return log.debug('Neutron: split interval with NMDB_SINCE')
 
 	nmdb_stations = [s.id for s in stations if s.prefer_nmdb] if interval[0] >= NMDB_SINCE else []
-	nmdb_stations = ['KERG']
 	if nmdb_stations:
 		_obtain_similar(interval, nmdb_stations, 'nmdb')
 	
@@ -146,6 +140,9 @@ def fetch(interval: [int, int], stations: list[str]):
 				ips if ips and interval[1] <= ipe else interval[1]
 			)
 			_obtain_group(req, group_partial)
+			res_coverage = [min(interval[0], ips), max(ipe, interval[1])]
+			if group_partial: integrity_partial = res_coverage
+			else: integrity_full = res_coverage
 	
 	with pool.connection() as conn:
 		curs = conn.execute(f'SELECT EXTRACT(EPOCH FROM ts)::integer as time, {",".join(stations)}' + \
