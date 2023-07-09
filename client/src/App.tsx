@@ -5,7 +5,7 @@ const theQueryClient = new QueryClient();
 
 function App() {
 	return (
-		<div className='bbox' style={{ height: '100vh', width: '100vw', padding: 4 }}>
+		<div className='bbox' style={{ height: '100vh', width: '100vw', padding: 8 }}>
 			<Neutron/>
 		</div>
 	);
