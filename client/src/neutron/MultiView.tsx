@@ -3,7 +3,7 @@ import uPlot from 'uplot';
 import { color, font } from '../plotUtil';
 import UplotReact from 'uplot-react';
 import { useMemo, useState } from 'react';
-import { useSize } from '../util';
+import { useEventListener, useSize } from '../util';
 import { createPortal } from 'react-dom';
 
 function plotOptions(stations: string[], primaryStation: string | null) {
@@ -17,8 +17,8 @@ function plotOptions(stations: string[], primaryStation: string | null) {
 		padding: [10, 12, 6, 0],
 		cursor: {
 			points: {
-				fill: serColor,
-				stroke: serColor
+				fill: color('acid'),
+				stroke: color('acid')
 			},
 			focus: { prox: 1e6 },
 			drag: { dist: 30 },
@@ -104,6 +104,24 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 
 	const [primaryStation, setPrimaryStation] = useState<string | null>(null);
 
+	const [uplot, setUplot] = useState<uPlot>();
+	// const [cursorIdx, setCursorIdx] = useState<number | null>(null);
+
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (!uplot || !query.data) return;
+		const moveCur = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+		if (moveCur) {
+			const data = query.data.plotData;
+			const length = data[0].length;
+			const cur = uplot.cursor.idx || (moveCur < 0 ? length : 0);
+			const move = moveCur * (e.ctrlKey ? Math.ceil(length / 64) : 1)
+				* (e.altKey ? Math.ceil(length / 16) : 1);
+			const idx = Math.max(0, Math.min(cur + move, length - 1));
+			const primePos = primaryStation == null ? null : uplot.valToPos(data[query.data.stations.indexOf(primaryStation) + 1][idx], 'y');
+			uplot.setCursor({ left: uplot.valToPos(data[0][idx], 'x'), top: primePos ?? uplot.cursor.top ?? 0 });
+		}
+	});
+
 	const [legend, setLegend] = useState<{ name: string, value: number, focus: boolean }[] | null>(null); 
 
 	const plot = useMemo(() => {
@@ -119,12 +137,15 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 						({ name: s.toUpperCase().slice(0, 4), value: data[1 + si][idx], focus: (u.series[1 + si] as any)._focus })));
 				}
 			],
+			// setCursor: [
+			// 	(u: uPlot) => setCursorIdx(u.cursor.idx ?? null)
+			// ],
 			setSeries: [
 				(u: any, si: any) => u.setLegend({ idx: u.legend.idx })
 
 			]
 		} };
-		return <UplotReact {...{ options, data: plotData as any }}/>;
+		return <UplotReact {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	}, [size, query.data, primaryStation]);
 
 	if (query.isLoading)
@@ -133,7 +154,7 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 		return <div className='center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 	if (!query.data)
 		return <div className='center'>NO DATA</div>;
-	console.log(query.data.stations)
+		
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 		{plot}
 		{legendContainer && createPortal((
