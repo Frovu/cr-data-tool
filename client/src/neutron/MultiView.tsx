@@ -6,18 +6,19 @@ import { useMemo, useState } from 'react';
 import { useSize } from '../util';
 import { createPortal } from 'react-dom';
 
-function plotOptions(stations: string[]) {
-	const switchFocused = (focused: any, unfocused: any) => (u: any, idx: number) => {
-		return u.series[idx]._focus ? focused : unfocused;
+function plotOptions(stations: string[], primaryStation: string | null) {
+	const switchFocused = (focused: any, unfocused: any, primary: any) => (u: any, idx: number) => {
+		return u.series[idx]._focus ? focused : stations[idx-1] === primaryStation ? primary : unfocused;
 	};
+	const serColor = switchFocused(color('magenta'), color('cyan'), color('green'));
 	return {
 		tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
 		legend: { show: false },
 		padding: [10, 12, 6, 0],
 		cursor: {
 			points: {
-				fill: switchFocused(color('magenta'), color('cyan')),
-				stroke: switchFocused(color('magenta'), color('cyan'))
+				fill: serColor,
+				stroke: serColor
 			},
 			focus: { prox: 1e6 },
 			drag: { dist: 30 },
@@ -52,9 +53,9 @@ function plotOptions(stations: string[]) {
 			{ value: '{YYYY}-{MM}-{DD} {HH}:{mm}', stroke: color('text') }
 		].concat(stations.map(s => ({
 			label: s.toUpperCase(),
-			stroke: switchFocused(color('magenta'), color('cyan')),
+			stroke: serColor,
 			grid: { stroke: color('grid'), width: 1 },
-			points: { fill: color('bg'), stroke: switchFocused(color('magenta'), color('cyan')) },
+			points: { fill: color('bg'), stroke: serColor },
 
 		} as any)))
 	} as Omit<uPlot.Options, 'height'|'width'>;
@@ -101,15 +102,16 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 
+	const [primaryStation, setPrimaryStation] = useState<string | null>(null);
+
 	const [legend, setLegend] = useState<{ name: string, value: number, focus: boolean }[] | null>(null); 
 
 	const plot = useMemo(() => {
 		if (!query.data) return null;
 		const { data, plotData, stations } = query.data;
-		const options = { ...size, ...plotOptions(stations), hooks: {
+		const options = { ...size, ...plotOptions(stations, primaryStation), hooks: {
 			setLegend: [
 				(u: uPlot) => {
-					console.log('legend')
 					const idx = u.legend.idx;
 					if (idx == null)
 						return setLegend(null);
@@ -123,7 +125,7 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 			]
 		} };
 		return <UplotReact {...{ options, data: plotData as any }}/>;
-	}, [size, query.data]);
+	}, [size, query.data, primaryStation]);
 
 	if (query.isLoading)
 		return <div className='center'>LOADING...</div>;
@@ -131,15 +133,23 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 		return <div className='center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 	if (!query.data)
 		return <div className='center'>NO DATA</div>;
-	
+	console.log(query.data.stations)
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 		{plot}
-		{legend && legendContainer && createPortal((
-			<div style={{ display: 'grid', border: '2px var(--color-border) solid', padding: '2px 4px',
-				gridTemplateColumns: 'repeat(3, 120px)' }}>
-				{legend.map(({ name, value, focus }) =>
-					<span style={{ color: color(focus ? 'magenta' : value == null ? 'text-dark' : 'text') }}>{name}={value == null ? 'N/A' : value.toFixed(1)}</span>)}
-			</div>
+		{legendContainer && createPortal((
+			<>
+				<div style={{ marginLeft: 16 }}>
+					Primary station: <select value={primaryStation ?? 'none'} onChange={e => setPrimaryStation(e.target.value === 'none' ? null : e.target.value)}>
+						<option value='none'>none</option>
+						{query.data.stations.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
+					</select>
+				</div>
+				{legend && <div style={{ display: 'grid', border: '2px var(--color-border) solid', padding: '2px 4px',
+					gridTemplateColumns: 'repeat(3, 120px)' }}>
+					{legend.map(({ name, value, focus }) =>
+						<span style={{ color: color(focus ? 'magenta' : value == null ? 'text-dark' : 'text') }}>{name}={value == null ? 'N/A' : value.toFixed(1)}</span>)}
+				</div>}
+			</>
 		), legendContainer)}
 	</div>);
 }
