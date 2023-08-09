@@ -12,7 +12,7 @@ export default function Neutron() {
 	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 
-	return <div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4 }}>
+	return <div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
 			<div style={{ textAlign: 'center', marginRight: 16 }}>
 				[ <select onWheel={e => setMonth(m => Math.max(0, Math.min(m + Math.sign(e.deltaY), 11)))}

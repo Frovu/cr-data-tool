@@ -104,21 +104,50 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 
 	const [primaryStation, setPrimaryStation] = useState<string | null>(null);
 
-	const [uplot, setUplot] = useState<uPlot>();
+	const [u, setUplot] = useState<uPlot>();
 	// const [cursorIdx, setCursorIdx] = useState<number | null>(null);
 
+	const [selection, setSelect] = useState<null | { min: number, max: number }>(null);
+	const setSelection = (sel: null | { min: number, max: number }) => {
+		if (!u) return;
+		if (sel) {
+			const left = u.valToPos(u.data[0][sel.min], 'x');
+			u.setSelect({
+				width: u.valToPos(u.data[0][sel.max], 'x') - left,
+				height: u.over.offsetHeight, top: 0, left
+			}, false);
+		} else {
+			u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
+		}
+		setSelect(sel);
+	};
+
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (!uplot || !query.data) return;
+		if (!u || !query.data) return;
 		const moveCur = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
 		if (moveCur) {
 			const data = query.data.plotData;
 			const length = data[0].length;
-			const cur = uplot.cursor.idx || (moveCur < 0 ? length : 0);
+			const cur = u.cursor.idx ?? (moveCur < 0 ? length : 0);
 			const move = moveCur * (e.ctrlKey ? Math.ceil(length / 64) : 1)
 				* (e.altKey ? Math.ceil(length / 16) : 1);
 			const idx = Math.max(0, Math.min(cur + move, length - 1));
-			const primePos = primaryStation == null ? null : uplot.valToPos(data[query.data.stations.indexOf(primaryStation) + 1][idx], 'y');
-			uplot.setCursor({ left: uplot.valToPos(data[0][idx], 'x'), top: primePos ?? uplot.cursor.top ?? 0 });
+			const primePos = primaryStation == null ? null : u.valToPos(data[query.data.stations.indexOf(primaryStation) + 1][idx], 'y');
+			u.setCursor({ left: u.valToPos(data[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 });
+			setSelection((() => {
+				if (!e.shiftKey) return null;
+				const sel = selection;
+				const vals = (!sel || !((cur !== sel.min) !== (cur !== sel.max)))
+					? [cur, cur + move]
+					: [cur + move, cur !== sel.min ? sel.min : sel.max];
+				return vals[0] === vals[1] ? null : {
+					min: Math.min(...vals),
+					max: Math.max(...vals)
+				};
+			})());
+		} else if (e.key === 'Escape') {
+			u.setScale('x', { min: u.data[0][0], max: u.data[0][u.data[0].length-1] });
+			setSelection(null);
 		}
 	});
 
@@ -129,19 +158,19 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 		const { data, plotData, stations } = query.data;
 		const options = { ...size, ...plotOptions(stations, primaryStation), hooks: {
 			setLegend: [
-				(u: uPlot) => {
-					const idx = u.legend.idx;
+				(upl: uPlot) => {
+					const idx = upl.legend.idx;
 					if (idx == null)
 						return setLegend(null);
 					setLegend(stations.map((s, si) =>
-						({ name: s.toUpperCase().slice(0, 4), value: data[1 + si][idx], focus: (u.series[1 + si] as any)._focus })));
+						({ name: s.toUpperCase().slice(0, 4), value: data[1 + si][idx], focus: (upl.series[1 + si] as any)._focus })));
 				}
 			],
 			// setCursor: [
 			// 	(u: uPlot) => setCursorIdx(u.cursor.idx ?? null)
 			// ],
 			setSeries: [
-				(u: any, si: any) => u.setLegend({ idx: u.legend.idx })
+				(upl: any, si: any) => upl.setLegend({ idx: upl.legend.idx })
 
 			]
 		} };
