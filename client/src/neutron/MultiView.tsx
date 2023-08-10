@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useEventListener, useSize } from '../util';
 import { createPortal } from 'react-dom';
 
-function plotOptions(stations: string[]) {
+function plotOptions(stations: string[], levels: number[]) {
 	const serColor = (u: any, idx: number) => {
 		return u.series[idx].label === u._prime ? (u.series[idx]._focus ? color('gold') : color('green')) : u.series[idx]._focus ? color('orange') : color('cyan');
 	};
@@ -19,7 +19,7 @@ function plotOptions(stations: string[]) {
 				fill: color('acid'),
 				stroke: color('acid')
 			},
-			focus: { prox: 1e6 },
+			focus: { prox: 32 },
 			drag: { dist: 30 },
 			bind: {
 				dblclick: u => null
@@ -42,7 +42,7 @@ function plotOptions(stations: string[]) {
 				ticks: { stroke: color('grid'), width: 2 },
 			},
 			{
-				splits: u => stations.map((st, i) => u.data[1 + i][0]),
+				splits: u => levels.map((lvl, i) => (((u.data[1 + i][0] ?? 0) + 2*lvl) / 3 + 2)),
 				values: u => stations.map(s => s === (u as any)._prime ? s.toUpperCase() : s).map(s => s.slice(0, 4)),
 				size: 36,
 				gap: -6,
@@ -92,7 +92,8 @@ function queryFunction(path: string, interval: [Date, Date], qStations: string[]
 		return {
 			data: [time, ...sortedIdx.map(i => data[i])],
 			plotData: [time, ...spreaded],
-			stations: sortedIdx.map(i => stations[i])
+			stations: sortedIdx.map(i => stations[i]),
+			levels: sortedIdx.map((idx, i) => - i * distance)
 		};
 	};
 }
@@ -138,6 +139,7 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (!u || !query.data) return;
 		const moveCur = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+		const movePrime = { ArrowUp: -1, ArrowDown: 1 }[e.key];
 		if (moveCur) {
 			const data = query.data.plotData;
 			const length = data[0].length;
@@ -145,8 +147,10 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 			const move = moveCur * (e.ctrlKey ? Math.ceil(length / 64) : 1)
 				* (e.altKey ? Math.ceil(length / 16) : 1);
 			const idx = Math.max(0, Math.min(cur + move, length - 1));
-			const primePos = primaryStation == null ? null : u.valToPos(data[query.data.stations.indexOf(primaryStation) + 1][idx], 'y');
+			const primeIdx = primaryStation == null ? null : query.data.stations.indexOf(primaryStation);
+			const primePos = primeIdx == null ? null : u.valToPos(data[primeIdx + 1][idx] ?? query.data.levels[primeIdx], 'y');
 			u.setCursor({ left: u.valToPos(data[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 });
+			if (primeIdx != null) u.setSeries(1 + primeIdx, { focus: true }, false);
 			setSelection((() => {
 				if (!e.shiftKey) return null;
 				const sel = selection;
@@ -158,6 +162,16 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 					max: Math.max(...vals)
 				};
 			})());
+		} else if (movePrime && e.ctrlKey) {
+			const sts = query.data.stations;
+			setPrimaryStation(p => {
+				const idx = p ? Math.max(0, Math.min(sts.indexOf(p) + movePrime, sts.length - 1)) : movePrime < 0 ? sts.length - 1 : 0;
+				console.log(idx);
+				if (u.cursor.idx != null)
+					u.setCursor({ left: u.cursor.left!, top: u.valToPos(query.data?.plotData[idx + 1][u.cursor.idx] ?? query.data?.levels[idx], 'y') });
+				u.setSeries(1 + idx, { focus: true }, false);
+				return sts[idx];
+			});
 		} else if (e.key === 'Escape') {
 			u.setScale('x', { min: u.data[0][0], max: u.data[0][u.data[0].length-1] });
 			setSelection(null);
@@ -165,11 +179,10 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 	});
 
 	const [legend, setLegend] = useState<{ name: string, value: number, focus: boolean }[] | null>(null); 
-
 	const plot = useMemo(() => {
 		if (!query.data) return null;
 		const { data, plotData, stations } = query.data;
-		const options = { ...size, ...plotOptions(stations), hooks: {
+		const options = { ...size, ...plotOptions(stations, query.data.levels), hooks: {
 			setLegend: [
 				(upl: uPlot) => {
 					const idx = upl.legend.idx;
@@ -210,7 +223,7 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 				{legend && <div style={{ display: 'grid', border: '2px var(--color-border) solid', padding: '2px 4px',
 					gridTemplateColumns: 'repeat(3, 120px)' }}>
 					{legend.map(({ name, value, focus }) =>
-						<span style={{ color: color(focus ? 'magenta' : value == null ? 'text-dark' : 'text') }}>{name}={value == null ? 'N/A' : value.toFixed(1)}</span>)}
+						<span key={name} style={{ color: color(focus ? 'magenta' : value == null ? 'text-dark' : 'text') }}>{name}={value == null ? 'N/A' : value.toFixed(1)}</span>)}
 				</div>}
 			</>
 		), legendContainer)}
