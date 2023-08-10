@@ -30,8 +30,8 @@
 	--color-border: grey;
 	--color-grid: rgb(33,33,33);
 	--color-active: var(--color-gold);
-	--color-area: rgba(95, 0, 175, 0.17);
-	--color-area2: rgb(155, 255, 255);
+	--color-area: rgba(127, 173, 165, 0.17);
+	--color-area2: rgb(135, 194, 194);
 
 	color-scheme: dark;
 }

@@ -2,15 +2,14 @@ import { useQuery } from 'react-query';
 import uPlot from 'uplot';
 import { color, font } from '../plotUtil';
 import UplotReact from 'uplot-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useEventListener, useSize } from '../util';
 import { createPortal } from 'react-dom';
 
-function plotOptions(stations: string[], primaryStation: string | null) {
-	const switchFocused = (focused: any, unfocused: any, primary: any) => (u: any, idx: number) => {
-		return u.series[idx]._focus ? focused : stations[idx-1] === primaryStation ? primary : unfocused;
+function plotOptions(stations: string[]) {
+	const serColor = (u: any, idx: number) => {
+		return u.series[idx].label === u._prime ? (u.series[idx]._focus ? color('gold') : color('green')) : u.series[idx]._focus ? color('orange') : color('cyan');
 	};
-	const serColor = switchFocused(color('magenta'), color('cyan'), color('green'));
 	return {
 		tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
 		legend: { show: false },
@@ -22,6 +21,9 @@ function plotOptions(stations: string[], primaryStation: string | null) {
 			},
 			focus: { prox: 1e6 },
 			drag: { dist: 30 },
+			bind: {
+				dblclick: u => null
+			},
 			lock: true
 		},
 		focus: {
@@ -41,7 +43,7 @@ function plotOptions(stations: string[], primaryStation: string | null) {
 			},
 			{
 				splits: u => stations.map((st, i) => u.data[1 + i][0]),
-				values: stations.map(s => s.slice(0, 4)),
+				values: u => stations.map(s => s === (u as any)._prime ? s.toUpperCase() : s).map(s => s.slice(0, 4)),
 				size: 36,
 				gap: -6,
 				font: font(12),
@@ -50,14 +52,14 @@ function plotOptions(stations: string[], primaryStation: string | null) {
 			}
 		],
 		series: [
-			{ value: '{YYYY}-{MM}-{DD} {HH}:{mm}', stroke: color('text') }
+			{ value: '{YYYY}-{MM}-{DD} {HH}:{mm}', stroke: color('text') } as any
 		].concat(stations.map(s => ({
-			label: s.toUpperCase(),
+			label: s,
 			stroke: serColor,
 			grid: { stroke: color('grid'), width: 1 },
 			points: { fill: color('bg'), stroke: serColor },
 
-		} as any)))
+		} as Partial<uPlot.Series>)))
 	} as Omit<uPlot.Options, 'height'|'width'>;
 }
 
@@ -122,6 +124,17 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 		setSelect(sel);
 	};
 
+	useEffect(() => {
+		if (!u) return;
+		(u as any)._prime = primaryStation;
+		u.redraw(false, true);
+	}, [u, primaryStation]);
+
+	useEventListener('dblclick', (e: MouseEvent) => {
+		if (!u || !query.data) return;
+		const ser = u.series.find((s: any) => s._focus && s.scale !== 'x');
+		if (ser) setPrimaryStation(ser.label!);
+	});
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (!u || !query.data) return;
 		const moveCur = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
@@ -156,7 +169,7 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 	const plot = useMemo(() => {
 		if (!query.data) return null;
 		const { data, plotData, stations } = query.data;
-		const options = { ...size, ...plotOptions(stations, primaryStation), hooks: {
+		const options = { ...size, ...plotOptions(stations), hooks: {
 			setLegend: [
 				(upl: uPlot) => {
 					const idx = upl.legend.idx;
@@ -175,7 +188,7 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 			]
 		} };
 		return <UplotReact {...{ options, data: plotData as any, onCreate: setUplot }}/>;
-	}, [size, query.data, primaryStation]);
+	}, [size, query.data]);
 
 	if (query.isLoading)
 		return <div className='center'>LOADING...</div>;
