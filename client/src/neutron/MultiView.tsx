@@ -27,6 +27,7 @@ function plotOptions(stations: string[], levels: number[]) {
 				dblclick: u => null,
 				mousedown: (u, targ, handler) => {
 					return e => {
+						u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
 						if (e.button === 0) {
 							handler(e);
 							if (!e.ctrlKey && !e.shiftKey) {
@@ -43,6 +44,8 @@ function plotOptions(stations: string[], levels: number[]) {
 								u.cursor.drag.setScale = false;
 								handler(e);
 								u.cursor.drag.setScale = true;
+								if (u.select?.width > 0)
+									u.cursor._lock = false;
 							} else {
 								handler(e);
 							}
@@ -160,6 +163,9 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		u.redraw(false, true);
 	}, [u, primaryStation]);
 
+	useEventListener('click', () => {
+		u && u.cursor.idx && u.setCursor({ left: u.cursor.left!, top: u.cursor.top! });
+	});
 	useEventListener('dblclick', (e: MouseEvent) => {
 		if (!u || !query.data) return;
 		const ser = u.series.find((s: any) => s._focus && s.scale !== 'x');
@@ -177,7 +183,6 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 			const move = moveCur * (e.ctrlKey ? Math.ceil(length / 64) : 1)
 				* (e.altKey ? Math.ceil(length / 16) : 1);
 			const idx = Math.max(left, Math.min(cur + move, right));
-			console.log(left, cur, idx)
 			const primeIdx = primaryStation == null ? null : query.data.stations.indexOf(primaryStation);
 			const primePos = primeIdx == null ? null : u.valToPos(data[primeIdx + 1][idx] ?? query.data.levels[primeIdx], 'y');
 			u.setCursor({ left: u.valToPos(data[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 });
@@ -203,7 +208,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 				u.setSeries(1 + idx, { focus: true });
 				return sts[idx];
 			});
-		} else if (e.key.toUpperCase() === 'Z' && selection) {
+		} else if (e.code === 'KeyZ' && selection) {
 			u.setScale('x', { min: u.data[0][selection.min], max: u.data[0][selection.max] });
 			u.setCursor({ left: -1, top: -1 });
 			setSelection(null);
@@ -229,7 +234,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 				}
 			],
 			setCursor: [
-				(upl: any) => {setCursorIdx(upl.cursor._lock ? upl.cursor.idx : null)}
+				(upl: any) => setCursorIdx(upl.cursor._lock ? upl.cursor.idx : null)
 			],
 			setSelect: [
 				(upl: uPlot) => setSelect(upl.select ? {
@@ -272,7 +277,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		), legendContainer)}
 		{cursorIdx && primaryStation && detailsContainer && createPortal((
 			<div style={{ position: 'relative', border: '2px var(--color-border) solid', width: 356, height: 240 }}>
-				{/* <MinuteView {...{ station: primaryStation, timestamp: u!.data[0][cursorIdx] }}/> */}
+				<MinuteView {...{ station: primaryStation, timestamp: u!.data[0][cursorIdx] }}/>
 			</div>
 		), detailsContainer)}
 	</div>);
