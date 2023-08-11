@@ -5,6 +5,7 @@ import UplotReact from 'uplot-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useEventListener, useSize } from '../util';
 import { createPortal } from 'react-dom';
+import MinuteView from './MinuteView';
 
 function plotOptions(stations: string[], levels: number[]) {
 	const serColor = (u: any, idx: number) => {
@@ -38,8 +39,6 @@ function plotOptions(stations: string[], levels: number[]) {
 				mouseup: (u: any, targ, handler) => {
 					return e => {
 						if (e.button === 0) {
-							console.log(handler.toString())
-							console.log(mouseSelection, u.cursor.lock,  u.cursor._lock)
 							if (mouseSelection) {
 								u.cursor.drag.setScale = false;
 								handler(e);
@@ -127,7 +126,8 @@ function queryFunction(path: string, interval: [Date, Date], qStations: string[]
 	};
 }
 
-export function ManyStationsView({ interval, legendContainer }: { interval: [Date, Date], legendContainer: Element | null }) {
+export function ManyStationsView({ interval, legendContainer, detailsContainer }:
+{ interval: [Date, Date], legendContainer: Element | null, detailsContainer: Element | null }) {
 	const queryStations = ['all'];
 	const query = useQuery(['manyStations', queryStations, interval], queryFunction('api/neutron', interval, queryStations));
 
@@ -137,7 +137,7 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 	const [primaryStation, setPrimaryStation] = useState<string | null>(null);
 
 	const [u, setUplot] = useState<uPlot>();
-	// const [cursorIdx, setCursorIdx] = useState<number | null>(null);
+	const [cursorIdx, setCursorIdx] = useState<number | null>(null);
 
 	const [selection, setSelect] = useState<null | { min: number, max: number }>(null);
 	const setSelection = (sel: null | { min: number, max: number }) => {
@@ -172,10 +172,12 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 		if (moveCur) {
 			const data = query.data.plotData;
 			const length = data[0].length;
-			const cur = u.cursor.idx ?? (moveCur < 0 ? length : 0);
+			const left = u.valToIdx(u.scales.x.min!), right = u.valToIdx(u.scales.x.max!);
+			const cur = u.cursor.idx ?? (moveCur < 0 ? right + 1 : left - 1);
 			const move = moveCur * (e.ctrlKey ? Math.ceil(length / 64) : 1)
 				* (e.altKey ? Math.ceil(length / 16) : 1);
-			const idx = Math.max(0, Math.min(cur + move, length - 1));
+			const idx = Math.max(left, Math.min(cur + move, right));
+			console.log(left, cur, idx)
 			const primeIdx = primaryStation == null ? null : query.data.stations.indexOf(primaryStation);
 			const primePos = primeIdx == null ? null : u.valToPos(data[primeIdx + 1][idx] ?? query.data.levels[primeIdx], 'y');
 			u.setCursor({ left: u.valToPos(data[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 });
@@ -203,9 +205,11 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 			});
 		} else if (e.key.toUpperCase() === 'Z' && selection) {
 			u.setScale('x', { min: u.data[0][selection.min], max: u.data[0][selection.max] });
+			u.setCursor({ left: -1, top: -1 });
 			setSelection(null);
 		} else if (e.key === 'Escape') {
 			u.setScale('x', { min: u.data[0][0], max: u.data[0][u.data[0].length-1] });
+			u.setCursor({ left: -1, top: -1 });
 			setSelection(null);
 		}
 	});
@@ -224,9 +228,9 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 						({ name: s.toUpperCase().slice(0, 4), value: data[1 + si][idx], focus: (upl.series[1 + si] as any)._focus })));
 				}
 			],
-			// setCursor: [
-			// 	(u: uPlot) => setCursorIdx(u.cursor.idx ?? null)
-			// ],
+			setCursor: [
+				(upl: any) => {setCursorIdx(upl.cursor._lock ? upl.cursor.idx : null)}
+			],
 			setSelect: [
 				(upl: uPlot) => setSelect(upl.select ? {
 					min: upl.posToIdx(upl.select.left),
@@ -266,5 +270,10 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 				</div>}
 			</>
 		), legendContainer)}
+		{cursorIdx && primaryStation && detailsContainer && createPortal((
+			<div style={{ position: 'relative', border: '2px var(--color-border) solid', width: 356, height: 240 }}>
+				{/* <MinuteView {...{ station: primaryStation, timestamp: u!.data[0][cursorIdx] }}/> */}
+			</div>
+		), detailsContainer)}
 	</div>);
 }
