@@ -10,6 +10,7 @@ function plotOptions(stations: string[], levels: number[]) {
 	const serColor = (u: any, idx: number) => {
 		return u.series[idx].label === u._prime ? (u.series[idx]._focus ? color('gold') : color('green')) : u.series[idx]._focus ? color('orange') : color('cyan');
 	};
+	let mouseSelection = false;
 	return {
 		tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
 		legend: { show: false },
@@ -22,7 +23,35 @@ function plotOptions(stations: string[], levels: number[]) {
 			focus: { prox: 32 },
 			drag: { dist: 30 },
 			bind: {
-				dblclick: u => null
+				dblclick: u => null,
+				mousedown: (u, targ, handler) => {
+					return e => {
+						if (e.button === 0) {
+							handler(e);
+							if (!e.ctrlKey && !e.shiftKey) {
+								mouseSelection = true;
+							}
+						}
+						return null;
+					};
+				},
+				mouseup: (u: any, targ, handler) => {
+					return e => {
+						if (e.button === 0) {
+							if (mouseSelection) {
+								const _setScale = u.cursor.drag.setScale, _lock = u.cursor._lock;
+								u.cursor.drag.setScale = false;
+								handler(e);
+								u.cursor.drag.setScale = _setScale;
+								u.cursor._lock = _lock;
+							} else {
+								handler(e);
+							}
+							mouseSelection = false;
+							return null;
+						}
+					};
+				}
 			},
 			lock: true
 		},
@@ -150,7 +179,7 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 			const primeIdx = primaryStation == null ? null : query.data.stations.indexOf(primaryStation);
 			const primePos = primeIdx == null ? null : u.valToPos(data[primeIdx + 1][idx] ?? query.data.levels[primeIdx], 'y');
 			u.setCursor({ left: u.valToPos(data[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 });
-			if (primeIdx != null) u.setSeries(1 + primeIdx, { focus: true }, false);
+			if (primeIdx != null) u.setSeries(1 + primeIdx, { focus: true });
 			setSelection((() => {
 				if (!e.shiftKey) return null;
 				const sel = selection;
@@ -169,9 +198,12 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 				console.log(idx);
 				if (u.cursor.idx != null)
 					u.setCursor({ left: u.cursor.left!, top: u.valToPos(query.data?.plotData[idx + 1][u.cursor.idx] ?? query.data?.levels[idx], 'y') });
-				u.setSeries(1 + idx, { focus: true }, false);
+				u.setSeries(1 + idx, { focus: true });
 				return sts[idx];
 			});
+		} else if (e.key.toUpperCase() === 'Z' && selection) {
+			u.setScale('x', { min: u.data[0][selection.min], max: u.data[0][selection.max] });
+			setSelection(null);
 		} else if (e.key === 'Escape') {
 			u.setScale('x', { min: u.data[0][0], max: u.data[0][u.data[0].length-1] });
 			setSelection(null);
@@ -195,6 +227,12 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 			// setCursor: [
 			// 	(u: uPlot) => setCursorIdx(u.cursor.idx ?? null)
 			// ],
+			setSelect: [
+				(upl: uPlot) => setSelect(upl.select ? {
+					min: upl.posToIdx(upl.select.left),
+					max: upl.posToIdx(upl.select.left + upl.select.width)
+				} : null)
+			],
 			setSeries: [
 				(upl: any, si: any) => upl.setLegend({ idx: upl.legend.idx })
 
@@ -214,8 +252,9 @@ export function ManyStationsView({ interval, legendContainer }: { interval: [Dat
 		{plot}
 		{legendContainer && createPortal((
 			<>
-				<div style={{ marginLeft: 16 }}>
-					Primary station: <select value={primaryStation ?? 'none'} onChange={e => setPrimaryStation(e.target.value === 'none' ? null : e.target.value)}>
+				<div style={{ margin: '0 0 4px 16px' }}>
+					Primary station: <select style={{ color: primaryStation ? 'var(--color-green)' : 'var(--color-text)' }} 
+						value={primaryStation ?? 'none'} onChange={e => setPrimaryStation(e.target.value === 'none' ? null : e.target.value)}>
 						<option value='none'>none</option>
 						{query.data.stations.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
 					</select>
