@@ -17,11 +17,11 @@ function plotOptions(stations: string[], levels: number[]) {
 		padding: [10, 12, 6, 0],
 		cursor: {
 			points: {
+				size: 6,
 				fill: color('acid'),
 				stroke: color('acid')
 			},
 			focus: { prox: 32 },
-			drag: { dist: 30 },
 			bind: {
 				dblclick: u => null,
 				mousedown: (u, targ, handler) => {
@@ -38,12 +38,12 @@ function plotOptions(stations: string[], levels: number[]) {
 				mouseup: (u: any, targ, handler) => {
 					return e => {
 						if (e.button === 0) {
+							console.log(handler.toString())
+							console.log(mouseSelection, u.cursor.lock,  u.cursor._lock)
 							if (mouseSelection) {
-								const _setScale = u.cursor.drag.setScale, _lock = u.cursor._lock;
 								u.cursor.drag.setScale = false;
 								handler(e);
-								u.cursor.drag.setScale = _setScale;
-								u.cursor._lock = _lock;
+								u.cursor.drag.setScale = true;
 							} else {
 								handler(e);
 							}
