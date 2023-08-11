@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { ManyStationsView } from './MultiView';
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -27,7 +27,7 @@ export default function Neutron() {
 			<div ref={node => setContainer(node)}></div>
 		</div>
 		<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
-			<ManyStationsView {...{ interval, legendContainer: topContainer }}/>
+			<ManyStationsView {...{ interval, legendContainer: topContainer, detailsContainer: container }}/>
 		</div>
 	</div>;
 }

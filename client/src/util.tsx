@@ -1,5 +1,9 @@
 import React, { SetStateAction, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+export function prettyDate(date: Date) {
+	return date.toISOString().replace('T', ' ').replace(/\..*/, '');
+}
+
 export function dispatchCustomEvent(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
 }

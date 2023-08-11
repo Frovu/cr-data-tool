@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from neutron import neutron
+from neutron import neutron, corrections
 from routers.utils import route_shielded
 
 bp = Blueprint('neutron', __name__, url_prefix='/api/neutron')
@@ -18,3 +18,10 @@ def get_neutron():
 		raise ValueError('Bad interval')
 	rows, fields = neutron.fetch((t_from, t_to), stations)
 	return { 'fields': fields, 'rows': rows }
+
+@bp.route('/minutes', methods=['GET'])
+@route_shielded
+def get_minutes():
+	timestamp = int(request.args.get('timestamp'))
+	station = request.args.get('station') # FIXME !!
+	return { 'minutes': corrections.get_minutes(station, timestamp) }
