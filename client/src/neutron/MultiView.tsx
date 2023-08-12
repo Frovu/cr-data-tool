@@ -106,19 +106,18 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 	const [u, setUplot] = useState<uPlot>();
 	// const [cursorIdx, setCursorIdx] = useState<number | null>(null);
 
-	const setSelection = (sel: null | { min: number, max: number }) => {
+	useEffect(() => {
 		if (!u) return;
-		if (sel) {
-			const left = u.valToPos(u.data[0][sel.min], 'x');
+		if (selectedRange) {
+			const left = u.valToPos(u.data[0][selectedRange[0]], 'x');
 			u.setSelect({
-				width: u.valToPos(u.data[0][sel.max], 'x') - left,
+				width: u.valToPos(u.data[0][selectedRange[1]], 'x') - left,
 				height: u.over.offsetHeight, top: 0, left
 			}, false);
 		} else {
 			u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
 		}
-		setSelectedRange(sel && [sel.min, sel.max]);
-	};
+	}, [u, selectedRange]);
 
 	useLayoutEffect(() => {
 		u?.setSize(size);
@@ -155,16 +154,13 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 			const primePos = primeIdx == null ? null : u.valToPos(plotData[primeIdx + 1][idx] ?? levels[primeIdx], 'y');
 			u.setCursor({ left: u.valToPos(plotData[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 });
 			if (primeIdx != null) u.setSeries(1 + primeIdx, { focus: true });
-			setSelection((() => {
+			setSelectedRange((() => {
 				if (!e.shiftKey) return null;
-				const sel = selectedRange, min = sel![0], max = sel![1];
+				const sel = selectedRange, min = sel?.[0], max = sel?.[1];
 				const vals = (!sel || !((cur !== min) !== (cur !== max)))
 					? [cur, cur + move]
-					: [cur + move, cur !== min ? min : max];
-				return vals[0] === vals[1] ? null : {
-					min: Math.min(...vals),
-					max: Math.max(...vals)
-				};
+					: [cur + move, cur !== min ? min! : max!];
+				return vals[0] === vals[1] ? null : [Math.min(...vals), Math.max(...vals)];
 			})());
 		} else if (movePrime && e.ctrlKey) {
 			setPrimeStation(p => {
@@ -177,11 +173,11 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		} else if (e.code === 'KeyZ' && selectedRange) {
 			u.setScale('x', { min: u.data[0][selectedRange[0]], max: u.data[0][selectedRange[1]] });
 			u.setCursor({ left: -1, top: -1 });
-			setSelection(null);
+			setSelectedRange(null);
 		} else if (e.key === 'Escape') {
 			u.setScale('x', { min: u.data[0][0], max: u.data[0][u.data[0].length-1] });
 			u.setCursor({ left: -1, top: -1 });
-			setSelection(null);
+			setSelectedRange(null);
 		}
 	});
 
