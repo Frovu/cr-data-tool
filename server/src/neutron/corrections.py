@@ -1,5 +1,6 @@
 from database import pool, upsert_many
-from neutron.neutron import filter_for_integration, integrate
+from neutron.neutron import filter_for_integration, integrate, select, obtain_many
+import time
 import numpy as np
 
 def get_minutes(station, timestamp):
@@ -18,4 +19,19 @@ def get_minutes(station, timestamp):
 		'raw': np.where(~np.isfinite(raw), None, raw).tolist(),
 		'filtered': np.where(~np.isfinite(filtered), None, filtered).tolist(),
 		'integrated': integrated if np.isfinite(integrated) else None
+	}
+
+def refetch(interval, stations):
+	t0 = time.time()
+	stids = [s.id for s in stations]
+	old_data = np.array(select(interval, stids))
+	obtain_many(interval, stations)
+	new_data = np.array(select(interval, stids))
+
+	assert old_data.shape == new_data.shape
+	counts = { s: np.count_nonzero(old_data[:,i] != new_data[:,i]) for i, s in enumerate(stids) }
+
+	return {
+		'duration': time.time() - t0,
+		'changeCounts': counts
 	}

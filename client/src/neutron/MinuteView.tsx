@@ -96,6 +96,6 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 				Array(60).fill(query.data.integrated),
 				query.data.raw,
 				query.data.filtered.map((v, i) => v === query.data.raw[i] ? null : v)
-			], onCreate: console.log }}/>
+			] }}/>
 		</div>);
 }

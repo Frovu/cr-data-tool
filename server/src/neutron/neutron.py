@@ -111,16 +111,12 @@ def get_stations(group_partial=False, ids=False):
 	return [(s.id if ids else s) for s in all_stations if not group_partial or s.prefer_nmdb]
 
 def resolve_station(name: str) -> Station:
-	return next((s for s in all_stations if s.id.lower() == name.lower()), None)
+	return next((s for s in all_stations if s.id.lower().startswith(name.lower())), None)
 
-def _obtain_group(interval, group_partial=False):
-	stations = get_stations(group_partial)
-	
-	assert group_partial
-
+def obtain_many(interval, stations: list[Station]):
 	if interval[0] < NMDB_SINCE and NMDB_SINCE <= interval[1]:
-		_obtain_group((interval[0], NMDB_SINCE-HOUR), group_partial)
-		_obtain_group((NMDB_SINCE, interval[1]), group_partial)
+		_obtain_many((interval[0], NMDB_SINCE-HOUR), stations)
+		_obtain_many((NMDB_SINCE, interval[1]), stations)
 		return log.debug('Neutron: split interval with NMDB_SINCE')
 
 	nmdb_stations = [s.id for s in stations if s.prefer_nmdb] if interval[0] >= NMDB_SINCE else []
@@ -132,7 +128,13 @@ def _obtain_group(interval, group_partial=False):
 	for s in other_stations:
 		_obtain_similar(interval, [s], 'archive')
 
-def fetch(interval: [int, int], stations: list[str]):
+def select(interval, station_ids, description=False):
+	with pool.connection() as conn:
+		curs = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {",".join(station_ids)} ' + \
+			'FROM neutron.result WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', [*interval])
+		return (curs.fetchall(), [desc[0] for desc in curs.description]) if description else curs.fetchall()
+
+def fetch(interval: [int, int], station_ids: list[str]):
 	interval = (
 		floor(max(interval[0], datetime(1957, 1, 1).timestamp()) / HOUR) * HOUR,
 		 ceil(min(interval[1], datetime.now().timestamp() - 2*HOUR) / HOUR) * HOUR
@@ -150,13 +152,11 @@ def fetch(interval: [int, int], stations: list[str]):
 				ipe if ipe and interval[0] >= ips else interval[0],
 				ips if ips and interval[1] <= ipe else interval[1]
 			)
-			_obtain_group(req, group_partial)
+			obtain_stations = get_stations(group_partial) # FIXME: ?
+			obtain_many(req, obtain_stations)
 			res_coverage = [min(interval[0], ips or interval[0]), max(ipe or interval[1], interval[1])]
 			if group_partial: integrity_partial = res_coverage
 			else: integrity_full = res_coverage
 			_save_integrity_state()
 	
-	with pool.connection() as conn:
-		curs = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {",".join(stations)} ' + \
-			'FROM neutron.result WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', [*interval])
-		return curs.fetchall(), [desc[0] for desc in curs.description]
+	return select(interval, station_ids, True)

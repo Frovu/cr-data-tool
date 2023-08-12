@@ -28,3 +28,14 @@ def get_minutes():
 	if station is None:
 		raise ValueError('Unknown station')
 	return corrections.get_minutes(station, timestamp)
+
+@bp.route('/refetch', methods=['GET'])
+@route_shielded
+def refetch():
+	t_from = int(request.args.get('from'))
+	t_to = int(request.args.get('to'))
+	sts_req = request.args.get('stations').lower()
+	stations = [s for s in [neutron.resolve_station(s) for s in sts_req.split(',')] if s is not None]
+	if not len(stations):
+		raise ValueError('No stations match query')
+	return corrections.refetch([t_from, t_to], stations)
