@@ -13,6 +13,7 @@ log = logging.getLogger('crdt')
 
 NMDB_SINCE = datetime(2020, 1, 1).replace(tzinfo=timezone.utc).timestamp()
 HOUR = 3600
+MIN_MINUTES = 20
 obtain_mutex = Lock()
 integrity_full = [None, None]
 integrity_partial = [None, None]
@@ -58,9 +59,10 @@ def filter_for_integration(data):
 
 def integrate(data):
 	data = filter_for_integration(data)
-	if not np.any(np.isfinite(data)):
+	count = np.count_nonzero(np.isfinite(data))
+	if count < MIN_MINUTES:
 		return np.nan
-	return np.round(np.nansum(data) / len(data), 3)
+	return np.round(np.nansum(data) / count, 3)
 
 def _obtain_similar(interval, stations, source):
 	obtain_fn, src_res = { 'nmdb': (obtain_from_nmdb, 60), 'archive': (obtain_from_archive, 3600) }[source]
