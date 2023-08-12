@@ -1,7 +1,10 @@
 import { SetStateAction, createContext, useState } from 'react';
 import { ManyStationsView } from './MultiView';
 import { useQuery } from 'react-query';
+import { FetchMenu } from './Actions';
+import { useEventListener } from '../util';
 
+type ActionMenu = 'refetch';
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export const NeutronContext = createContext<{
@@ -58,10 +61,21 @@ export default function Neutron() {
 	const queryStations = ['all'];
 	const query = useQuery(['manyStations', queryStations, interval], queryFunction('api/neutron', interval, queryStations));
 
+	const [activePopup, openPopup] = useState<ActionMenu | null>(null);
+
 	const [primeStation, setPrimeStation] = useState<string | null>(null);
 
 	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (activePopup)
+			e.stopImmediatePropagation();
+		if (e.code === 'KeyF')
+			openPopup('refetch');
+		else if (e.code === 'Escape')
+			openPopup(null);
+	});
 
 	return (
 		<NeutronContext.Provider value={query.data == null ? null : {
@@ -69,6 +83,12 @@ export default function Neutron() {
 			primeStation, setPrimeStation,
 			viewInterval: interval.map(d => d.getTime() / 1000)
 		}}>
+			{activePopup && query.data && <>
+				<div className='popupBackground'></div>
+				<div className='popup' style={{ left: '50%', top: '45%' }}>
+					<FetchMenu/>
+				</div>
+			</>}
 			<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
 					<div style={{ textAlign: 'center', marginRight: 16 }}>

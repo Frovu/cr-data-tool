@@ -60,7 +60,7 @@ option {
 }
 button {
 	cursor: pointer;
-	border-style: outset;
+	border: 1px var(--color-border) outset;
 }
 select {
 	cursor: pointer;
@@ -100,7 +100,7 @@ details:hover {
 
 .popup {
 	position: fixed;
-	transform: translate(-50%);
+	transform: translate(-50%, -50%);
 	background-color: var(--color-bg);
 	border: 2px var(--color-border) solid;
 	padding: 1em 2em 1.5em 2em;

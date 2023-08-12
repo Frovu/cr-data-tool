@@ -1,7 +1,7 @@
 import React, { SetStateAction, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export function prettyDate(date: Date) {
-	return date.toISOString().replace('T', ' ').replace(/\..*/, '');
+	return date.toISOString().replace('T', ' ').replace(/(:00)?\..*/, '');
 }
 
 export function dispatchCustomEvent(eventName: string, detail?: {}) {

@@ -2,8 +2,7 @@ import { useQuery } from 'react-query';
 import uPlot from 'uplot';
 import { color, font } from '../plotUtil';
 import UplotReact from 'uplot-react';
-import { useEffect, useMemo, useState } from 'react';
-import { prettyDate, useEventListener, useSize } from '../util';
+import { prettyDate } from '../util';
 
 export default function MinuteView({ timestamp, station: queryStation }: { timestamp: number, station: string }) {
 	const query = useQuery({
@@ -56,7 +55,8 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 				stroke: color('text'),
 				grid: { show: true, stroke: color('grid'), width: 2 },
 				ticks: { stroke: color('grid'), width: 2 },
-				values: (u, vals) => ['', '', `${query.data.station.toUpperCase()} minutes of ${prettyDate(new Date(timestamp*1000))}`, ...vals.map(s => '')],
+				values: (u, vals) => ['', '', `${query.data.station.toUpperCase()} minutes of ${prettyDate(new Date(timestamp*1000))}`, 
+					'', '', `[${query.data.filtered.reduce((s, a) => s + (a == null ? 0 : 1), 0)}/60]`],
 			},
 			{
 				size: 40,

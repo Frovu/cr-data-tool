@@ -24,7 +24,7 @@ function plotOptions(stations: string[], levels: number[]) {
 			},
 			focus: { prox: 32 },
 			bind: {
-				dblclick: u => null,
+				dblclick: (u: any) => () => { u.cursor._lock = true; return null; },
 				mousedown: (u, targ, handler) => {
 					return e => {
 						u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
