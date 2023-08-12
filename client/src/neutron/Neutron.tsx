@@ -81,7 +81,7 @@ export default function Neutron() {
 		else if (e.code === 'Escape')
 			openPopup(null);
 	});
-	console.log(viewRange)
+	
 	return (
 		<NeutronContext.Provider value={query.data == null ? null : {
 			...query.data,

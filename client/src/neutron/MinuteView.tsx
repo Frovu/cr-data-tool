@@ -76,6 +76,7 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 			{
 				width: 1,
 				stroke: color('cyan'),
+				points: { show: true, fill: color('bg'), stroke: color('cyan') }
 			},
 			{
 				width: 1,

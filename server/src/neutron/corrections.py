@@ -29,7 +29,7 @@ def refetch(interval, stations):
 	new_data = np.array(select(interval, stids))
 
 	assert old_data.shape == new_data.shape
-	counts = { s: np.count_nonzero(old_data[:,i] != new_data[:,i]) for i, s in enumerate(stids) }
+	counts = { s: np.count_nonzero(old_data[:,i+1] != new_data[:,i+1]) for i, s in enumerate(stids) }
 
 	return {
 		'duration': time.time() - t0,
