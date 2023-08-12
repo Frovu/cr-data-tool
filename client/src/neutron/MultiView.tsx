@@ -2,7 +2,7 @@ import { useQuery } from 'react-query';
 import uPlot from 'uplot';
 import { color, font } from '../plotUtil';
 import UplotReact from 'uplot-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useEventListener, useSize } from '../util';
 import { createPortal } from 'react-dom';
 import MinuteView from './MinuteView';
@@ -157,6 +157,12 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		setSelect(sel);
 	};
 
+	useLayoutEffect(() => {
+		u?.setSize(size);
+		u?.setCursor({ left: -1, top: -1 });
+		u?.setSelect({ left: 0, top: 0, width: 0, height: 0 });
+	}, [u, size]);
+
 	useEffect(() => {
 		if (!u) return;
 		(u as any)._prime = primaryStation;
@@ -247,7 +253,8 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 			]
 		} };
 		return <UplotReact {...{ options, data: plotData as any, onCreate: setUplot }}/>;
-	}, [size, query.data]);
+	// Size changes are done through useEffect, without reiniting whole plot
+	}, [query.data]); // eslint-disable-line
 
 	if (query.isLoading)
 		return <div className='center'>LOADING...</div>;
