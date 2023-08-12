@@ -5,7 +5,8 @@ import { useMutation, useQueryClient } from 'react-query';
 
 export function FetchMenu() {
 	const queryClient = useQueryClient();
-	const { stations, primeStation, viewInterval: interval } = useContext(NeutronContext)!;
+	const { stations, data: neutronData, primeStation, viewRange, selectedRange } = useContext(NeutronContext)!;
+	const interval = (selectedRange ?? viewRange).map(v => neutronData[0][v]);
 
 	const [report, setReport] = useState('');
 

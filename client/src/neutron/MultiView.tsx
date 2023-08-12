@@ -97,7 +97,7 @@ function plotOptions(stations: string[], levels: number[]) {
 export function ManyStationsView({ interval, legendContainer, detailsContainer }:
 { interval: [Date, Date], legendContainer: Element | null, detailsContainer: Element | null }) {
 	const {
-		data, plotData, primeStation, setPrimeStation, stations, levels
+		data, plotData, primeStation, setPrimeStation, stations, levels, selectedRange, setSelectedRange, setViewRange
 	} = useContext(NeutronContext)!;
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -106,7 +106,6 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 	const [u, setUplot] = useState<uPlot>();
 	// const [cursorIdx, setCursorIdx] = useState<number | null>(null);
 
-	const [selection, setSelect] = useState<null | { min: number, max: number }>(null);
 	const setSelection = (sel: null | { min: number, max: number }) => {
 		if (!u) return;
 		if (sel) {
@@ -118,7 +117,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		} else {
 			u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
 		}
-		setSelect(sel);
+		setSelectedRange(sel && [sel.min, sel.max]);
 	};
 
 	useLayoutEffect(() => {
@@ -158,10 +157,10 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 			if (primeIdx != null) u.setSeries(1 + primeIdx, { focus: true });
 			setSelection((() => {
 				if (!e.shiftKey) return null;
-				const sel = selection;
-				const vals = (!sel || !((cur !== sel.min) !== (cur !== sel.max)))
+				const sel = selectedRange, min = sel![0], max = sel![1];
+				const vals = (!sel || !((cur !== min) !== (cur !== max)))
 					? [cur, cur + move]
-					: [cur + move, cur !== sel.min ? sel.min : sel.max];
+					: [cur + move, cur !== min ? min : max];
 				return vals[0] === vals[1] ? null : {
 					min: Math.min(...vals),
 					max: Math.max(...vals)
@@ -175,8 +174,8 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 				u.setSeries(1 + idx, { focus: true });
 				return stations[idx];
 			});
-		} else if (e.code === 'KeyZ' && selection) {
-			u.setScale('x', { min: u.data[0][selection.min], max: u.data[0][selection.max] });
+		} else if (e.code === 'KeyZ' && selectedRange) {
+			u.setScale('x', { min: u.data[0][selectedRange[0]], max: u.data[0][selectedRange[1]] });
 			u.setCursor({ left: -1, top: -1 });
 			setSelection(null);
 		} else if (e.key === 'Escape') {
@@ -201,11 +200,12 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 			// setCursor: [
 			// 	(upl: any) => setCursorIdx(upl.cursor._lock ? upl.cursor.idx : null)
 			// ],
+			setScale: [
+				(upl: uPlot) => setViewRange([upl.valToIdx(upl.scales.x.min!), upl.valToIdx(upl.scales.x.max!)])
+			],
 			setSelect: [
-				(upl: uPlot) => setSelect(upl.select ? {
-					min: upl.posToIdx(upl.select.left),
-					max: upl.posToIdx(upl.select.left + upl.select.width)
-				} : null)
+				(upl: uPlot) => setSelectedRange(upl.select ?
+					[ upl.posToIdx(upl.select.left), upl.posToIdx(upl.select.left + upl.select.width) ] : null)
 			],
 			setSeries: [
 				(upl: any, si: any) => upl.setLegend({ idx: upl.legend.idx })

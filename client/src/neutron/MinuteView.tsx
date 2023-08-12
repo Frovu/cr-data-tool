@@ -17,7 +17,7 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 			if (res.status !== 200)
 				throw Error('HTTP '+res.status);
 			const body = await res.json() as { station: string, raw: number[], filtered: number[], integrated: number };
-			console.log('minutes => ', body);
+			// console.log('minutes => ', body);
 			return body;
 		}
 	});

@@ -14,7 +14,10 @@ export const NeutronContext = createContext<{
 	stations: string[],
 	primeStation: string | null,
 	setPrimeStation: (a: SetStateAction<string | null>) => void,
-	viewInterval: number[]
+	viewRange: number[],
+	setViewRange: (a: SetStateAction<number[]>) => void,
+	selectedRange: number[] | null,
+	setSelectedRange: (a: SetStateAction<number[] | null>) => void,
 } | null>({} as any);
 
 function queryFunction(path: string, interval: [Date, Date], qStations: string[]) {
@@ -64,6 +67,8 @@ export default function Neutron() {
 	const [activePopup, openPopup] = useState<ActionMenu | null>(null);
 
 	const [primeStation, setPrimeStation] = useState<string | null>(null);
+	const [viewRange, setViewRange] = useState<number[]>([0, 0]);
+	const [selectedRange, setSelectedRange] = useState<null | number[]>(null);
 
 	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -76,12 +81,13 @@ export default function Neutron() {
 		else if (e.code === 'Escape')
 			openPopup(null);
 	});
-
+	console.log(viewRange)
 	return (
 		<NeutronContext.Provider value={query.data == null ? null : {
 			...query.data,
 			primeStation, setPrimeStation,
-			viewInterval: interval.map(d => d.getTime() / 1000)
+			viewRange, setViewRange,
+			selectedRange, setSelectedRange
 		}}>
 			{activePopup && query.data && <>
 				<div className='popupBackground'></div>
