@@ -119,6 +119,11 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		}
 	}, [u, selectedRange]);
 
+	useEffect(() => {
+		u?.setData(plotData as any, false);
+		u?.redraw();
+	}, [u, plotData]);
+
 	useLayoutEffect(() => {
 		u?.setSize(size);
 		u?.setCursor({ left: -1, top: -1 });
@@ -209,7 +214,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		} };
 		return <UplotReact {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	// Size changes are done through useEffect, without reiniting whole plot
-	}, [data, levels, stations]); // eslint-disable-line
+	}, [data[0][0], data[0][data[0].length-1], stations]); // eslint-disable-line
 	
 	const focusedStation = legend?.find((s) => s.focus)?.name ?? primeStation;
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>

@@ -38,7 +38,7 @@ function queryFunction(path: string, interval: [Date, Date], qStations: string[]
 		const time = body.rows.map(row => row[0]);
 		const data = Array.from(stations.keys()).map(i => body.rows.map(row => row[i+1]));
 		const averages = data.map((sd) => {
-			const s = sd.slice().sort(), mid = Math.floor(sd.length / 2);
+			const s = sd.filter(v => v != null).slice().sort((a, b) => a - b), mid = Math.floor(sd.length / 2);
 			return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
 		});
 		const sortedIdx = Array.from(stations.keys()).filter(i => averages[i] > 0).sort((a, b) => averages[a] - averages[b]);

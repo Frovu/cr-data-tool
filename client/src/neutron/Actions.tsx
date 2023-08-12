@@ -41,7 +41,7 @@ export function FetchMenu() {
 				{mutation.isLoading ? 'loading..' : report}
 			</pre>
 		</p>
-		<button style={{ padding: '2px 16px' }} disabled={mutation.isLoading || primeStation == null}
+		<button style={{ padding: '2px 16px' }} disabled={mutation.isLoading || primeStation == null} autoFocus={primeStation != null}
 			onClick={()=>mutation.mutate([primeStation!])}>Fetch {primeStation?.toUpperCase() ?? '???'}</button>
 		<button style={{ padding: '2px 16px', marginLeft: 24 }} disabled={mutation.isLoading}
 			onClick={()=>mutation.mutate(stations)}>Fetch all</button>
