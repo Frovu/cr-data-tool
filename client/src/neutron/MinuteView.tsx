@@ -32,7 +32,7 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 
 	const options = {
 		width: 356, height: 240,
-		// legend: { show: false },
+		legend: { show: false },
 		padding: [8, 8, 0, 0],
 		cursor: {
 			points: {
@@ -74,12 +74,12 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 				stroke: color('green'),
 			},
 			{
-				width: 2,
-				stroke: color('magenta'),
+				width: 1,
+				stroke: color('cyan'),
 			},
 			{
-				width: 2,
-				stroke: color('cyan'),
+				width: 1,
+				stroke: color('magenta'),
 			}
 		],
 		hooks: {
@@ -95,7 +95,7 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 				Array.from(Array(60).keys()),
 				Array(60).fill(query.data.integrated),
 				query.data.raw,
-				query.data.filtered
+				query.data.filtered.map((v, i) => v === query.data.raw[i] ? null : v)
 			], onCreate: console.log }}/>
 		</div>);
 }

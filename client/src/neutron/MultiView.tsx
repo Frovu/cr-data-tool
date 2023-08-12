@@ -1,11 +1,11 @@
-import { useQuery } from 'react-query';
 import uPlot from 'uplot';
 import { color, font } from '../plotUtil';
 import UplotReact from 'uplot-react';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useEventListener, useSize } from '../util';
 import { createPortal } from 'react-dom';
 import MinuteView from './MinuteView';
+import { NeutronContext } from './Neutron';
 
 function plotOptions(stations: string[], levels: number[]) {
 	const serColor = (u: any, idx: number) => {
@@ -94,50 +94,14 @@ function plotOptions(stations: string[], levels: number[]) {
 	} as Omit<uPlot.Options, 'height'|'width'>;
 }
 
-function queryFunction(path: string, interval: [Date, Date], qStations: string[]) {
-	return async () => {
-		const urlPara = new URLSearchParams({
-			from: (interval[0].getTime() / 1000).toFixed(0),
-			to:   (interval[1].getTime() / 1000).toFixed(0),
-			stations: qStations.join(),
-		}).toString();
-		const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara);
-		if (res.status !== 200)
-			throw Error('HTTP '+res.status);
-		const body = await res.json() as { rows: any[][], fields: string[] };
-		if (!body?.rows.length) return null;
-		console.log(path, '=>', body);
-
-		const stations = body.fields.slice(1);
-		const time = body.rows.map(row => row[0]);
-		const data = Array.from(stations.keys()).map(i => body.rows.map(row => row[i+1]));
-		const averages = data.map((sd) => {
-			const s = sd.slice().sort(), mid = Math.floor(sd.length / 2);
-			return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
-		});
-		const sortedIdx = Array.from(stations.keys()).filter(i => averages[i] > 0).sort((a, b) => averages[a] - averages[b]);
-		const distance = (averages[sortedIdx[sortedIdx.length-1]] - averages[sortedIdx[0]]) / sortedIdx.length;
-		const spreaded = sortedIdx.map((idx, i) => data[idx].map(val => 
-			val == null ? null : (val - averages[idx] - i * distance) ));
-
-		return {
-			data: [time, ...sortedIdx.map(i => data[i])],
-			plotData: [time, ...spreaded],
-			stations: sortedIdx.map(i => stations[i]),
-			levels: sortedIdx.map((idx, i) => - i * distance)
-		};
-	};
-}
-
 export function ManyStationsView({ interval, legendContainer, detailsContainer }:
 { interval: [Date, Date], legendContainer: Element | null, detailsContainer: Element | null }) {
-	const queryStations = ['all'];
-	const query = useQuery(['manyStations', queryStations, interval], queryFunction('api/neutron', interval, queryStations));
+	const {
+		data, plotData, primeStation, setPrimeStation, stations, levels
+	} = useContext(NeutronContext)!;
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
-
-	const [primaryStation, setPrimaryStation] = useState<string | null>(null);
 
 	const [u, setUplot] = useState<uPlot>();
 	// const [cursorIdx, setCursorIdx] = useState<number | null>(null);
@@ -165,33 +129,32 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 
 	useEffect(() => {
 		if (!u) return;
-		(u as any)._prime = primaryStation;
+		(u as any)._prime = primeStation;
 		u.redraw(false, true);
-	}, [u, primaryStation]);
+	}, [u, primeStation]);
 
 	useEventListener('click', () => {
 		u && u.cursor.idx && u.setCursor({ left: u.cursor.left!, top: u.cursor.top! });
 	});
 	useEventListener('dblclick', (e: MouseEvent) => {
-		if (!u || !query.data) return;
+		if (!u) return;
 		const ser = u.series.find((s: any) => s._focus && s.scale !== 'x');
-		if (ser) setPrimaryStation(ser.label!);
+		if (ser) setPrimeStation(ser.label!);
 	});
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (!u || !query.data) return;
+		if (!u) return;
 		const moveCur = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
 		const movePrime = { ArrowUp: -1, ArrowDown: 1 }[e.key];
 		if (moveCur) {
-			const data = query.data.plotData;
-			const length = data[0].length;
+			const length = plotData[0].length;
 			const left = u.valToIdx(u.scales.x.min!), right = u.valToIdx(u.scales.x.max!);
 			const cur = u.cursor.idx ?? (moveCur < 0 ? right + 1 : left - 1);
 			const move = moveCur * (e.ctrlKey ? Math.ceil(length / 64) : 1)
 				* (e.altKey ? Math.ceil(length / 16) : 1);
 			const idx = Math.max(left, Math.min(cur + move, right));
-			const primeIdx = primaryStation == null ? null : query.data.stations.indexOf(primaryStation);
-			const primePos = primeIdx == null ? null : u.valToPos(data[primeIdx + 1][idx] ?? query.data.levels[primeIdx], 'y');
-			u.setCursor({ left: u.valToPos(data[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 });
+			const primeIdx = primeStation == null ? null : stations.indexOf(primeStation);
+			const primePos = primeIdx == null ? null : u.valToPos(data[primeIdx + 1][idx] ?? levels[primeIdx], 'y');
+			u.setCursor({ left: u.valToPos(plotData[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 });
 			if (primeIdx != null) u.setSeries(1 + primeIdx, { focus: true });
 			setSelection((() => {
 				if (!e.shiftKey) return null;
@@ -205,13 +168,12 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 				};
 			})());
 		} else if (movePrime && e.ctrlKey) {
-			const sts = query.data.stations;
-			setPrimaryStation(p => {
-				const idx = p ? Math.max(0, Math.min(sts.indexOf(p) + movePrime, sts.length - 1)) : movePrime < 0 ? sts.length - 1 : 0;
+			setPrimeStation(p => {
+				const idx = p ? Math.max(0, Math.min(stations.indexOf(p) + movePrime, stations.length - 1)) : movePrime < 0 ? stations.length - 1 : 0;
 				if (u.cursor.idx != null)
-					u.setCursor({ left: u.cursor.left!, top: u.valToPos(query.data?.plotData[idx + 1][u.cursor.idx] ?? query.data?.levels[idx], 'y') });
+					u.setCursor({ left: u.cursor.left!, top: u.valToPos(plotData[idx + 1][u.cursor.idx] ?? levels[idx], 'y') });
 				u.setSeries(1 + idx, { focus: true });
-				return sts[idx];
+				return stations[idx];
 			});
 		} else if (e.code === 'KeyZ' && selection) {
 			u.setScale('x', { min: u.data[0][selection.min], max: u.data[0][selection.max] });
@@ -226,9 +188,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 
 	const [legend, setLegend] = useState<{ name: string, value: number, focus: boolean }[] | null>(null); 
 	const plot = useMemo(() => {
-		if (!query.data) return null;
-		const { data, plotData, stations } = query.data;
-		const options = { ...size, ...plotOptions(stations, query.data.levels), hooks: {
+		const options = { ...size, ...plotOptions(stations, levels), hooks: {
 			setLegend: [
 				(upl: uPlot) => {
 					const idx = upl.legend.idx;
@@ -253,27 +213,13 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		} };
 		return <UplotReact {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	// Size changes are done through useEffect, without reiniting whole plot
-	}, [query.data]); // eslint-disable-line
-
-	if (query.isLoading)
-		return <div className='center'>LOADING...</div>;
-	if (query.isError)
-		return <div className='center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
-	if (!query.data)
-		return <div className='center'>NO DATA</div>;
+	}, [data, levels, stations]); // eslint-disable-line
 	
-	const focusedStation = legend?.find((s) => s.focus)?.name ?? primaryStation;
+	const focusedStation = legend?.find((s) => s.focus)?.name ?? primeStation;
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 		{plot}
 		{legendContainer && createPortal((
 			<>
-				<div style={{ margin: '0 0 4px 16px' }}>
-					Primary station: <select style={{ color: primaryStation ? 'var(--color-green)' : 'var(--color-text)' }} 
-						value={primaryStation ?? 'none'} onChange={e => setPrimaryStation(e.target.value === 'none' ? null : e.target.value)}>
-						<option value='none'>none</option>
-						{query.data.stations.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
-					</select>
-				</div>
 				{legend && <div style={{ display: 'grid', border: '2px var(--color-border) solid', padding: '2px 4px',
 					gridTemplateColumns: 'repeat(3, 120px)' }}>
 					{legend.map(({ name, value, focus }) =>
