@@ -108,6 +108,9 @@ def get_stations(group_partial=False, ids=False):
 	# TODO: another criteria
 	return [(s.id if ids else s) for s in all_stations if not group_partial or s.prefer_nmdb]
 
+def resolve_station(name: str) -> Station:
+	return next((s for s in all_stations if s.id.lower() == name.lower()), None)
+
 def _obtain_group(interval, group_partial=False):
 	stations = get_stations(group_partial)
 	

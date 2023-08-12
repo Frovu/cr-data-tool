@@ -10,7 +10,6 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 		queryKey: ['minuteView', timestamp, queryStation],
 		keepPreviousData: true,
 		queryFn: async () => {
-
 			const urlPara = new URLSearchParams({
 				timestamp: timestamp.toString(),
 				station: queryStation
@@ -18,9 +17,8 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 			const res = await fetch(process.env.REACT_APP_API + 'api/neutron/minutes?' + urlPara);
 			if (res.status !== 200)
 				throw Error('HTTP '+res.status);
-			const body = await res.json() as { station: string, minutes: number[] };
-			console.log(body.station, timestamp, ' minutes => ', body.minutes);
-	
+			const body = await res.json() as { station: string, raw: number[], filtered: number[], integrated: number };
+			console.log('minutes => ', body);
 			return body;
 		}
 	});
@@ -34,7 +32,7 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 
 	const options = {
 		width: 356, height: 240,
-		legend: { show: false },
+		// legend: { show: false },
 		padding: [8, 8, 0, 0],
 		cursor: {
 			points: {
@@ -73,8 +71,15 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 			{ stroke: color('text') },
 			{
 				width: 2,
-				stroke: color('cyan', .7),
-				grid: { stroke: color('grid'), width: 1 },
+				stroke: color('green'),
+			},
+			{
+				width: 2,
+				stroke: color('magenta'),
+			},
+			{
+				width: 2,
+				stroke: color('cyan'),
 			}
 		],
 		hooks: {
@@ -86,6 +91,11 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 	
 	return (
 		<div style={{ position: 'absolute' }}>
-			<UplotReact {...{ options, data: [Array.from(Array(60).keys()), query.data.minutes] }}/>
+			<UplotReact {...{ options, data: [
+				Array.from(Array(60).keys()),
+				Array(60).fill(query.data.integrated),
+				query.data.raw,
+				query.data.filtered
+			], onCreate: console.log }}/>
 		</div>);
 }

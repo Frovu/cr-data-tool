@@ -23,5 +23,8 @@ def get_neutron():
 @route_shielded
 def get_minutes():
 	timestamp = int(request.args.get('timestamp'))
-	station = request.args.get('station') # FIXME !!
-	return { 'station': station, 'minutes': corrections.get_minutes(station, timestamp) }
+	sname = request.args.get('station') # FIXME !!
+	station = neutron.resolve_station(sname)
+	if station is None:
+		raise ValueError('Unknown station')
+	return corrections.get_minutes(station, timestamp)

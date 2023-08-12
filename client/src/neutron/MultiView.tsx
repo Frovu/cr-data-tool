@@ -208,7 +208,6 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 			const sts = query.data.stations;
 			setPrimaryStation(p => {
 				const idx = p ? Math.max(0, Math.min(sts.indexOf(p) + movePrime, sts.length - 1)) : movePrime < 0 ? sts.length - 1 : 0;
-				console.log(idx);
 				if (u.cursor.idx != null)
 					u.setCursor({ left: u.cursor.left!, top: u.valToPos(query.data?.plotData[idx + 1][u.cursor.idx] ?? query.data?.levels[idx], 'y') });
 				u.setSeries(1 + idx, { focus: true });
