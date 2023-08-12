@@ -140,7 +140,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 	const [primaryStation, setPrimaryStation] = useState<string | null>(null);
 
 	const [u, setUplot] = useState<uPlot>();
-	const [cursorIdx, setCursorIdx] = useState<number | null>(null);
+	// const [cursorIdx, setCursorIdx] = useState<number | null>(null);
 
 	const [selection, setSelect] = useState<null | { min: number, max: number }>(null);
 	const setSelection = (sel: null | { min: number, max: number }) => {
@@ -233,9 +233,9 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 						({ name: s.toUpperCase().slice(0, 4), value: data[1 + si][idx], focus: (upl.series[1 + si] as any)._focus })));
 				}
 			],
-			setCursor: [
-				(upl: any) => setCursorIdx(upl.cursor._lock ? upl.cursor.idx : null)
-			],
+			// setCursor: [
+			// 	(upl: any) => setCursorIdx(upl.cursor._lock ? upl.cursor.idx : null)
+			// ],
 			setSelect: [
 				(upl: uPlot) => setSelect(upl.select ? {
 					min: upl.posToIdx(upl.select.left),
@@ -244,7 +244,6 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 			],
 			setSeries: [
 				(upl: any, si: any) => upl.setLegend({ idx: upl.legend.idx })
-
 			]
 		} };
 		return <UplotReact {...{ options, data: plotData as any, onCreate: setUplot }}/>;
@@ -256,7 +255,8 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		return <div className='center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 	if (!query.data)
 		return <div className='center'>NO DATA</div>;
-		
+	
+	const focusedStation = legend?.find((s) => s.focus)?.name ?? primaryStation;
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 		{plot}
 		{legendContainer && createPortal((
@@ -275,9 +275,9 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 				</div>}
 			</>
 		), legendContainer)}
-		{cursorIdx && primaryStation && detailsContainer && createPortal((
+		{focusedStation && u?.cursor.idx && detailsContainer && createPortal((
 			<div style={{ position: 'relative', border: '2px var(--color-border) solid', width: 356, height: 240 }}>
-				<MinuteView {...{ station: primaryStation, timestamp: u!.data[0][cursorIdx] }}/>
+				<MinuteView {...{ station: focusedStation, timestamp: u!.data[0][u?.cursor.idx] }}/>
 			</div>
 		), detailsContainer)}
 	</div>);

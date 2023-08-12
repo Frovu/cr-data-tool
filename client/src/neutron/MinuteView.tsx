@@ -5,19 +5,32 @@ import UplotReact from 'uplot-react';
 import { useEffect, useMemo, useState } from 'react';
 import { prettyDate, useEventListener, useSize } from '../util';
 
-export default function MinuteView({ timestamp, station }: { timestamp: number, station: string }) {
+export default function MinuteView({ timestamp, station: queryStation }: { timestamp: number, station: string }) {
+	const query = useQuery({
+		queryKey: ['minuteView', timestamp, queryStation],
+		keepPreviousData: true,
+		queryFn: async () => {
 
-	const query = useQuery(['minuteView', timestamp, station], async () => {
-
-		const urlPara = new URLSearchParams({ timestamp: timestamp.toString(), station }).toString();
-		const res = await fetch(process.env.REACT_APP_API + 'api/neutron/minutes?' + urlPara);
-		if (res.status !== 200)
-			throw Error('HTTP '+res.status);
-		const body = await res.json() as { minutes: null | number[] };
-		console.log(station, timestamp, ' minutes => ', body.minutes);
-
-		return body.minutes;
+			const urlPara = new URLSearchParams({
+				timestamp: timestamp.toString(),
+				station: queryStation
+			}).toString();
+			const res = await fetch(process.env.REACT_APP_API + 'api/neutron/minutes?' + urlPara);
+			if (res.status !== 200)
+				throw Error('HTTP '+res.status);
+			const body = await res.json() as { station: string, minutes: number[] };
+			console.log(body.station, timestamp, ' minutes => ', body.minutes);
+	
+			return body;
+		}
 	});
+
+	if (query.isLoading)
+		return null;
+	if (query.isError)
+		return <div className='center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
+	if (!query.data)
+		return <div className='center'>NO DATA</div>;
 
 	const options = {
 		width: 356, height: 240,
@@ -45,7 +58,7 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 				stroke: color('text'),
 				grid: { show: true, stroke: color('grid'), width: 2 },
 				ticks: { stroke: color('grid'), width: 2 },
-				values: (u, vals) => ['', '', `${station.toUpperCase()} minutes of ${prettyDate(new Date(timestamp*1000))}`, ...vals.map(s => '')],
+				values: (u, vals) => ['', '', `${query.data.station.toUpperCase()} minutes of ${prettyDate(new Date(timestamp*1000))}`, ...vals.map(s => '')],
 			},
 			{
 				size: 40,
@@ -63,18 +76,16 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 				stroke: color('cyan', .7),
 				grid: { stroke: color('grid'), width: 1 },
 			}
-		]
+		],
+		hooks: {
+			ready: [
+				(u: uPlot) => u.setCursor({ left: -1, top: -1 }) // ??
+			]
+		}
 	} as uPlot.Options;
-
-	if (query.isLoading)
-		return <div className='center'>LOADING...</div>;
-	if (query.isError)
-		return <div className='center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
-	if (!query.data)
-		return <div className='center'>NO DATA</div>;
-
+	
 	return (
 		<div style={{ position: 'absolute' }}>
-			<UplotReact {...{ options, data: [Array.from(Array(60).keys()), query.data] }}/>
+			<UplotReact {...{ options, data: [Array.from(Array(60).keys()), query.data.minutes] }}/>
 		</div>);
 }

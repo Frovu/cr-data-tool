@@ -24,4 +24,4 @@ def get_neutron():
 def get_minutes():
 	timestamp = int(request.args.get('timestamp'))
 	station = request.args.get('station') # FIXME !!
-	return { 'minutes': corrections.get_minutes(station, timestamp) }
+	return { 'station': station, 'minutes': corrections.get_minutes(station, timestamp) }
