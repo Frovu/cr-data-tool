@@ -11,8 +11,9 @@ def get_minutes(station, timestamp):
 		curs = conn.execute(f'SELECT corrected FROM nm.{station.id}_1min ' + \
 			'WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s) + \'1 hour\'::interval ORDER BY time', [timestamp, timestamp])
 		raw = np.array(curs.fetchall(), 'f8')[:,0]
-	filtered = filter_for_integration(raw)
-	integrated = integrate(raw)
+	copy = np.copy(raw)
+	filtered = filter_for_integration(copy)
+	integrated = integrate(copy)
 
 	return {
 		'station': station.id,

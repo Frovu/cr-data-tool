@@ -81,6 +81,7 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 			{
 				width: 1,
 				stroke: color('magenta'),
+				points: { size: 8, show: true, fill: color('magenta'), stroke: color('magenta') }
 			}
 		],
 		hooks: {
@@ -95,8 +96,8 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 			<UplotReact {...{ options, data: [
 				Array.from(Array(60).keys()),
 				Array(60).fill(query.data.integrated),
-				query.data.raw,
-				query.data.filtered.map((v, i) => v === query.data.raw[i] ? null : v)
+				query.data.filtered,
+				query.data.raw.map((v, i) => v === query.data.filtered[i] ? null : v)
 			] }}/>
 		</div>);
 }

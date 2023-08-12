@@ -37,10 +37,10 @@ export function FetchMenu() {
 			<b>{Math.ceil((interval[1] - interval[0]) / 3600) + 1}</b> hours<br/>
 			from {prettyDate(new Date(1e3*interval[0]))}<br/>
 			to {prettyDate(new Date(1e3*interval[1]))}<br/>
-			<pre style={{ color: mutation.isError ? 'var(--color-red)' :  mutation.isLoading ? 'var(--color-text)' : 'var(--color-green)' }}>
-				{mutation.isLoading ? 'loading..' : report}
-			</pre>
 		</p>
+		<pre style={{ color: mutation.isError ? 'var(--color-red)' :  mutation.isLoading ? 'var(--color-text)' : 'var(--color-green)' }}>
+			{mutation.isLoading ? 'loading..' : report}
+		</pre>
 		<button style={{ padding: '2px 16px' }} disabled={mutation.isLoading || primeStation == null} autoFocus={primeStation != null}
 			onClick={()=>mutation.mutate([primeStation!])}>Fetch {primeStation?.toUpperCase() ?? '???'}</button>
 		<button style={{ padding: '2px 16px', marginLeft: 24 }} disabled={mutation.isLoading}
