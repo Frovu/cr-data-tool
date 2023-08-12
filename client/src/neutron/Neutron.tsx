@@ -86,6 +86,8 @@ export default function Neutron() {
 			{activePopup && query.data && <>
 				<div className='popupBackground'></div>
 				<div className='popup' style={{ left: '50%', top: '45%' }}>
+					<span onClick={() => openPopup(null)}
+						style={{ position: 'absolute', top: 4, right: 5 }} className='closeButton'>&times;</span>
 					<FetchMenu/>
 				</div>
 			</>}
