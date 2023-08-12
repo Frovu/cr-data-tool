@@ -153,7 +153,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 				* (e.altKey ? Math.ceil(length / 16) : 1);
 			const idx = Math.max(left, Math.min(cur + move, right));
 			const primeIdx = primeStation == null ? null : stations.indexOf(primeStation);
-			const primePos = primeIdx == null ? null : u.valToPos(data[primeIdx + 1][idx] ?? levels[primeIdx], 'y');
+			const primePos = primeIdx == null ? null : u.valToPos(plotData[primeIdx + 1][idx] ?? levels[primeIdx], 'y');
 			u.setCursor({ left: u.valToPos(plotData[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 });
 			if (primeIdx != null) u.setSeries(1 + primeIdx, { focus: true });
 			setSelection((() => {
@@ -227,7 +227,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 				</div>}
 			</>
 		), legendContainer)}
-		{focusedStation && u?.cursor.idx && detailsContainer && createPortal((
+		{focusedStation && u?.cursor.idx != null && detailsContainer && createPortal((
 			<div style={{ position: 'relative', border: '2px var(--color-border) solid', width: 356, height: 240 }}>
 				<MinuteView {...{ station: focusedStation, timestamp: u!.data[0][u?.cursor.idx] }}/>
 			</div>
