@@ -219,7 +219,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		} };
 		return <UplotReact {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	// Size changes are done through useEffect, without reiniting whole plot
-	}, [data[0][0], data[0][data[0].length-1], stations]); // eslint-disable-line
+	}, [data[0][0], data[0][data[0].length-1], stations.join()]); // eslint-disable-line
 	
 	const focusedStation = legend?.find((s) => s.focus)?.name ?? primeStation;
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>

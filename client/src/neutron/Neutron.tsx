@@ -1,4 +1,4 @@
-import { SetStateAction, createContext, useEffect, useState } from 'react';
+import { SetStateAction, createContext, useEffect, useMemo, useState } from 'react';
 import { ManyStationsView } from './MultiView';
 import { useQuery } from 'react-query';
 import { FetchMenu } from './Actions';
@@ -35,25 +35,7 @@ function queryFunction(path: string, interval: [Date, Date], qStations: string[]
 		const body = await res.json() as { rows: any[][], fields: string[] };
 		if (!body?.rows.length) return null;
 		console.log(path, '=>', body);
-
-		const stations = body.fields.slice(1);
-		const time = body.rows.map(row => row[0]);
-		const data = Array.from(stations.keys()).map(i => body.rows.map(row => row[i+1]));
-		const averages = data.map((sd) => {
-			const s = sd.filter(v => v != null).slice().sort((a, b) => a - b), mid = Math.floor(sd.length / 2);
-			return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
-		});
-		const sortedIdx = Array.from(stations.keys()).filter(i => averages[i] > 0).sort((a, b) => averages[a] - averages[b]);
-		const distance = (averages[sortedIdx[sortedIdx.length-1]] - averages[sortedIdx[0]]) / sortedIdx.length;
-		const spreaded = sortedIdx.map((idx, i) => data[idx].map(val => 
-			val == null ? null : (val - averages[idx] - i * distance) ));
-
-		return {
-			data: [time, ...sortedIdx.map(i => data[i])],
-			plotData: [time, ...spreaded],
-			stations: sortedIdx.map(i => stations[i]),
-			levels: sortedIdx.map((idx, i) => - i * distance)
-		};
+		return body;
 	};
 }
 
@@ -74,9 +56,34 @@ export default function Neutron() {
 	const [selectedRange, setSelectedRange] = useState<null | number[]>(null);
 
 	const [corrections, setCorrections] = useState<{ [station: string]: (number|null)[] }>({});
+
+	const dataState = useMemo(() => {
+		if (!query.data) return null;
+		const stations = query.data.fields.slice(1);
+		const time = query.data.rows.map(row => row[0]);
+		const data = stations.map((s, i) => query.data!.rows
+			.map((row, ri) => corrections[s]?.[ri]! < 0 ? null : corrections[s]?.[ri] ?? row[i+1]));
+
+		const averages = data.map((sd) => {
+			const s = sd.filter(v => v != null).slice().sort((a, b) => a - b), mid = Math.floor(sd.length / 2);
+			return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
+		});
+		const sortedIdx = Array.from(stations.keys()).filter(i => averages[i] > 0).sort((a, b) => averages[a] - averages[b]);
+		const distance = (averages[sortedIdx[sortedIdx.length-1]] - averages[sortedIdx[0]]) / sortedIdx.length;
+		const spreaded = sortedIdx.map((idx, i) => data[idx].map(val => 
+			val == null ? null : (val - averages[idx] - i * distance) ));
+
+		return {
+			data: [time, ...sortedIdx.map(i => data[i])],
+			plotData: [time, ...spreaded],
+			stations: sortedIdx.map(i => stations[i]),
+			levels: sortedIdx.map((idx, i) => - i * distance)
+		};
+	}, [query.data, corrections]);
+
 	const addCorrection = (station: string, fromIndex: number, values: number[]) => {
 		setCorrections(corr => {
-			const corrs = corr[station]?.slice() ?? Array(query.data?.data[0].length).fill(null);
+			const corrs = corr[station]?.slice() ?? Array(dataState?.data[0].length).fill(null);
 			corrs.splice(fromIndex, values.length, ...values);
 			return { ...corr, [station]: corrs };
 		});
@@ -88,12 +95,11 @@ export default function Neutron() {
 		setCorrections({});
 		setCursorIdx(null);
 		setSelectedRange(null);
-	}, [queryStations, year, month, monthCount, query.data?.data.length]);
+	}, [queryStations, year, month, monthCount, dataState?.data.length]);
 
 	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	
-	console.log(cursorIdx)
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'KeyF')
 			openPopup('refetch');
@@ -105,7 +111,6 @@ export default function Neutron() {
 			const fromIdx = selectedRange?.[0] ?? cursorIdx;
 			if (fromIdx == null || primeStation == null) return;
 			const length = selectedRange != null ? (selectedRange[1] - selectedRange[0] + 1) : 1;
-			console.log(fromIdx, length)
 			addCorrection(primeStation, fromIdx, Array(length).fill(-999));
 		} else if ('KeyR' === e.code) {
 			setCorrections({});
@@ -113,8 +118,8 @@ export default function Neutron() {
 	});
 
 	return (
-		<NeutronContext.Provider value={query.data == null ? null : {
-			...query.data,
+		<NeutronContext.Provider value={dataState == null ? null : {
+			...dataState,
 			cursorIdx, setCursorIdx,
 			primeStation, setPrimeStation,
 			viewRange, setViewRange,
@@ -143,7 +148,7 @@ export default function Neutron() {
 						Primary station: <select style={{ color: primeStation ? 'var(--color-green)' : 'var(--color-text)' }} 
 							value={primeStation ?? 'none'} onChange={e => setPrimeStation(e.target.value === 'none' ? null : e.target.value)}>
 							<option value='none'>none</option>
-							{query.data.stations.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
+							{dataState?.stations.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
 						</select>
 					</div>}
 					<div ref={node => setTopContainer(node)}></div>
