@@ -1,5 +1,5 @@
 from database import pool, upsert_many
-from neutron.neutron import filter_for_integration, integrate, select, obtain_many, update_result_table
+from neutron.neutron import filter_for_integration, integrate, select, fetch, obtain_many, update_result_table
 from datetime import datetime
 import time, logging
 import numpy as np
@@ -38,6 +38,20 @@ def refetch(interval, stations):
 	return {
 		'duration': time.time() - t0,
 		'changeCounts': counts
+	}
+
+def fetch_rich(interval, stations):
+	rows_rev, fields = fetch(interval, stations)
+	t_from, t_to = rows_rev[0][0], rows_rev[-1][0]
+	with pool.connection() as conn:
+		corrected = [np.array(conn.execute(f'SELECT corrected FROM generate_series(to_timestamp(%s), to_timestamp(%s), \'1 hour\'::interval) tm ' +\
+			f'LEFT JOIN nm.{st}_1h ON time = tm', [t_from, t_to]).fetchall())[:,0] for st in stations]
+	times = np.arange(t_from, t_to+1, 3600)
+
+	return {
+		'fields': fields,
+		'corrected': np.column_stack([times, *corrected]).tolist(),
+		'revised': rows_rev
 	}
 
 def revision(stationRevisions):

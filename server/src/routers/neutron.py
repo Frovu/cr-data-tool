@@ -19,6 +19,20 @@ def get_neutron():
 	rows, fields = neutron.fetch((t_from, t_to), stations)
 	return { 'fields': fields, 'rows': rows }
 
+@bp.route('/rich', methods=['GET'])
+@route_shielded
+def get_rich_neutron():
+	t_from = int(request.args.get('from'))
+	t_to = int(request.args.get('to'))
+	sts_req = request.args.get('stations', 'all').lower()
+	all_stations = neutron.get_stations(ids=True)
+	stations = all_stations if sts_req == 'all' else [s for s in all_stations if s.lower() in sts_req.split(',')]
+	if not len(stations):
+		raise ValueError('No stations match query')
+	if t_from >= t_to:
+		raise ValueError('Bad interval')
+	return corrections.fetch_rich((t_from, t_to), stations)
+
 @bp.route('/minutes', methods=['GET'])
 @route_shielded
 def get_minutes():

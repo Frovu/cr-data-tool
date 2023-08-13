@@ -35,8 +35,8 @@ function queryFunction(path: string, interval: [Date, Date], qStations: string[]
 		const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara);
 		if (res.status !== 200)
 			throw Error('HTTP '+res.status);
-		const body = await res.json() as { rows: any[][], fields: string[] };
-		if (!body?.rows.length) return null;
+		const body = await res.json() as { fields: string[], corrected: any[][], revised: any[][],  };
+		if (!body?.revised.length) return null;
 		console.log(path, '=>', body);
 		return body;
 	};
@@ -49,7 +49,7 @@ export default function Neutron() {
 	const interval = [0, monthCount].map(inc => new Date(Date.UTC(year, month + inc))) as [Date, Date];
 
 	const queryStations = 'all';
-	const query = useQuery(['manyStations', queryStations, interval], queryFunction('api/neutron', interval, [queryStations]));
+	const query = useQuery(['manyStations', queryStations, interval], queryFunction('api/neutron/rich', interval, [queryStations]));
 
 	const [activePopup, openPopup] = useState<ActionMenu | null>(null);
 
@@ -63,10 +63,10 @@ export default function Neutron() {
 	const dataState = useMemo(() => {
 		if (!query.data) return null;
 		const stations = query.data.fields.slice(1);
-		const time = query.data.rows.map(row => row[0]);
-		const uncorrectedData = stations.map((s, i) => query.data!.rows.map(row => row[i+1]));
-		const data = stations.map((s, i) => uncorrectedData[i]
-			.map((val, ri) => corrections[s]?.[ri]! < 0 ? null : corrections[s]?.[ri] ?? val));
+		const time = query.data.revised.map(row => row[0]);
+		const uncorrectedData = stations.map((s, i) => query.data!.corrected.map(row => row[i+1]));
+		const data = stations.map((s, i) => query.data!.revised
+			.map((row, ri) => corrections[s]?.[ri]! < 0 ? null : corrections[s]?.[ri] ?? row[i+1]));
 
 		const averages = data.map((sd) => {
 			const s = sd.filter(v => v != null).slice().sort((a, b) => a - b), mid = Math.floor(sd.length / 2);
