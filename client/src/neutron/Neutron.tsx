@@ -1,10 +1,10 @@
 import { SetStateAction, createContext, useEffect, useMemo, useState } from 'react';
 import { ManyStationsView } from './MultiView';
 import { useQuery } from 'react-query';
-import { FetchMenu } from './Actions';
+import { CommitMenu, FetchMenu } from './Actions';
 import { useEventListener } from '../util';
 
-type ActionMenu = 'refetch';
+type ActionMenu = 'refetch' | 'commit';
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export const NeutronContext = createContext<{
@@ -16,6 +16,8 @@ export const NeutronContext = createContext<{
 	cursorIdx: number | null,
 	viewRange: number[],
 	selectedRange: number[] | null,
+	corrections: { [st: string]: (number | null)[] },
+	openPopup: (a: SetStateAction<ActionMenu | null>) => void,
 	setCursorIdx: (a: SetStateAction<number | null>) => void,
 	setPrimeStation: (a: SetStateAction<string | null>) => void,
 	setViewRange: (a: SetStateAction<number[]>) => void,
@@ -107,6 +109,8 @@ export default function Neutron() {
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'KeyF')
 			openPopup('refetch');
+		if (e.code === 'KeyC')
+			openPopup('commit');
 		else if (e.code === 'Escape')
 			openPopup(null);
 		if (activePopup)
@@ -127,14 +131,16 @@ export default function Neutron() {
 			cursorIdx, setCursorIdx,
 			primeStation, setPrimeStation,
 			viewRange, setViewRange,
-			selectedRange, setSelectedRange
+			selectedRange, setSelectedRange,
+			corrections, openPopup
 		}}>
 			{activePopup && query.data && <>
 				<div className='popupBackground'></div>
 				<div className='popup' style={{ left: '50%', top: '45%' }}>
 					<span onClick={() => openPopup(null)}
 						style={{ position: 'absolute', top: 4, right: 5 }} className='closeButton'>&times;</span>
-					<FetchMenu/>
+					{activePopup === 'refetch' && <FetchMenu/>}
+					{activePopup === 'commit' && <CommitMenu/>}
 				</div>
 			</>}
 			<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>

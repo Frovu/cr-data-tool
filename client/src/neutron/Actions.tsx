@@ -47,3 +47,48 @@ export function FetchMenu() {
 			onClick={()=>mutation.mutate(stations)}>Fetch all</button>
 	</div>);
 }
+
+export function CommitMenu() {
+	const queryClient = useQueryClient();
+
+	const { data, corrections: corrs, openPopup } = useContext(NeutronContext)!;
+
+	const [report, setReport] = useState('');
+
+	const corrections = Object.fromEntries(Object.entries(corrs)
+		.map(([sta, values]) => [sta,
+			values.map((v, i) => v == null ? null : [data[0][i], v]).filter((ch): ch is number[] => ch != null)]));
+
+	const mutation = useMutation(async () => {
+		const res = await fetch(process.env.REACT_APP_API + 'api/neutron/revision', {
+			method: 'POST', credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ revisions: corrections })
+		});
+		if (res.status !== 200)
+			throw Error('HTTP '+res.status);
+		return await res.text();
+	}, {
+		onError: (e: any) => setReport(e.toString()),
+		onSuccess: () => {
+			queryClient.invalidateQueries();
+			openPopup(p => p !== 'commit' ? p : null);
+		}
+	});
+
+	return (<div>
+		<h4 style={{ margin: '1em 0 1.5em 0' }}>Commit revisions?</h4>
+		<div style={{ margin: '1em 3em 0 3em', textAlign: 'right', lineHeight: '1.25em' }}>
+			{Object.entries(corrections).map(([sta, corrs]) =>
+				<p style={{ margin: '1em 0 0 0' }}>
+					<span style={{ color: 'var(--color-magenta)' }}>[{sta.toUpperCase()}]</span> <b>{corrs.length} </b>
+					change{corrs.length === 1 ? '' : 's'} between&nbsp;
+					{prettyDate(new Date(1e3*corrs[0][0]))}<br/> and {prettyDate(new Date(1e3*corrs[corrs.length-1][0]))} </p>)}
+		</div>
+		<pre style={{ height: '1.25em', color: mutation.isError ? 'var(--color-red)' :  mutation.isLoading ? 'var(--color-text)' : 'var(--color-green)' }}>
+			{mutation.isLoading ? 'loading..' : report}
+		</pre>
+		<button style={{ padding: '2px 24px' }} autoFocus disabled={mutation.isLoading} onClick={()=>mutation.mutate()}>COMMIT</button>
+		<button style={{ padding: '2px 24px', marginLeft: 24 }} onClick={() => openPopup(null)}>CANCEL</button>
+	</div>);
+}

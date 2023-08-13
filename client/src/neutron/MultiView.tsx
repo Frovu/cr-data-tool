@@ -205,7 +205,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 					if (idx == null)
 						return setLegend(null);
 					setLegend(stations.map((s, si) =>
-						({ name: s.toUpperCase().slice(0, 4), value: data[1 + si][idx], focus: (upl.series[1 + si] as any)._focus })));
+						({ name: s.toUpperCase().slice(0, 4), value: data[1 + si][idx], focus: (upl.series[1 + si + stations.length] as any)._focus })));
 				}
 			],
 			setCursor: [
