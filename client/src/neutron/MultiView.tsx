@@ -87,9 +87,9 @@ function plotOptions(stations: string[], levels: number[]) {
 			{ value: '{YYYY}-{MM}-{DD} {HH}:{mm}', stroke: color('text') } as any
 		].concat(stations.map(s => ({
 			label: s,
-			stroke: color('purple', .8),
-			grid: { stroke: color('grid'), width: 1 },
-			points: { size: 8, fill: color('magenta'), stroke: color('magenta') },
+			width: 1,
+			stroke: color('purple', .9),
+			points: { show: true, size: 4, fill: color('purple', .5), stroke: color('purple', .4) },
 		} as Partial<uPlot.Series>))).concat(stations.map(s => ({
 			label: s,
 			stroke: serColor,

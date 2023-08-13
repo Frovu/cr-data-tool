@@ -87,7 +87,7 @@ def _obtain_similar(interval, stations, source):
 		for si in range(len(stations)):
 			integrated = (integrate(src_data[offset+i*step:offset+(i+1)*step,si+1].astype(float)) for i in range(length))
 			result = np.fromiter(integrated, 'f8')
-			data[:,si+1] = np.where(np.isnan(result), None, result)
+			data[:,si+1] = np.where(~np.isfinite(result), None, result)
 	else:
 		data = src_data
 
