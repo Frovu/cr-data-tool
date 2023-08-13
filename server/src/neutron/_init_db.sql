@@ -37,10 +37,9 @@ CREATE TABLE IF NOT EXISTS neutron.revision_log (
 	time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 	author TEXT,
 	comment TEXT,
-	station TEXT,
-	change_count INTEGER NOT NULL,
-	interval_start TIMESTAMPTZ NOT NULL,
-	interval_end TIMESTAMPTZ NOT NULL,
+	station TEXT NOT NULL,
+	rev_time TIMESTAMPTZ[] NOT NULL,
+	rev_value REAL[] NOT NULL,
 	is_reverted BOOLEAN NOT NULL DEFAULT false
 );
 

@@ -51,11 +51,11 @@ export function FetchMenu() {
 export function CommitMenu() {
 	const queryClient = useQueryClient();
 
-	const { data, corrections: corrs, openPopup } = useContext(NeutronContext)!;
+	const { data, corrections: allCorrs, openPopup } = useContext(NeutronContext)!;
 
 	const [report, setReport] = useState('');
 
-	const corrections = Object.fromEntries(Object.entries(corrs)
+	const corrections = Object.fromEntries(Object.entries(allCorrs)
 		.map(([sta, values]) => [sta,
 			values.map((v, i) => v == null ? null : [data[0][i], v]).filter((ch): ch is number[] => ch != null)]));
 
@@ -80,7 +80,7 @@ export function CommitMenu() {
 		<h4 style={{ margin: '1em 0 1.5em 0' }}>Commit revisions?</h4>
 		<div style={{ margin: '1em 3em 0 3em', textAlign: 'right', lineHeight: '1.25em' }}>
 			{Object.entries(corrections).map(([sta, corrs]) =>
-				<p style={{ margin: '1em 0 0 0' }}>
+				<p key={sta} style={{ margin: '1em 0 0 0' }}>
 					<span style={{ color: 'var(--color-magenta)' }}>[{sta.toUpperCase()}]</span> <b>{corrs.length} </b>
 					change{corrs.length === 1 ? '' : 's'} between&nbsp;
 					{prettyDate(new Date(1e3*corrs[0][0]))}<br/> and {prettyDate(new Date(1e3*corrs[corrs.length-1][0]))} </p>)}

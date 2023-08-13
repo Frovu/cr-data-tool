@@ -1,7 +1,9 @@
 from database import pool, upsert_many
 from neutron.neutron import filter_for_integration, integrate, select, obtain_many
-import time
+from datetime import datetime
+import time, logging
 import numpy as np
+log = logging.getLogger('crdt')
 
 def get_minutes(station, timestamp):
 	# FIXME: check if supports 1 min
@@ -31,8 +33,20 @@ def refetch(interval, stations):
 
 	assert old_data.shape == new_data.shape
 	counts = { s: np.count_nonzero(old_data[:,i+1] != new_data[:,i+1]) for i, s in enumerate(stids) }
+	log.info(f'Neutron: completed refetch {",".join(stations)} {interval[0]}:{interval[1]}')
 
 	return {
 		'duration': time.time() - t0,
 		'changeCounts': counts
 	}
+
+def revision(stationRevisions):
+	with pool.connection() as conn:
+		for sid in stationRevisions:
+			revs = np.array(stationRevisions[sid], dtype='object')
+			revs[:,0] = np.array([datetime.utcfromtimestamp(t) for t in revs[:,0]])
+			# TODO: insert author, comment
+			log.info(f'Neutron: inserting revision of length {len(revs)} for {sid.upper()}')
+			conn.execute('INSERT INTO neutron.revision_log (station, rev_time, rev_value)' +\
+				'VALUES (%s, %s, %s)', [sid, revs[:,0].tolist(), revs[:,1].tolist()])
+			upsert_many(conn, f'nm.{sid}_1h', ['time', 'revised'], revs.tolist(), write_nulls=True)

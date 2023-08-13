@@ -109,6 +109,8 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 	const size = useSize(container?.parentElement);
 
 	const [u, setUplot] = useState<uPlot>();
+	const [legend, setLegend] = useState<{ name: string, value: number, focus: boolean }[] | null>(null); 
+	const focusedStation = stations.find(st => st.toUpperCase().startsWith(legend?.find((s) => s.focus)?.name!)) ?? primeStation;
 
 	useEffect(() => {
 		if (!u) return;
@@ -188,6 +190,8 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 			u.setCursor({ left: -1, top: -1 });
 			setCursorIdx(null);
 			setSelectedRange(null);
+		} else if (e.key === 'Enter') {
+			setPrimeStation(focusedStation);
 		} else if (e.key === 'Escape') {
 			u.setScale('x', { min: u.data[0][0], max: u.data[0][u.data[0].length-1] });
 			u.setCursor({ left: -1, top: -1 });
@@ -196,7 +200,6 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		}
 	});
 
-	const [legend, setLegend] = useState<{ name: string, value: number, focus: boolean }[] | null>(null); 
 	const plot = useMemo(() => {
 		const options = { ...size, ...plotOptions(stations, levels), hooks: {
 			setLegend: [
@@ -226,7 +229,6 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 	// Size changes are done through useEffect, without reiniting whole plot
 	}, [data[0][0], data[0][data[0].length-1], stations.join()]); // eslint-disable-line
 	
-	const focusedStation = legend?.find((s) => s.focus)?.name ?? primeStation;
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 		{plot}
 		{legendContainer && createPortal((

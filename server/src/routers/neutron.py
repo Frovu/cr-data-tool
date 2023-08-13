@@ -39,3 +39,13 @@ def refetch():
 	if not len(stations):
 		raise ValueError('No stations match query')
 	return corrections.refetch([t_from, t_to], stations)
+
+@bp.route('/revision', methods=['POST'])
+@route_shielded
+def revision():
+	corrs = request.json.get('revisions')
+	for s in corrs:
+		if neutron.resolve_station(s) is None:
+			raise ValueError('Unknown station: '+s)
+	corrections.revision(corrs)
+	return 'OK'
