@@ -1,5 +1,5 @@
 from database import pool, upsert_many
-from neutron.neutron import filter_for_integration, integrate, select, obtain_many
+from neutron.neutron import filter_for_integration, integrate, select, obtain_many, update_result_table
 from datetime import datetime
 import time, logging
 import numpy as np
@@ -33,7 +33,7 @@ def refetch(interval, stations):
 
 	assert old_data.shape == new_data.shape
 	counts = { s: np.count_nonzero(old_data[:,i+1] != new_data[:,i+1]) for i, s in enumerate(stids) }
-	log.info(f'Neutron: completed refetch {",".join(stations)} {interval[0]}:{interval[1]}')
+	log.info(f'Neutron: completed refetch {",".join(stids)} {interval[0]}:{interval[1]}')
 
 	return {
 		'duration': time.time() - t0,
@@ -50,3 +50,4 @@ def revision(stationRevisions):
 			conn.execute('INSERT INTO neutron.revision_log (station, rev_time, rev_value)' +\
 				'VALUES (%s, %s, %s)', [sid, revs[:,0].tolist(), revs[:,1].tolist()])
 			upsert_many(conn, f'nm.{sid}_1h', ['time', 'revised'], revs.tolist(), write_nulls=True)
+			update_result_table(conn, sid, [revs[0,0], revs[-1,0]])

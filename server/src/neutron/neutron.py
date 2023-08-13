@@ -101,10 +101,15 @@ def _obtain_similar(interval, stations, source):
 					np.column_stack((src_data[:,0], src_data[:,1+i])))
 			else:
 				assert src_res == HOUR
-		# TODO: insert revisions into result cache table
-		upsert_many(conn, 'neutron.result', ['time', *stations], data)
+			update_result_table(conn, station, res_dt_interval)
 		conn.execute('INSERT INTO neutron.obtain_log(stations, source, interval_start, interval_end) ' +\
 			'VALUES (%s, %s, %s, %s)', [stations, source, *res_dt_interval])
+
+def update_result_table(conn, station, dt_interval):
+	conn.execute(f'INSERT INTO neutron.result(time, {station}) ' + \
+		'SELECT time, CASE WHEN COALESCE(c.revised, c.corrected) <= 0 THEN NULL ELSE COALESCE(c.revised, c.corrected) END ' +\
+		f'FROM nm.{station}_1h c WHERE %s <= time AND time <= %s ' +\
+		f'ON CONFLICT(time) DO UPDATE SET {station} = EXCLUDED.{station}', [*dt_interval])
 
 def get_stations(group_partial=False, ids=False):
 	# TODO: another criteria
