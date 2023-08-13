@@ -61,8 +61,9 @@ export default function Neutron() {
 		if (!query.data) return null;
 		const stations = query.data.fields.slice(1);
 		const time = query.data.rows.map(row => row[0]);
-		const data = stations.map((s, i) => query.data!.rows
-			.map((row, ri) => corrections[s]?.[ri]! < 0 ? null : corrections[s]?.[ri] ?? row[i+1]));
+		const uncorrectedData = stations.map((s, i) => query.data!.rows.map(row => row[i+1]));
+		const data = stations.map((s, i) => uncorrectedData[i]
+			.map((val, ri) => corrections[s]?.[ri]! < 0 ? null : corrections[s]?.[ri] ?? val));
 
 		const averages = data.map((sd) => {
 			const s = sd.filter(v => v != null).slice().sort((a, b) => a - b), mid = Math.floor(sd.length / 2);
@@ -72,10 +73,13 @@ export default function Neutron() {
 		const distance = (averages[sortedIdx[sortedIdx.length-1]] - averages[sortedIdx[0]]) / sortedIdx.length;
 		const spreaded = sortedIdx.map((idx, i) => data[idx].map(val => 
 			val == null ? null : (val - averages[idx] - i * distance) ));
+		const spreadedUnc = sortedIdx.map((idx, i) => uncorrectedData[idx].map((val, di) => 
+			(val == null || val === data[idx][di]) ? null : (val - averages[idx] - i * distance) ));
 
 		return {
 			data: [time, ...sortedIdx.map(i => data[i])],
-			plotData: [time, ...spreaded],
+			uncorrectedData: [time, ...sortedIdx.map(i => uncorrectedData[i])],
+			plotData: [time, ...spreadedUnc, ...spreaded],
 			stations: sortedIdx.map(i => stations[i]),
 			levels: sortedIdx.map((idx, i) => - i * distance)
 		};

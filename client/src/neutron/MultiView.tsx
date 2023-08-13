@@ -74,7 +74,7 @@ function plotOptions(stations: string[], levels: number[]) {
 				ticks: { stroke: color('grid'), width: 2 },
 			},
 			{
-				splits: u => levels.map((lvl, i) => (((u.data[1 + i][0] ?? 0) + 2*lvl) / 3 + 2)),
+				splits: u => levels.map((lvl, i) => (((u.data[1 + i + levels.length][0] ?? lvl) + 2*lvl) / 3 + 2)),
 				values: u => stations.map(s => s === (u as any)._prime ? s.toUpperCase() : s).map(s => s.slice(0, 4)),
 				size: 36,
 				gap: -6,
@@ -87,10 +87,14 @@ function plotOptions(stations: string[], levels: number[]) {
 			{ value: '{YYYY}-{MM}-{DD} {HH}:{mm}', stroke: color('text') } as any
 		].concat(stations.map(s => ({
 			label: s,
+			stroke: color('purple', .8),
+			grid: { stroke: color('grid'), width: 1 },
+			points: { size: 8, fill: color('magenta'), stroke: color('magenta') },
+		} as Partial<uPlot.Series>))).concat(stations.map(s => ({
+			label: s,
 			stroke: serColor,
 			grid: { stroke: color('grid'), width: 1 },
 			points: { fill: color('bg'), stroke: serColor },
-
 		} as Partial<uPlot.Series>)))
 	} as Omit<uPlot.Options, 'height'|'width'>;
 }
@@ -149,6 +153,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		if (!u) return;
 		const moveCur = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
 		const movePrime = { ArrowUp: -1, ArrowDown: 1 }[e.key];
+		const sidx = (i: number) => i + stations.length + 1;
 		if (moveCur) {
 			const length = plotData[0].length;
 			const left = u.valToIdx(u.scales.x.min!), right = u.valToIdx(u.scales.x.max!);
@@ -157,11 +162,11 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 				* (e.altKey ? Math.ceil(length / 16) : 1);
 			const idx = Math.max(left, Math.min(cur + move, right));
 			const primeIdx = primeStation == null ? null : stations.indexOf(primeStation);
-			const primePos = primeIdx == null ? null : u.valToPos(plotData[primeIdx + 1][idx] ?? levels[primeIdx], 'y');
+			const primePos = primeIdx == null ? null : u.valToPos(plotData[sidx(primeIdx)][idx] ?? levels[primeIdx], 'y');
 			u.setCursor({ left: u.valToPos(plotData[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 }, false);
 			(u as any).cursor._lock = true;
 			setCursorIdx(idx);
-			if (primeIdx != null) u.setSeries(1 + primeIdx, { focus: true });
+			if (primeIdx != null) u.setSeries(sidx(primeIdx), { focus: true });
 			setSelectedRange((() => {
 				if (!e.shiftKey) return null;
 				const sel = selectedRange, min = sel?.[0], max = sel?.[1];
@@ -174,8 +179,8 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 			setPrimeStation(p => {
 				const idx = p ? Math.max(0, Math.min(stations.indexOf(p) + movePrime, stations.length - 1)) : movePrime < 0 ? stations.length - 1 : 0;
 				if (u.cursor.idx != null)
-					u.setCursor({ left: u.cursor.left!, top: u.valToPos(plotData[idx + 1][u.cursor.idx] ?? levels[idx], 'y') });
-				u.setSeries(1 + idx, { focus: true });
+					u.setCursor({ left: u.cursor.left!, top: u.valToPos(plotData[sidx(idx)][u.cursor.idx] ?? levels[idx], 'y') });
+				u.setSeries(sidx(idx), { focus: true });
 				return stations[idx];
 			});
 		} else if (e.code === 'KeyZ' && selectedRange) {
