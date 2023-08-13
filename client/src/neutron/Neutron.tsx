@@ -63,8 +63,8 @@ export default function Neutron() {
 	const [monthCount, setMonthCount] = useState(1);
 	const interval = [0, monthCount].map(inc => new Date(Date.UTC(year, month + inc))) as [Date, Date];
 
-	const queryStations = ['all'];
-	const query = useQuery(['manyStations', queryStations, interval], queryFunction('api/neutron', interval, queryStations));
+	const queryStations = 'all';
+	const query = useQuery(['manyStations', queryStations, interval], queryFunction('api/neutron', interval, [queryStations]));
 
 	const [activePopup, openPopup] = useState<ActionMenu | null>(null);
 
@@ -82,12 +82,18 @@ export default function Neutron() {
 		});
 	};
 
-	// TODO: Reset corrections and other stuff when scope changes
-	// useEffect();
+	// Reset corrections and other stuff when scope changes
+	useEffect(() => {
+		console.log('RESET');
+		setCorrections({});
+		setCursorIdx(null);
+		setSelectedRange(null);
+	}, [queryStations, year, month, monthCount, query.data?.data.length]);
 
 	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
-	console.log(selectedRange)
+	
+	console.log(cursorIdx)
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'KeyF')
 			openPopup('refetch');
@@ -97,11 +103,12 @@ export default function Neutron() {
 			return e.stopImmediatePropagation();
 		if ('Delete' === e.code) {
 			const fromIdx = selectedRange?.[0] ?? cursorIdx;
-			console.log(selectedRange?.[0], cursorIdx, primeStation)
 			if (fromIdx == null || primeStation == null) return;
 			const length = selectedRange != null ? (selectedRange[1] - selectedRange[0] + 1) : 1;
-			console.log(length)
+			console.log(fromIdx, length)
 			addCorrection(primeStation, fromIdx, Array(length).fill(-999));
+		} else if ('KeyR' === e.code) {
+			setCorrections({});
 		}
 	});
 

@@ -23,6 +23,7 @@ function plotOptions(stations: string[], levels: number[]) {
 				stroke: color('acid')
 			},
 			focus: { prox: 32 },
+			drag: { dist: 10 },
 			bind: {
 				dblclick: (u: any) => () => { u.cursor._lock = true; return null; },
 				mousedown: (u, targ, handler) => {
@@ -157,7 +158,9 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 			const idx = Math.max(left, Math.min(cur + move, right));
 			const primeIdx = primeStation == null ? null : stations.indexOf(primeStation);
 			const primePos = primeIdx == null ? null : u.valToPos(plotData[primeIdx + 1][idx] ?? levels[primeIdx], 'y');
-			u.setCursor({ left: u.valToPos(plotData[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 });
+			u.setCursor({ left: u.valToPos(plotData[0][idx], 'x'), top: primePos ?? u.cursor.top ?? 0 }, false);
+			(u as any).cursor._lock = true;
+			setCursorIdx(idx);
 			if (primeIdx != null) u.setSeries(1 + primeIdx, { focus: true });
 			setSelectedRange((() => {
 				if (!e.shiftKey) return null;
@@ -178,10 +181,12 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 		} else if (e.code === 'KeyZ' && selectedRange) {
 			u.setScale('x', { min: u.data[0][selectedRange[0]], max: u.data[0][selectedRange[1]] });
 			u.setCursor({ left: -1, top: -1 });
+			setCursorIdx(null);
 			setSelectedRange(null);
 		} else if (e.key === 'Escape') {
 			u.setScale('x', { min: u.data[0][0], max: u.data[0][u.data[0].length-1] });
 			u.setCursor({ left: -1, top: -1 });
+			setCursorIdx(null);
 			setSelectedRange(null);
 		}
 	});
@@ -205,7 +210,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 				(upl: uPlot) => setViewRange([upl.valToIdx(upl.scales.x.min!), upl.valToIdx(upl.scales.x.max!)])
 			],
 			setSelect: [
-				(upl: uPlot) => setSelectedRange(upl.select ?
+				(upl: uPlot) => setSelectedRange(upl.select && upl.select.width ?
 					[ upl.posToIdx(upl.select.left), upl.posToIdx(upl.select.left + upl.select.width) ] : null)
 			],
 			setSeries: [
