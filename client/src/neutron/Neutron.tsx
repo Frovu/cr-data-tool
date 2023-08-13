@@ -1,4 +1,4 @@
-import { SetStateAction, createContext, useState } from 'react';
+import { SetStateAction, createContext, useEffect, useState } from 'react';
 import { ManyStationsView } from './MultiView';
 import { useQuery } from 'react-query';
 import { FetchMenu } from './Actions';
@@ -13,10 +13,12 @@ export const NeutronContext = createContext<{
 	levels: number[],
 	stations: string[],
 	primeStation: string | null,
-	setPrimeStation: (a: SetStateAction<string | null>) => void,
+	cursorIdx: number | null,
 	viewRange: number[],
-	setViewRange: (a: SetStateAction<number[]>) => void,
 	selectedRange: number[] | null,
+	setCursorIdx: (a: SetStateAction<number | null>) => void,
+	setPrimeStation: (a: SetStateAction<string | null>) => void,
+	setViewRange: (a: SetStateAction<number[]>) => void,
 	setSelectedRange: (a: SetStateAction<number[] | null>) => void,
 } | null>({} as any);
 
@@ -66,25 +68,47 @@ export default function Neutron() {
 
 	const [activePopup, openPopup] = useState<ActionMenu | null>(null);
 
+	const [cursorIdx, setCursorIdx] = useState<number | null>(null);
 	const [primeStation, setPrimeStation] = useState<string | null>(null);
 	const [viewRange, setViewRange] = useState<number[]>([0, 0]);
 	const [selectedRange, setSelectedRange] = useState<null | number[]>(null);
 
+	const [corrections, setCorrections] = useState<{ [station: string]: (number|null)[] }>({});
+	const addCorrection = (station: string, fromIndex: number, values: number[]) => {
+		setCorrections(corr => {
+			const corrs = corr[station]?.slice() ?? Array(query.data?.data[0].length).fill(null);
+			corrs.splice(fromIndex, values.length, ...values);
+			return { ...corr, [station]: corrs };
+		});
+	};
+
+	// TODO: Reset corrections and other stuff when scope changes
+	// useEffect();
+
 	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
-
+	console.log(selectedRange)
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (activePopup)
-			e.stopImmediatePropagation();
 		if (e.code === 'KeyF')
 			openPopup('refetch');
 		else if (e.code === 'Escape')
 			openPopup(null);
+		if (activePopup)
+			return e.stopImmediatePropagation();
+		if ('Delete' === e.code) {
+			const fromIdx = selectedRange?.[0] ?? cursorIdx;
+			console.log(selectedRange?.[0], cursorIdx, primeStation)
+			if (fromIdx == null || primeStation == null) return;
+			const length = selectedRange != null ? (selectedRange[1] - selectedRange[0] + 1) : 1;
+			console.log(length)
+			addCorrection(primeStation, fromIdx, Array(length).fill(-999));
+		}
 	});
-	
+
 	return (
 		<NeutronContext.Provider value={query.data == null ? null : {
 			...query.data,
+			cursorIdx, setCursorIdx,
 			primeStation, setPrimeStation,
 			viewRange, setViewRange,
 			selectedRange, setSelectedRange
@@ -117,6 +141,9 @@ export default function Neutron() {
 					</div>}
 					<div ref={node => setTopContainer(node)}></div>
 					<div ref={node => setContainer(node)}></div>
+					{Object.keys(corrections).length > 0 && <div style={{ color: 'var(--color-red)' }}>
+						[REV] {Object.entries(corrections).map(([s, crr]) => `${s.toUpperCase()}:${crr.filter(c => c != null).length} `)}
+					</div>}
 				</div>
 				<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
 					{(()=>{

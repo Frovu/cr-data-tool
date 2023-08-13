@@ -23,7 +23,7 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 	});
 
 	if (query.isLoading)
-		return null;
+		return <div className='center'>LOADING..</div>;
 	if (query.isError)
 		return <div className='center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 	if (!query.data)

@@ -97,14 +97,13 @@ function plotOptions(stations: string[], levels: number[]) {
 export function ManyStationsView({ interval, legendContainer, detailsContainer }:
 { interval: [Date, Date], legendContainer: Element | null, detailsContainer: Element | null }) {
 	const {
-		data, plotData, primeStation, setPrimeStation, stations, levels, selectedRange, setSelectedRange, setViewRange
+		data, plotData, primeStation, stations, levels, selectedRange, setCursorIdx, setPrimeStation, setSelectedRange, setViewRange
 	} = useContext(NeutronContext)!;
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 
 	const [u, setUplot] = useState<uPlot>();
-	// const [cursorIdx, setCursorIdx] = useState<number | null>(null);
 
 	useEffect(() => {
 		if (!u) return;
@@ -142,6 +141,7 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 	useEventListener('dblclick', (e: MouseEvent) => {
 		if (!u) return;
 		const ser = u.series.find((s: any) => s._focus && s.scale !== 'x');
+		setCursorIdx((u as any).cursor._lock ? u.cursor.idx! : null);
 		if (ser) setPrimeStation(ser.label!);
 	});
 	useEventListener('keydown', (e: KeyboardEvent) => {
@@ -198,9 +198,9 @@ export function ManyStationsView({ interval, legendContainer, detailsContainer }
 						({ name: s.toUpperCase().slice(0, 4), value: data[1 + si][idx], focus: (upl.series[1 + si] as any)._focus })));
 				}
 			],
-			// setCursor: [
-			// 	(upl: any) => setCursorIdx(upl.cursor._lock ? upl.cursor.idx : null)
-			// ],
+			setCursor: [
+				(upl: any) => setCursorIdx(upl.cursor._lock ? upl.cursor.idx : null)
+			],
 			setScale: [
 				(upl: uPlot) => setViewRange([upl.valToIdx(upl.scales.x.min!), upl.valToIdx(upl.scales.x.max!)])
 			],
