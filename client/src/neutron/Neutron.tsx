@@ -5,6 +5,7 @@ import { CommitMenu, FetchMenu } from './Actions';
 import { useEventListener } from '../util';
 
 type ActionMenu = 'refetch' | 'commit';
+const STUB_VALUE = -999;
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export const NeutronContext = createContext<{
@@ -89,8 +90,13 @@ export default function Neutron() {
 
 	const addCorrection = (station: string, fromIndex: number, values: number[]) => {
 		setCorrections(corr => {
-			const corrs = corr[station]?.slice() ?? Array(dataState?.data[0].length).fill(null);
-			corrs.splice(fromIndex, values.length, ...values);
+			if (!dataState) return {};
+			const sidx = dataState?.stations.indexOf(station);
+			const effective = values.map((v, i) => (v === STUB_VALUE ? null : v) === dataState.data[sidx + 1][i + fromIndex] ? null : v);
+			if (effective.filter(v => v != null).length < 1)
+				return corr;
+			const corrs = corr[station]?.slice() ?? Array(dataState.data[0].length).fill(null);
+			corrs.splice(fromIndex, effective.length, ...effective);
 			return { ...corr, [station]: corrs };
 		});
 	};
@@ -109,7 +115,7 @@ export default function Neutron() {
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'KeyF')
 			openPopup('refetch');
-		if (e.code === 'KeyC')
+		if (e.code === 'KeyC' && Object.keys(corrections).length > 0)
 			openPopup('commit');
 		else if (e.code === 'Escape')
 			openPopup(null);
@@ -119,7 +125,7 @@ export default function Neutron() {
 			const fromIdx = selectedRange?.[0] ?? cursorIdx;
 			if (fromIdx == null || primeStation == null) return;
 			const length = selectedRange != null ? (selectedRange[1] - selectedRange[0] + 1) : 1;
-			addCorrection(primeStation, fromIdx, Array(length).fill(-999));
+			addCorrection(primeStation, fromIdx, Array(length).fill(STUB_VALUE));
 		} else if ('KeyR' === e.code) {
 			setCorrections({});
 		}
