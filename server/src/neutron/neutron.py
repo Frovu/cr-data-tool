@@ -139,7 +139,7 @@ def select(interval, station_ids, description=False):
 			'FROM neutron.result WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', [*interval])
 		return (curs.fetchall(), [desc[0] for desc in curs.description]) if description else curs.fetchall()
 
-def fetch(interval: [int, int], station_ids: list[str]):
+def fetch(interval: [int, int], stations: list[Station]):
 	interval = (
 		floor(max(interval[0], datetime(1957, 1, 1).timestamp()) / HOUR) * HOUR,
 		 ceil(min(interval[1], datetime.now().timestamp() - 2*HOUR) / HOUR) * HOUR
@@ -164,4 +164,4 @@ def fetch(interval: [int, int], station_ids: list[str]):
 			else: integrity_full = res_coverage
 			_save_integrity_state()
 	
-	return select(interval, station_ids, True)
+	return select(interval, [s.id for s in stations], True)

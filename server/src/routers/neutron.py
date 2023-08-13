@@ -10,8 +10,8 @@ def get_neutron():
 	t_from = int(request.args.get('from'))
 	t_to = int(request.args.get('to'))
 	sts_req = request.args.get('stations', 'all').lower()
-	all_stations = neutron.get_stations(ids=True)
-	stations = all_stations if sts_req == 'all' else [s for s in all_stations if s.lower() in sts_req.split(',')]
+	stations = neutron.get_stations() if sts_req == 'all' \
+		else [s for s in [neutron.resolve_station(s) for s in sts_req.split(',')] if s is not None]
 	if not len(stations):
 		raise ValueError('No stations match query')
 	if t_from >= t_to:
@@ -25,8 +25,8 @@ def get_rich_neutron():
 	t_from = int(request.args.get('from'))
 	t_to = int(request.args.get('to'))
 	sts_req = request.args.get('stations', 'all').lower()
-	all_stations = neutron.get_stations(ids=True)
-	stations = all_stations if sts_req == 'all' else [s for s in all_stations if s.lower() in sts_req.split(',')]
+	stations = neutron.get_stations() if sts_req == 'all' \
+		else [s for s in [neutron.resolve_station(s) for s in sts_req.split(',')] if s is not None]
 	if not len(stations):
 		raise ValueError('No stations match query')
 	if t_from >= t_to:
@@ -58,8 +58,10 @@ def refetch():
 @route_shielded
 def revision():
 	corrs = request.json.get('revisions')
+	resolved = dict()
 	for s in corrs:
-		if neutron.resolve_station(s) is None:
+		if (sta := neutron.resolve_station(s)) is None:
 			raise ValueError('Unknown station: '+s)
-	corrections.revision(corrs)
+		resolved[sta.id] = corrs[s]
+	corrections.revision(resolved)
 	return 'OK'

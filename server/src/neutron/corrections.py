@@ -43,15 +43,25 @@ def refetch(interval, stations):
 def fetch_rich(interval, stations):
 	rows_rev, fields = fetch(interval, stations)
 	t_from, t_to = rows_rev[0][0], rows_rev[-1][0]
+	sids = [s.id for s in stations]
 	with pool.connection() as conn:
 		corrected = [np.array(conn.execute(f'SELECT corrected FROM generate_series(to_timestamp(%s), to_timestamp(%s), \'1 hour\'::interval) tm ' +\
-			f'LEFT JOIN nm.{st}_1h ON time = tm', [t_from, t_to]).fetchall())[:,0] for st in stations]
+			f'LEFT JOIN nm.{st}_1h ON time = tm', [t_from, t_to]).fetchall())[:,0] for st in sids]
+		curs = conn.execute(f'SELECT * FROM neutron.revision_log ' +\
+			'WHERE rev_time[array_upper(rev_time, 1)] >= to_timestamp(%s) AND to_timestamp(%s) >= rev_time[1] AND station = ANY(%s)', [t_from, t_to, sids])
+		revisions = list()
+		for row in curs.fetchall():
+			rev = {desc[0]: row[i] for i, desc in enumerate(curs.description)}
+			rev['time'] = rev['time'].timestamp()
+			rev['rev_time'] = [t.timestamp() for t in rev['rev_time']]
+			revisions.append(rev)
 	times = np.arange(t_from, t_to+1, 3600)
 
 	return {
 		'fields': fields,
 		'corrected': np.column_stack([times, *corrected]).tolist(),
-		'revised': rows_rev
+		'revised': rows_rev,
+		'revisions': revisions
 	}
 
 def revision(stationRevisions):
