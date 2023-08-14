@@ -73,8 +73,9 @@ export default function Neutron() {
 	const [selectedRange, setSelectedRange] = useState<null | number[]>(null);
 
 	const [corrections, setCorrections] = useState<{ [station: string]: (number|null)[] }>({});
+	const [hoveredRev, setHoveredRev] = useState<number | null>(null);
 
-	const dataState = useMemo(() => {
+	const partialDataState = useMemo(() => {
 		if (!query.data) return null;
 		const stations = query.data.fields.slice(1);
 		const time = query.data.revised.map(row => row[0]);
@@ -96,11 +97,25 @@ export default function Neutron() {
 		return {
 			data: [time, ...sortedIdx.map(i => data[i])],
 			uncorrectedData: [time, ...sortedIdx.map(i => uncorrectedData[i])],
-			plotData: [time, ...spreadedUnc, ...spreaded],
+			plotData: [time, ...spreadedUnc, ...spreaded, []],
 			stations: sortedIdx.map(i => stations[i]),
 			levels: sortedIdx.map((idx, i) => - i * distance)
 		};
 	}, [query.data, corrections]);
+
+	const dataState = useMemo(() => {
+		const rev = query.data?.revisions.find(r => r.id === hoveredRev);
+		if (!partialDataState || !rev) return partialDataState;
+		const { data, levels, stations } = partialDataState;
+		const indicators = Array(data[0].length).fill(null);
+		const level = levels[stations.indexOf(rev.station)] - (levels[1] - levels[0]) / 2;
+		for (const time of rev.rev_time)
+			indicators[data[0].indexOf(time)] = level;
+		return {
+			...partialDataState,
+			plotData: [...partialDataState.plotData.slice(0, -1), indicators]
+		};
+	}, [query.data, partialDataState, hoveredRev]);
 
 	const addCorrection = (station: string, fromIndex: number, values: number[]) => {
 		setCorrections(corr => {
@@ -117,6 +132,10 @@ export default function Neutron() {
 
 	const showRevisions = (primeStation && cursorIdx && query.data?.revisions.filter(rev =>
 		rev.station === primeStation && rev.rev_time.includes(dataState?.data[0][cursorIdx]))) || [];
+
+	useEffect(() => {
+		setHoveredRev(h => showRevisions.length > 0 ? h : null);
+	}, [showRevisions.length]);
 
 	// Reset corrections and other stuff when scope changes
 	useEffect(() => {
@@ -185,10 +204,12 @@ export default function Neutron() {
 					<div ref={node => setTopContainer(node)}></div>
 					<div ref={node => setContainer(node)}></div>
 					{showRevisions.length > 0 && <div style={{ maxHeight: 154, overflowY: 'scroll', border: '2px var(--color-border) solid', padding: 2 }}>
-						{showRevisions.map(rev => (<div key={rev.id} style={{ position: 'relative', padding: '4px 0 4px 1em' }}>
+						{showRevisions.map(rev => (<div key={rev.id}
+							style={{ position: 'relative', padding: '4px 0 4px 1em', backgroundColor: hoveredRev === rev.id ? 'var(--color-area)' : 'var(--color-bg)' }}
+							onMouseEnter={() => setHoveredRev(rev.id)} onMouseLeave={() => setHoveredRev(null)} onBlur={() => setHoveredRev(null)}>
 							<p style={{ margin: 0 }}>
 								{rev.author ?? 'anon'} <span style={{ color: 'var(--color-text-dark)' }}>revised</span> [{rev.rev_time.length}] points
-								<button style={{ position: 'absolute', top: 2, right: 2, padding: '1px 8px' }}>Revert</button>
+								<button style={{ position: 'absolute', top: 2, right: 6, padding: '1px 8px' }}>Revert</button>
 							</p>
 							{rev.comment ? 'Comment: '+rev.comment : ''}
 							<p style={{ margin: 0, fontSize: 12, color: 'var(--color-text-dark)' }}>

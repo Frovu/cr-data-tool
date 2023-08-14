@@ -95,7 +95,12 @@ function plotOptions(stations: string[], levels: number[]) {
 			stroke: serColor,
 			grid: { stroke: color('grid'), width: 1 },
 			points: { fill: color('bg'), stroke: serColor },
-		} as Partial<uPlot.Series>)))
+		} as Partial<uPlot.Series>))).concat([{
+			width: 3,
+			stroke: color('red'),
+			points: { show: false },
+
+		}])
 	} as Omit<uPlot.Options, 'height'|'width'>;
 }
 
