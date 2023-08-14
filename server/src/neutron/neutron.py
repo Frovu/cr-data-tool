@@ -137,7 +137,7 @@ def select(interval, station_ids, description=False):
 	with pool.connection() as conn:
 		curs = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {",".join(station_ids)} ' + \
 			'FROM neutron.result WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', [*interval])
-		return (curs.fetchall(), [desc[0] for desc in curs.description]) if description else curs.fetchall()
+		return (curs.fetchall(), ['time', *station_ids]) if description else curs.fetchall()
 
 def fetch(interval: [int, int], stations: list[Station]):
 	interval = (

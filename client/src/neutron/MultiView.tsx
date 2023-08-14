@@ -75,7 +75,7 @@ function plotOptions(stations: string[], levels: number[]) {
 			},
 			{
 				splits: u => levels.map((lvl, i) => (((u.data[1 + i + levels.length][0] ?? lvl) + 2*lvl) / 3 + 2)),
-				values: u => stations.map(s => s === (u as any)._prime ? s.toUpperCase() : s).map(s => s.slice(0, 4)),
+				values: u => stations.map(s => s === (u as any)._prime ? s.toUpperCase() : s.toLowerCase()).map(s => s.slice(0, 4)),
 				size: 36,
 				gap: -6,
 				font: font(12),

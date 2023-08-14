@@ -2,8 +2,18 @@ import { SetStateAction, createContext, useEffect, useMemo, useState } from 'rea
 import { ManyStationsView } from './MultiView';
 import { useQuery } from 'react-query';
 import { CommitMenu, FetchMenu } from './Actions';
-import { useEventListener } from '../util';
+import { prettyDate, useEventListener } from '../util';
 
+type Revision = {
+	id: number,
+	time: number,
+	station: string,
+	author: string | null,
+	comment: string | null,
+	rev_time: number[],
+	rev_value: number[],
+	is_reverted: boolean,
+};
 type ActionMenu = 'refetch' | 'commit';
 const STUB_VALUE = -999;
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -36,7 +46,7 @@ function queryFunction(path: string, interval: [Date, Date], qStations: string[]
 		const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara);
 		if (res.status !== 200)
 			throw Error('HTTP '+res.status);
-		const body = await res.json() as { fields: string[], corrected: any[][], revised: any[][],  };
+		const body = await res.json() as { fields: string[], corrected: any[][], revised: any[][], revisions: Revision[]  };
 		if (!body?.revised.length) return null;
 		console.log(path, '=>', body);
 		return body;
@@ -44,6 +54,9 @@ function queryFunction(path: string, interval: [Date, Date], qStations: string[]
 }
 
 export default function Neutron() {
+	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
+	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
 	const [year, setYear] = useState(new Date().getFullYear());
 	const [month, setMonth] = useState(new Date().getMonth());
 	const [monthCount, setMonthCount] = useState(1);
@@ -102,6 +115,9 @@ export default function Neutron() {
 		});
 	};
 
+	const showRevisions = (primeStation && cursorIdx && query.data?.revisions.filter(rev =>
+		rev.station === primeStation && rev.rev_time.includes(dataState?.data[0][cursorIdx]))) || [];
+
 	// Reset corrections and other stuff when scope changes
 	useEffect(() => {
 		console.log('RESET');
@@ -109,9 +125,6 @@ export default function Neutron() {
 		setCursorIdx(null);
 		setSelectedRange(null);
 	}, [queryStations, year, month, monthCount, dataState?.data.length]);
-
-	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
-	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'KeyF')
@@ -171,8 +184,19 @@ export default function Neutron() {
 					</div>}
 					<div ref={node => setTopContainer(node)}></div>
 					<div ref={node => setContainer(node)}></div>
+					{showRevisions.length > 0 && <div style={{ maxHeight: 154, overflowY: 'scroll', border: '2px var(--color-border) solid', padding: 2 }}>
+						{showRevisions.map(rev => (<div key={rev.id} style={{ position: 'relative', padding: '4px 0 4px 1em' }}>
+							<p style={{ margin: 0 }}>
+								{rev.author ?? 'anon'} <span style={{ color: 'var(--color-text-dark)' }}>revised</span> [{rev.rev_time.length}] points
+								<button style={{ position: 'absolute', top: 2, right: 2, padding: '1px 8px' }}>Revert</button>
+							</p>
+							{rev.comment ? 'Comment: '+rev.comment : ''}
+							<p style={{ margin: 0, fontSize: 12, color: 'var(--color-text-dark)' }}>
+								at {prettyDate(new Date(rev.time*1e3))}</p>
+						</div>))}
+					</div>}
 					{Object.keys(corrections).length > 0 && <div style={{ color: 'var(--color-red)' }}>
-						[REV] {Object.entries(corrections).map(([s, crr]) => `${s.toUpperCase()}:${crr.filter(c => c != null).length} `)}
+						[!REV!] {Object.entries(corrections).map(([s, crr]) => `${s.toUpperCase()}:${crr.filter(c => c != null).length} `)}
 					</div>}
 				</div>
 				<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
