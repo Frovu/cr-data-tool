@@ -51,7 +51,7 @@ export function FetchMenu() {
 export function CommitMenu() {
 	const queryClient = useQueryClient();
 
-	const { data, corrections: allCorrs, openPopup } = useContext(NeutronContext)!;
+	const { data, corrections: allCorrs, setCorrections, openPopup } = useContext(NeutronContext)!;
 
 	const [report, setReport] = useState('');
 
@@ -73,6 +73,7 @@ export function CommitMenu() {
 		onSuccess: () => {
 			queryClient.invalidateQueries();
 			openPopup(p => p !== 'commit' ? p : null);
+			setCorrections({});
 		}
 	});
 

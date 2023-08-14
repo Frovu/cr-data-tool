@@ -23,6 +23,7 @@ export const NeutronContext = createContext<{
 	setPrimeStation: (a: SetStateAction<string | null>) => void,
 	setViewRange: (a: SetStateAction<number[]>) => void,
 	setSelectedRange: (a: SetStateAction<number[] | null>) => void,
+	setCorrections: (a: SetStateAction<{ [st: string]: (number | null)[] }>) => void,
 } | null>({} as any);
 
 function queryFunction(path: string, interval: [Date, Date], qStations: string[]) {
@@ -138,7 +139,8 @@ export default function Neutron() {
 			primeStation, setPrimeStation,
 			viewRange, setViewRange,
 			selectedRange, setSelectedRange,
-			corrections, openPopup
+			corrections, setCorrections,
+			openPopup
 		}}>
 			{activePopup && query.data && <>
 				<div className='popupBackground'></div>
