@@ -12,7 +12,7 @@ type Revision = {
 	comment: string | null,
 	rev_time: number[],
 	rev_value: number[],
-	is_reverted: boolean,
+	reverted_at: number,
 };
 type ActionMenu = 'refetch' | 'commit';
 const STUB_VALUE = -999;
@@ -219,16 +219,16 @@ export default function Neutron() {
 					<div ref={node => setContainer(node)}></div>
 					{showRevisions.length > 0 && <div style={{ maxHeight: 154, overflowY: 'scroll', border: '2px var(--color-border) solid', padding: 2 }}>
 						{showRevisions.map(rev => (<div key={rev.id}
-							style={{ position: 'relative', padding: '4px 0 4px 1em', backgroundColor: hoveredRev === rev.id ? 'var(--color-area)' : 'var(--color-bg)' }}
+							style={{ position: 'relative', padding: '4px 0 2px 4px', backgroundColor: hoveredRev === rev.id ? 'var(--color-area)' : 'var(--color-bg)' }}
 							onMouseEnter={() => setHoveredRev(rev.id)} onMouseLeave={() => setHoveredRev(null)} onBlur={() => setHoveredRev(null)}>
 							<p style={{ margin: 0 }}>
 								{rev.author ?? 'anon'} <span style={{ color: 'var(--color-text-dark)' }}>revised</span> [{rev.rev_time.length}] points
-								<button style={{ position: 'absolute', top: 2, right: 6, padding: '1px 8px' }}
-									onClick={() => revertMutation.mutate(rev.id)}>Revert</button>
+								<button style={{ position: 'absolute', top: 2, right: 6, padding: '0 8px' }} disabled={rev.reverted_at != null}
+									onClick={() => revertMutation.mutate(rev.id)}>Revert{rev.reverted_at != null ? 'ed' : ''}</button>
 							</p>
-							{rev.comment ? 'Comment: '+rev.comment : ''}
-							<p style={{ margin: 0, fontSize: 12, color: 'var(--color-text-dark)' }}>
-								at {prettyDate(new Date(rev.time*1e3))}</p>
+							{rev.comment ? 'Comment: '+rev.comment : 'Comment asjkfnsadoi shfdsdoif uyghsdfoiyugh sdoyff fsdf sd '}
+							<p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--color-text-dark)' }}>
+								at {prettyDate(new Date(rev.time*1e3))}{rev.reverted_at != null ? ' / ' + prettyDate(new Date(rev.reverted_at*1e3)) : ''}</p>
 						</div>))}
 					</div>}
 					{Object.keys(corrections).length > 0 && <div style={{ color: 'var(--color-magenta)' }}>
