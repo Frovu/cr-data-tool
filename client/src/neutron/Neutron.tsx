@@ -1,4 +1,4 @@
-import { Reducer, SetStateAction, createContext, useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import { Reducer, SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react';
 import { ManyStationsView } from './MultiView';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { CommitMenu, FetchMenu } from './Actions';
@@ -271,17 +271,33 @@ export default function Neutron() {
 
 const defaultDivisor = 18;  // TODO: smart divisor determination
 function EfficiencyInput({ eff, setEff }: { eff: number, setEff: (a: number) => void }) {
-	type R = Reducer<{ text: string, value: number, div: number|null }, { action: 'value'|'div'|'checkbox', value: string|number|boolean }>;
+	const { data: allData, selectedRange, primeStation, stations } = useContext(NeutronContext)!;
+
+	type R = Reducer<{ text: string, value: number, div: number|null }, { action: 'value'|'div'|'checkbox'|'auto', value?: any }>;
 	const [ { text, div }, dispatch ] = useReducer<R>((st, { action, value: aValue }) => {
 		if (action === 'value') {
-			const val = parseFloat(aValue as string);
-			return { text: (aValue as string), value: isNaN(val) ? st.value : val, div: st.div };
+			const val = parseFloat(aValue);
+			return { text: aValue, value: isNaN(val) ? st.value : val, div: st.div };
 		} if (action === 'div') {
 			const val = st.value / (st.div || 1) * (aValue as number);
-			return { text: (Math.round(1000 * val) / 1000).toString(), value: val, div: (aValue as any) };
-		} else {
+			return { text: (Math.round(1000 * val) / 1000).toString(), value: val, div: aValue };
+		} else if (action === 'checkbox') {
 			const val = aValue ? (st.value * defaultDivisor) : st.value / (st.div || 1);
 			return { text: (Math.round(1000 * val) / 1000).toString(), value: val, div: aValue ? defaultDivisor : null };
+		} else {
+			if (!selectedRange || !primeStation)
+				return st;
+			const data = allData[stations.indexOf(primeStation) + 1];
+			const [li, ri] = selectedRange; // left - lval 
+			const left = data.slice(0, li).findLast(v => v != null);
+			const right = data.slice(ri + 1).find(v => v != null);
+			if (left == null || right == null)
+				return st;
+			const lEff = data[li] / left, rEff = data[ri] / right;
+			console.log( data[li] ,  left,  data[ri] , right)
+			const efficiency = (lEff + rEff) / 2;
+			const val = efficiency * (st.div || 1);
+			return { text: (Math.round(1000 * val) / 1000).toString(), value: val, div: st.div };
 		}
 	}, {
 		text: eff.toFixed(1),
@@ -289,12 +305,20 @@ function EfficiencyInput({ eff, setEff }: { eff: number, setEff: (a: number) => 
 		div: null
 	});
 
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (e.code === 'KeyA')
+			dispatch({ action: 'auto' });
+	});
+
 	return (<div style={{ display: 'inline-block' }}>
-		<label>D <input type='checkbox' onChange={(e) => dispatch({ action: 'checkbox', value: e.target.checked })}/>&nbsp;</label>
+		<label> Div<input type='checkbox' onChange={(e) => dispatch({ action: 'checkbox', value: e.target.checked })}/> </label>
+		Eff=
 		<input style={{ width: '6ch', borderColor: 'var(--color-border)', textAlign: 'center' }}
 			type='text' value={text} onChange={(e) => dispatch({ action: 'value', value: e.target.value })}/>
 		{div != null && <span>&nbsp;/ <input style={{ width: '6ch', borderColor: 'var(--color-border)', textAlign: 'center' }}
 			type='number' step={1} value={div.toFixed(0)}
 			onChange={(e) => dispatch({ action: 'div', value: e.target.valueAsNumber })}/></span>}
+		<button style={{ marginLeft: 24, padding: '1px 16px' }} disabled={!selectedRange || !primeStation}
+			onClick={()=>dispatch({ action: 'auto' })}>AUTO</button>
 	</div>);
 }
