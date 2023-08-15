@@ -39,8 +39,7 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 				fill: color('acid'),
 				stroke: color('acid')
 			},
-			drag: { setScale: false },
-			lock: true
+			drag: { dist: 10, y: true }
 		},
 		scales: {
 			x: { time: false },
@@ -72,6 +71,7 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 			{
 				width: 2,
 				stroke: color('green'),
+				points: { fill: color('bg'), stroke: color('green') }
 			},
 			{
 				width: 1,
