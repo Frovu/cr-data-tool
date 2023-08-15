@@ -1,4 +1,4 @@
-import { SetStateAction, createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { Reducer, SetStateAction, createContext, useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { ManyStationsView } from './MultiView';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { CommitMenu, FetchMenu } from './Actions';
@@ -82,6 +82,7 @@ export default function Neutron() {
 
 	const [activePopup, openPopup] = useState<ActionMenu | null>(null);
 
+	const [eff, setEff] = useState<number>(1);
 	const [cursorIdx, setCursorIdx] = useState<number | null>(null);
 	const [primeStation, setPrimeStation] = useState<string | null>(null);
 	const [viewRange, setViewRange] = useState<number[]>([0, 0]);
@@ -225,13 +226,14 @@ export default function Neutron() {
 						/> + <input style={{ width: '3ch' }} type='number' min='1' max='24' value={monthCount} onChange={e => setMonthCount(e.target.valueAsNumber)}
 						/> month{monthCount === 1 ? '' : 's'} ]
 					</div>
-					{query.data && <div style={{ margin: '0 0 4px 16px' }}>
+					{dataState && <div style={{ margin: '0 0 4px 16px' }}>
 						Primary station: <select style={{ color: primeStation ? 'var(--color-green)' : 'var(--color-text)' }} 
 							value={primeStation ?? 'none'} onChange={e => setPrimeStation(e.target.value === 'none' ? null : e.target.value)}>
 							<option value='none'>none</option>
 							{dataState?.stations.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
 						</select>
 					</div>}
+					{dataState && <EfficiencyInput {...{ eff, setEff }}/>}
 					<div ref={node => setTopContainer(node)}></div>
 					<div ref={node => setContainer(node)}></div>
 					{showRevisions.length > 0 && <div style={{ maxHeight: 154, overflowY: 'scroll', border: '2px var(--color-border) solid', padding: 2 }}>
@@ -265,4 +267,34 @@ export default function Neutron() {
 				</div>
 			</div>
 		</NeutronContext.Provider>);
+}
+
+const defaultDivisor = 18;  // TODO: smart divisor determination
+function EfficiencyInput({ eff, setEff }: { eff: number, setEff: (a: number) => void }) {
+	type R = Reducer<{ text: string, value: number, div: number|null }, { action: 'value'|'div'|'checkbox', value: string|number|boolean }>;
+	const [ { text, div }, dispatch ] = useReducer<R>((st, { action, value: aValue }) => {
+		if (action === 'value') {
+			const val = parseFloat(aValue as string);
+			return { text: (aValue as string), value: isNaN(val) ? st.value : val, div: st.div };
+		} if (action === 'div') {
+			const val = st.value / (st.div || 1) * (aValue as number);
+			return { text: (Math.round(1000 * val) / 1000).toString(), value: val, div: (aValue as any) };
+		} else {
+			const val = aValue ? (st.value * defaultDivisor) : st.value / (st.div || 1);
+			return { text: (Math.round(1000 * val) / 1000).toString(), value: val, div: aValue ? defaultDivisor : null };
+		}
+	}, {
+		text: eff.toFixed(1),
+		value: eff,
+		div: null
+	});
+
+	return (<div style={{ display: 'inline-block' }}>
+		<label>D <input type='checkbox' onChange={(e) => dispatch({ action: 'checkbox', value: e.target.checked })}/>&nbsp;</label>
+		<input style={{ width: '6ch', borderColor: 'var(--color-border)', textAlign: 'center' }}
+			type='text' value={text} onChange={(e) => dispatch({ action: 'value', value: e.target.value })}/>
+		{div != null && <span>&nbsp;/ <input style={{ width: '6ch', borderColor: 'var(--color-border)', textAlign: 'center' }}
+			type='number' step={1} value={div.toFixed(0)}
+			onChange={(e) => dispatch({ action: 'div', value: e.target.valueAsNumber })}/></span>}
+	</div>);
 }
