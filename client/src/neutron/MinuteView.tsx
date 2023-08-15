@@ -3,15 +3,19 @@ import uPlot from 'uplot';
 import { color, font } from '../plotUtil';
 import UplotReact from 'uplot-react';
 import { prettyDate } from '../util';
+import { useContext, useEffect, useState } from 'react';
+import { NeutronContext } from './Neutron';
 
-export default function MinuteView({ timestamp, station: queryStation }: { timestamp: number, station: string }) {
+export default function MinuteView({ timestamp, station }: { timestamp: number, station: string }) {
+	const { data: allData, stations } = useContext(NeutronContext)!;
+
 	const query = useQuery({
-		queryKey: ['minuteView', timestamp, queryStation],
+		queryKey: ['minuteView', timestamp, station],
 		keepPreviousData: true,
 		queryFn: async () => {
 			const urlPara = new URLSearchParams({
 				timestamp: timestamp.toString(),
-				station: queryStation
+				station
 			}).toString();
 			const res = await fetch(process.env.REACT_APP_API + 'api/neutron/minutes?' + urlPara);
 			if (res.status !== 200)
@@ -22,6 +26,14 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 		}
 	});
 
+	const [ value, setValue ] = useState(0);
+	const [ mask, setMask ] = useState(Array(60).fill(false));
+	useEffect(() => setMask(Array(60).fill(false)), [query.data]);
+	useEffect(() => {
+		if (query.data)
+			setValue(allData[1 + stations.indexOf(station)][allData[0].indexOf(timestamp)]);
+	}, [query.data, station, stations, timestamp, allData]);
+
 	if (query.isLoading)
 		return <div className='center'>LOADING..</div>;
 	if (query.isError)
@@ -29,6 +41,18 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 	if (!query.data)
 		return <div className='center'>NO DATA</div>;
 
+	const stateValue = allData[1 + stations.indexOf(station)][allData[0].indexOf(timestamp)];
+	const effective = query.data.filtered.map((v, i) => mask[i] ? null : v);
+	const data = [
+		Array.from(Array(60).keys()),
+		Array(60).fill(value),
+		Array(60).fill(query.data.integrated),
+		Array(60).fill(stateValue),
+		effective,
+		query.data.filtered.map((v, i) => mask[i] ? v : null),
+		query.data.raw.map((v, i) => v === query.data.filtered[i] ? null : v)
+	];
+	
 	const options = {
 		width: 356, height: 240,
 		legend: { show: false },
@@ -39,7 +63,45 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 				fill: color('acid'),
 				stroke: color('acid')
 			},
-			drag: { dist: 10, y: true }
+			drag: { dist: 8, y: true },
+			bind: {
+				mouseup: (u: uPlot, targ, handler) => {
+					return e => {
+						if (e.button === 0) {
+							if (e.shiftKey || e.ctrlKey) {
+								u.cursor.drag!.setScale = false;
+								handler(e);
+								u.cursor.drag!.setScale = true;
+							} else {
+								handler(e);
+							}
+							return null;
+						}
+					};
+				}
+			}
+		},
+		hooks: {
+			setSelect: [
+				(u: uPlot) => {
+					if (u.select.width <= 0) return;
+					const left = u.posToIdx(u.select.left);
+					const right = u.posToIdx(u.select.left + u.select.width);
+					setMask(oldMask => {
+						const msk = oldMask.slice();
+						for (let i=left; i<=right; ++i)
+							msk[i] = !msk[i];
+						const eff = query.data.filtered.filter((v, i) => !msk[i] && v != null);
+						setValue(eff.reduce((a, b) => a + b, 0) / eff.length);
+						return msk;
+					});
+
+					u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
+				}
+			],
+			ready: [
+				(u: uPlot) => u.setCursor({ left: -1, top: -1 }) // ??
+			]
 		},
 		scales: {
 			x: { time: false },
@@ -70,34 +132,36 @@ export default function MinuteView({ timestamp, station: queryStation }: { times
 			{ stroke: color('text') },
 			{
 				width: 2,
-				stroke: color('green'),
-				points: { fill: color('bg'), stroke: color('green') }
+				stroke: color('gold'),
+				points: { show: false }
 			},
 			{
-				width: 1,
+				width: 2,
+				stroke: color('orange'),
+				points: { show: false }
+			},
+			{
+				width: 2,
+				stroke: color('green'),
+				points: { show: false }
+			},
+			{
 				stroke: color('cyan'),
 				points: { show: true, fill: color('bg'), stroke: color('cyan') }
 			},
 			{
-				width: 1,
+				stroke: color('purple'),
+				points: { show: true, fill: color('bg'), stroke: color('purple') }
+			},
+			{
 				stroke: color('magenta'),
 				points: { size: 8, show: true, fill: color('magenta'), stroke: color('magenta') }
 			}
-		],
-		hooks: {
-			ready: [
-				(u: uPlot) => u.setCursor({ left: -1, top: -1 }) // ??
-			]
-		}
+		]
 	} as uPlot.Options;
 	
 	return (
 		<div style={{ position: 'absolute' }}>
-			<UplotReact {...{ options, data: [
-				Array.from(Array(60).keys()),
-				Array(60).fill(query.data.integrated),
-				query.data.filtered,
-				query.data.raw.map((v, i) => v === query.data.filtered[i] ? null : v)
-			] }}/>
+			<UplotReact {...{ options, data: data as any }}/>
 		</div>);
 }

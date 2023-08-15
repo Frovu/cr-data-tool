@@ -98,14 +98,13 @@ function plotOptions(stations: string[], levels: number[]) {
 		} as Partial<uPlot.Series>))).concat([{
 			width: 3,
 			stroke: color('red'),
-			points: { show: false },
-
+			points: { show: true, size: 3, width: 1, fill: color('red') },
 		}])
 	} as Omit<uPlot.Options, 'height'|'width'>;
 }
 
-export function ManyStationsView({ interval, legendContainer, detailsContainer }:
-{ interval: [Date, Date], legendContainer: Element | null, detailsContainer: Element | null }) {
+export function ManyStationsView({ legendContainer, detailsContainer }:
+{ legendContainer: Element | null, detailsContainer: Element | null }) {
 	const {
 		data, plotData, primeStation, stations, levels, selectedRange, setCursorIdx, setPrimeStation, setSelectedRange, setViewRange
 	} = useContext(NeutronContext)!;

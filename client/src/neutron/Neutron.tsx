@@ -245,7 +245,7 @@ export default function Neutron() {
 							return <div className='center' style={{ color: 'var(--color-red)' }}>FAILED TO LOAD</div>;
 						if (!query.data)
 							return <div className='center'>NO DATA</div>;
-						return <ManyStationsView {...{ interval, legendContainer: topContainer, detailsContainer: container }}/>;
+						return <ManyStationsView {...{ legendContainer: topContainer, detailsContainer: container }}/>;
 					})()}
 				</div>
 			</div>
