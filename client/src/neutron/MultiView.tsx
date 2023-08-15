@@ -118,8 +118,11 @@ export function ManyStationsView({ legendContainer, detailsContainer }:
 	const size = useSize(container?.parentElement);
 
 	const [u, setUplot] = useState<uPlot>();
-	const [legend, setLegend] = useState<{ name: string, value: number, focus: boolean }[] | null>(null); 
-	const focusedStation = stations.find(st => st.toUpperCase().startsWith(legend?.find((s) => s.focus)?.name!)) ?? primeStation;
+	const [legendIdx, setLegendIdx] = useState<number | null>(null);
+
+	const focusedStation = u?.series.find((s: any) => s.scale !== 'x' && s._focus)?.label ?? primeStation;
+	const legend = legendIdx == null ? null :
+		stations.map((st, i) => ({ name: st, value: data[1 + i][legendIdx], focus: st === focusedStation }));
 
 	useEffect(() => {
 		if (!u) return;
@@ -184,7 +187,10 @@ export function ManyStationsView({ legendContainer, detailsContainer }:
 				const vals = (!sel || !((cur !== min) !== (cur !== max)))
 					? [cur, cur + move]
 					: [cur + move, cur !== min ? min! : max!];
-				return vals[0] === vals[1] ? null : [Math.min(...vals), Math.max(...vals)];
+				return vals[0] === vals[1] ? null : [
+					Math.max(left, Math.min(Math.min(...vals), right)),
+					Math.max(left, Math.min(Math.max(...vals), right))
+				];
 			})());
 		} else if (movePrime && e.ctrlKey) {
 			setPrimeStation(p => {
@@ -212,13 +218,7 @@ export function ManyStationsView({ legendContainer, detailsContainer }:
 	const plot = useMemo(() => {
 		const options = { ...size, ...plotOptions(stations, levels), hooks: {
 			setLegend: [
-				(upl: uPlot) => {
-					const idx = upl.legend.idx;
-					if (idx == null)
-						return setLegend(null);
-					setLegend(stations.map((s, si) =>
-						({ name: s.toUpperCase().slice(0, 4), value: data[1 + si][idx], focus: (upl.series[1 + si + stations.length] as any)._focus })));
-				}
+				(upl: uPlot) => setLegendIdx(upl.legend.idx ?? null)
 			],
 			setCursor: [
 				(upl: any) => setCursorIdx(upl.cursor._lock ? upl.cursor.idx : null)
@@ -249,9 +249,9 @@ export function ManyStationsView({ legendContainer, detailsContainer }:
 				</div>}
 			</>
 		), legendContainer)}
-		{focusedStation && u?.cursor.idx != null && detailsContainer && createPortal((
+		{focusedStation && legendIdx != null && detailsContainer && createPortal((
 			<div style={{ position: 'relative', border: '2px var(--color-border) solid', width: 356, height: 240 }}>
-				<MinuteView {...{ station: focusedStation, timestamp: u!.data[0][u?.cursor.idx] }}/>
+				<MinuteView {...{ station: focusedStation, timestamp: data[0][legendIdx] }}/>
 			</div>
 		), detailsContainer)}
 	</div>);
