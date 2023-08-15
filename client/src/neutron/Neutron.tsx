@@ -189,6 +189,11 @@ export default function Neutron() {
 			if (fromIdx == null || primeStation == null) return;
 			const length = selectedRange != null ? (selectedRange[1] - selectedRange[0] + 1) : 1;
 			addCorrection(primeStation, fromIdx, Array(length).fill(STUB_VALUE));
+		} else if ('KeyE' === e.code) {
+			if (!dataState || selectedRange == null || primeStation == null) return;
+			const data = dataState.data[dataState.stations.indexOf(primeStation) + 1];
+			const [li, ri] = selectedRange;
+			addCorrection(primeStation, li, data.slice(li, ri + 1).map(v => v / eff));
 		} else if ('KeyL' === e.code) {
 			queryClient.refetchQueries();
 		} else if ('KeyR' === e.code) {
@@ -274,7 +279,7 @@ function EfficiencyInput({ eff, setEff }: { eff: number, setEff: (a: number) => 
 	const { data: allData, selectedRange, primeStation, stations } = useContext(NeutronContext)!;
 
 	type R = Reducer<{ text: string, value: number, div: number|null }, { action: 'value'|'div'|'checkbox'|'auto', value?: any }>;
-	const [ { text, div }, dispatch ] = useReducer<R>((st, { action, value: aValue }) => {
+	const [ { text, value, div }, dispatch ] = useReducer<R>((st, { action, value: aValue }) => {
 		if (action === 'value') {
 			const val = parseFloat(aValue);
 			return { text: aValue, value: isNaN(val) ? st.value : val, div: st.div };
@@ -294,7 +299,6 @@ function EfficiencyInput({ eff, setEff }: { eff: number, setEff: (a: number) => 
 			if (left == null || right == null)
 				return st;
 			const lEff = data[li] / left, rEff = data[ri] / right;
-			console.log( data[li] ,  left,  data[ri] , right)
 			const efficiency = (lEff + rEff) / 2;
 			const val = efficiency * (st.div || 1);
 			return { text: (Math.round(1000 * val) / 1000).toString(), value: val, div: st.div };
@@ -304,6 +308,8 @@ function EfficiencyInput({ eff, setEff }: { eff: number, setEff: (a: number) => 
 		value: eff,
 		div: null
 	});
+
+	useEffect(() => setEff(value / (div || 1)), [value, div, setEff]); // FIXME: ehh
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'KeyA')
