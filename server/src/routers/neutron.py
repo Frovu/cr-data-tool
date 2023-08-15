@@ -65,3 +65,10 @@ def revision():
 		resolved[sta.id] = corrs[s]
 	corrections.revision(resolved)
 	return 'OK'
+
+@bp.route('/revert', methods=['POST'])
+@route_shielded
+def revert_revision():
+	rid = request.json.get('id')
+	corrections.revert_revision(rid)
+	return 'OK'

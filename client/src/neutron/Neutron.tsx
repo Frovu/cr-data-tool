@@ -1,6 +1,6 @@
 import { SetStateAction, createContext, useEffect, useMemo, useState } from 'react';
 import { ManyStationsView } from './MultiView';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { CommitMenu, FetchMenu } from './Actions';
 import { prettyDate, useEventListener } from '../util';
 
@@ -54,6 +54,7 @@ function queryFunction(path: string, interval: [Date, Date], qStations: string[]
 }
 
 export default function Neutron() {
+	const queryClient = useQueryClient();
 	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 
@@ -64,6 +65,19 @@ export default function Neutron() {
 
 	const queryStations = 'all';
 	const query = useQuery(['manyStations', queryStations, interval], queryFunction('api/neutron/rich', interval, [queryStations]));
+
+	const revertMutation = useMutation(async (revId: number) => {
+		const res = await fetch(process.env.REACT_APP_API + 'api/neutron/revert', {
+			method: 'POST', credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ id: revId })
+		});
+		if (res.status !== 200)
+			throw Error('HTTP '+res.status);
+		return await res.text();
+	}, {
+		onSuccess: () => queryClient.invalidateQueries()
+	});
 
 	const [activePopup, openPopup] = useState<ActionMenu | null>(null);
 
@@ -209,14 +223,15 @@ export default function Neutron() {
 							onMouseEnter={() => setHoveredRev(rev.id)} onMouseLeave={() => setHoveredRev(null)} onBlur={() => setHoveredRev(null)}>
 							<p style={{ margin: 0 }}>
 								{rev.author ?? 'anon'} <span style={{ color: 'var(--color-text-dark)' }}>revised</span> [{rev.rev_time.length}] points
-								<button style={{ position: 'absolute', top: 2, right: 6, padding: '1px 8px' }}>Revert</button>
+								<button style={{ position: 'absolute', top: 2, right: 6, padding: '1px 8px' }}
+									onClick={() => revertMutation.mutate(rev.id)}>Revert</button>
 							</p>
 							{rev.comment ? 'Comment: '+rev.comment : ''}
 							<p style={{ margin: 0, fontSize: 12, color: 'var(--color-text-dark)' }}>
 								at {prettyDate(new Date(rev.time*1e3))}</p>
 						</div>))}
 					</div>}
-					{Object.keys(corrections).length > 0 && <div style={{ color: 'var(--color-red)' }}>
+					{Object.keys(corrections).length > 0 && <div style={{ color: 'var(--color-magenta)' }}>
 						[!REV!] {Object.entries(corrections).map(([s, crr]) => `${s.toUpperCase()}:${crr.filter(c => c != null).length} `)}
 					</div>}
 				</div>

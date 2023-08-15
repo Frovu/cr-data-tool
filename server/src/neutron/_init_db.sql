@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS neutron.revision_log (
 	station TEXT NOT NULL,
 	rev_time TIMESTAMPTZ[] NOT NULL,
 	rev_value REAL[] NOT NULL,
-	is_reverted BOOLEAN NOT NULL DEFAULT false
+	reverted_at TIMESTAMPTZ
 );
 
 INSERT INTO neutron.stations(id, drift_longitude, prefer_nmdb, closed_at) VALUES

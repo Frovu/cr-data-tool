@@ -68,6 +68,7 @@ def revision(stationRevisions):
 	with pool.connection() as conn:
 		for sid in stationRevisions:
 			revs = np.array(stationRevisions[sid], dtype='object')
+			assert len(revs) > 0
 			revs[:,0] = np.array([datetime.utcfromtimestamp(t) for t in revs[:,0]])
 			# TODO: insert author, comment
 			log.info(f'Neutron: inserting revision of length {len(revs)} for {sid.upper()}')
@@ -75,3 +76,14 @@ def revision(stationRevisions):
 				'VALUES (%s, %s, %s)', [sid, revs[:,0].tolist(), revs[:,1].tolist()])
 			upsert_many(conn, f'nm.{sid}_1h', ['time', 'revised'], revs.tolist(), write_nulls=True)
 			update_result_table(conn, sid, [revs[0,0], revs[-1,0]])
+
+def revert_revision(rid):
+	with pool.connection() as conn:
+		res = conn.execute('SELECT station, rev_time FROM neutron.revision_log WHERE id = %s', [rid]).fetchone()
+		if res is None:
+			raise ValueError('Not found')
+		station, rev_time = res
+		conn.execute(f'UPDATE nm.{station}_1h SET revised = NULL WHERE time = ANY(%s)', [rev_time])
+		update_result_table(conn, station, [rev_time[0], rev_time[-1]])
+		conn.execute(f'UPDATE neutron.revision_log SET reverted_at = CURRENT_TIMESTAMP WHERE id = %s', [rid])
+		log.info(f'Neutron: Reverted revision of length {len(rev_time)} for {station.upper()} around {rev_time[0]}')
