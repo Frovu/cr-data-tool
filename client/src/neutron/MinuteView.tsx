@@ -2,12 +2,12 @@ import { useQuery } from 'react-query';
 import uPlot from 'uplot';
 import { color, font } from '../plotUtil';
 import UplotReact from 'uplot-react';
-import { prettyDate } from '../util';
+import { prettyDate, useEventListener } from '../util';
 import { useContext, useEffect, useState } from 'react';
 import { NeutronContext } from './Neutron';
 
 export default function MinuteView({ timestamp, station }: { timestamp: number, station: string }) {
-	const { data: allData, stations } = useContext(NeutronContext)!;
+	const { data: allData, stations, addCorrection } = useContext(NeutronContext)!;
 
 	const query = useQuery({
 		queryKey: ['minuteView', timestamp, station],
@@ -20,8 +20,10 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 			const res = await fetch(process.env.REACT_APP_API + 'api/neutron/minutes?' + urlPara);
 			if (res.status !== 200)
 				throw Error('HTTP '+res.status);
-			const body = await res.json() as { station: string, raw: number[], filtered: number[], integrated: number };
+			const body = await res.json() as { station: string, raw: number[], filtered: number[], integrated: number, idx: number, stateValue: number };
 			// console.log('minutes => ', body);
+			body.idx = allData[0].indexOf(timestamp);
+			body.stateValue = allData[1 + stations.indexOf(station)][body.idx];
 			return body;
 		}
 	});
@@ -31,8 +33,15 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 	useEffect(() => setMask(Array(60).fill(false)), [query.data]);
 	useEffect(() => {
 		if (query.data)
-			setValue(allData[1 + stations.indexOf(station)][allData[0].indexOf(timestamp)]);
-	}, [query.data, station, stations, timestamp, allData]);
+			setValue(query.data.stateValue);
+	}, [query.data]);
+
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (e.code === 'KeyI') {
+			if (query.data && query.data.stateValue !== value)
+				addCorrection(station, query.data!.idx, [ value ]);
+		}
+	});
 
 	if (query.isLoading)
 		return <div className='center'>LOADING..</div>;
@@ -41,13 +50,12 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 	if (!query.data)
 		return <div className='center'>NO DATA</div>;
 
-	const stateValue = allData[1 + stations.indexOf(station)][allData[0].indexOf(timestamp)];
 	const effective = query.data.filtered.map((v, i) => mask[i] ? null : v);
 	const data = [
 		Array.from(Array(60).keys()),
 		Array(60).fill(value),
 		Array(60).fill(query.data.integrated),
-		Array(60).fill(stateValue),
+		Array(60).fill(query.data.stateValue),
 		effective,
 		query.data.filtered.map((v, i) => mask[i] ? v : null),
 		query.data.raw.map((v, i) => v === query.data.filtered[i] ? null : v)

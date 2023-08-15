@@ -1,4 +1,4 @@
-import { SetStateAction, createContext, useEffect, useMemo, useState } from 'react';
+import { SetStateAction, createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { ManyStationsView } from './MultiView';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { CommitMenu, FetchMenu } from './Actions';
@@ -34,6 +34,7 @@ export const NeutronContext = createContext<{
 	setViewRange: (a: SetStateAction<number[]>) => void,
 	setSelectedRange: (a: SetStateAction<number[] | null>) => void,
 	setCorrections: (a: SetStateAction<{ [st: string]: (number | null)[] }>) => void,
+	addCorrection: (station: string, fromIndex: number, values: number[]) => void
 } | null>({} as any);
 
 function queryFunction(path: string, interval: [Date, Date], qStations: string[]) {
@@ -111,27 +112,41 @@ export default function Neutron() {
 		return {
 			data: [time, ...sortedIdx.map(i => data[i])],
 			uncorrectedData: [time, ...sortedIdx.map(i => uncorrectedData[i])],
-			plotData: [time, ...spreadedUnc, ...spreaded, []],
+			plotData: [time, ...spreadedUnc, ...spreaded, [], []],
 			stations: sortedIdx.map(i => stations[i]),
 			levels: sortedIdx.map((idx, i) => - i * distance)
 		};
 	}, [query.data, corrections]);
 
 	const dataState = useMemo(() => {
-		const rev = query.data?.revisions.find(r => r.id === hoveredRev);
-		if (!partialDataState || !rev) return partialDataState;
+		const hRev = query.data?.revisions.find(r => r.id === hoveredRev);
+		if (!partialDataState) return partialDataState;
 		const { data, levels, stations } = partialDataState;
-		const indicators = Array(data[0].length).fill(null);
-		const level = levels[stations.indexOf(rev.station)] - (levels[1] - levels[0]) / 2;
-		for (const time of rev.rev_time)
-			indicators[data[0].indexOf(time)] = level;
+		const hIindicators = Array(data[0].length).fill(null);
+		if (hRev) {
+			const level = levels[stations.indexOf(hRev.station)] - (levels[1] - levels[0]) / 2;
+			for (const time of hRev.rev_time)
+				hIindicators[data[0].indexOf(time)] = level;
+		}
+		let aIindicators = Array(data[0].length).fill(null);
+		if (corrections) {
+			for (const st in corrections) {
+				const sidx = stations.indexOf(st);
+				const level = levels[sidx] - (levels[1] - levels[0]) / 2;
+				aIindicators = corrections[st].map(v => v == null ? null : level);
+			}
+		}
 		return {
 			...partialDataState,
-			plotData: [...partialDataState.plotData.slice(0, -1), indicators]
+			plotData: [
+				...partialDataState.plotData.slice(0, -2),
+				hIindicators,
+				aIindicators
+			]
 		};
-	}, [query.data, partialDataState, hoveredRev]);
+	}, [query.data, partialDataState, corrections, hoveredRev]);
 
-	const addCorrection = (station: string, fromIndex: number, values: number[]) => {
+	const addCorrection = useCallback((station: string, fromIndex: number, values: number[]) => {
 		setCorrections(corr => {
 			if (!dataState) return {};
 			const sidx = dataState?.stations.indexOf(station);
@@ -142,7 +157,7 @@ export default function Neutron() {
 			corrs.splice(fromIndex, effective.length, ...effective);
 			return { ...corr, [station]: corrs };
 		});
-	};
+	}, [dataState]);
 
 	const showRevisions = (primeStation && cursorIdx && query.data?.revisions.filter(rev =>
 		rev.station === primeStation && rev.rev_time.includes(dataState?.data[0][cursorIdx]))) || [];
@@ -187,7 +202,7 @@ export default function Neutron() {
 			primeStation, setPrimeStation,
 			viewRange, setViewRange,
 			selectedRange, setSelectedRange,
-			corrections, setCorrections,
+			corrections, setCorrections, addCorrection,
 			openPopup
 		}}>
 			{activePopup && query.data && <>

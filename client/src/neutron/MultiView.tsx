@@ -49,6 +49,7 @@ function plotOptions(stations: string[], levels: number[]) {
 									u.cursor._lock = false;
 							} else {
 								handler(e);
+								u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, true);
 							}
 							mouseSelection = false;
 							return null;
@@ -99,6 +100,10 @@ function plotOptions(stations: string[], levels: number[]) {
 			width: 3,
 			stroke: color('red'),
 			points: { show: true, size: 3, width: 1, fill: color('red') },
+		}, {
+			width: 3,
+			stroke: color('magenta'),
+			points: { show: true, size: 3, width: 1, fill: color('magenta') },
 		}])
 	} as Omit<uPlot.Options, 'height'|'width'>;
 }
