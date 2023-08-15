@@ -96,3 +96,33 @@ export function CommitMenu() {
 		<button style={{ padding: '2px 24px', marginLeft: 24 }} onClick={() => openPopup(null)}>CANCEL</button>
 	</div>);
 }
+
+export function Help() {
+	return (<div style={{ width: '64vw' }}>
+		<h4>How it (should) work</h4>
+		<p style={{ textAlign: 'left', margin: '0 2em' }}>
+			Use arrow keys to move cursor. Press ctrl/alt to get more speed.<br/>
+			Use shift to select regions with keyborad.<br/>
+			Use ctrl + up/down keys to change prime station.<br/>
+			Use double-click to select prime station from plot.<br/>
+			Drag cursor with shift/ctrl to zoom.<br/>
+			Press enter to make focused station prime.<br/>
+			Revisions log regarding point of fixed cursor is listed below minute plot.<br/>
+			Enable "Div" mode to input efficiency as a rational number (much better when n/18 counters are broke)<br/>
+			On a minute plot drag cursor with shift pressed to apply mask. Green line means current value of this hour, orange - automatically computed, yellow - computed with the mask. Press <b>I</b> for this to take effect.<br/>
+		</p>
+		<h4 style={{ textAlign: 'left' }}>Keys to know</h4>
+		<p style={{ textAlign: 'left', margin: '0 2em' }}>
+			<b>H</b> - View this sacred message<br/>
+			<b>F</b> - Refetch data from source<br/>
+			<b>Z</b> - Zoom plot into selection<br/>
+			<b>R</b> - Discard not commited corrections<br/>
+			<b>C</b> - Commit corrections<br/>
+			<b>A</b> - Automatically determine efficieny from selection<br/>
+			<b>I</b> - Integrate current hour with a mask applied<br/>
+			<b>E</b> - Correct for efficiency<br/>
+			<b>Del</b> - Correct by removing points<br/>
+			<b>Esc</b> - To break free<br/>
+		</p>
+	</div>);
+}

@@ -1,7 +1,7 @@
 import { Reducer, SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react';
 import { ManyStationsView } from './MultiView';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
-import { CommitMenu, FetchMenu } from './Actions';
+import { CommitMenu, FetchMenu, Help } from './Actions';
 import { prettyDate, useEventListener } from '../util';
 
 type Revision = {
@@ -14,7 +14,7 @@ type Revision = {
 	rev_value: number[],
 	reverted_at: number,
 };
-type ActionMenu = 'refetch' | 'commit';
+type ActionMenu = 'refetch' | 'commit' | 'help';
 const STUB_VALUE = -999;
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -184,6 +184,8 @@ export default function Neutron() {
 			openPopup('refetch');
 		} else if (e.code === 'KeyC' && Object.keys(corrections).length > 0) {
 			openPopup('commit');
+		} else if ('KeyH' === e.code) {
+			openPopup('help');
 		} else if ('Delete' === e.code) {
 			const fromIdx = selectedRange?.[0] ?? cursorIdx;
 			if (fromIdx == null || primeStation == null) return;
@@ -218,6 +220,7 @@ export default function Neutron() {
 						style={{ position: 'absolute', top: 4, right: 5 }} className='closeButton'>&times;</span>
 					{activePopup === 'refetch' && <FetchMenu/>}
 					{activePopup === 'commit' && <CommitMenu/>}
+					{activePopup === 'help' && <Help/>}
 				</div>
 			</>}
 			<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
@@ -271,6 +274,8 @@ export default function Neutron() {
 					})()}
 				</div>
 			</div>
+			<button style={{ position: 'fixed', left: 4, bottom: 8, height: 24, width: 24, padding: 0, border: '1px var(--color-border) solid' }}
+				onClick={() => openPopup('help')}>?</button>
 		</NeutronContext.Provider>);
 }
 
