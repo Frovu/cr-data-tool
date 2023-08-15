@@ -58,12 +58,14 @@ def refetch():
 @route_shielded
 def revision():
 	corrs = request.json.get('revisions')
+	author = request.json.get('author', None) # FIXME
+	comment = request.json.get('comment', None) # FIXME
 	resolved = dict()
 	for s in corrs:
 		if (sta := neutron.resolve_station(s)) is None:
 			raise ValueError('Unknown station: '+s)
 		resolved[sta.id] = corrs[s]
-	corrections.revision(resolved)
+	corrections.revision(author, comment, resolved)
 	return 'OK'
 
 @bp.route('/revert', methods=['POST'])

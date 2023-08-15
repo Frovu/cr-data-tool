@@ -160,21 +160,21 @@ export default function Neutron() {
 	}, [queryStations, year, month, monthCount, dataState?.data.length]);
 	
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (e.code === 'KeyF')
-			openPopup('refetch');
-		if (e.code === 'KeyC' && Object.keys(corrections).length > 0)
-			openPopup('commit');
-		else if (e.code === 'Escape')
-			openPopup(null);
+		if (e.code === 'Escape')
+			return openPopup(null);
 		if (activePopup)
 			return e.stopImmediatePropagation();
-		if ('Delete' === e.code) {
+		if (e.code === 'KeyF') {
+			openPopup('refetch');
+		} else if (e.code === 'KeyC' && Object.keys(corrections).length > 0) {
+			openPopup('commit');
+		} else if ('Delete' === e.code) {
 			const fromIdx = selectedRange?.[0] ?? cursorIdx;
 			if (fromIdx == null || primeStation == null) return;
 			const length = selectedRange != null ? (selectedRange[1] - selectedRange[0] + 1) : 1;
 			addCorrection(primeStation, fromIdx, Array(length).fill(STUB_VALUE));
 		} else if ('KeyL' === e.code) {
-			queryClient.invalidateQueries();
+			queryClient.refetchQueries();
 		} else if ('KeyR' === e.code) {
 			setCorrections({});
 		}

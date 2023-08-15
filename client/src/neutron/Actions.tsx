@@ -53,6 +53,7 @@ export function CommitMenu() {
 
 	const { data, corrections: allCorrs, setCorrections, openPopup } = useContext(NeutronContext)!;
 
+	const [comment, setComment] = useState('');
 	const [report, setReport] = useState('');
 
 	const corrections = Object.fromEntries(Object.entries(allCorrs)
@@ -63,7 +64,7 @@ export function CommitMenu() {
 		const res = await fetch(process.env.REACT_APP_API + 'api/neutron/revision', {
 			method: 'POST', credentials: 'include',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ revisions: corrections })
+			body: JSON.stringify({ comment: comment || null, revisions: corrections })
 		});
 		if (res.status !== 200)
 			throw Error('HTTP '+res.status);
@@ -86,9 +87,11 @@ export function CommitMenu() {
 					change{corrs.length === 1 ? '' : 's'} between&nbsp;
 					{prettyDate(new Date(1e3*corrs[0][0]))}<br/> and {prettyDate(new Date(1e3*corrs[corrs.length-1][0]))} </p>)}
 		</div>
-		<pre style={{ height: '1.25em', color: mutation.isError ? 'var(--color-red)' :  mutation.isLoading ? 'var(--color-text)' : 'var(--color-green)' }}>
+		<pre style={{ margin: 4, height: '1.25em', color: mutation.isError ? 'var(--color-red)' :  mutation.isLoading ? 'var(--color-text)' : 'var(--color-green)' }}>
 			{mutation.isLoading ? 'loading..' : report}
 		</pre>
+		<div><input type='text' placeholder='Comment' value={comment} onChange={(e) => setComment(e.target.value)}
+			style={{ padding: 4, margin: 8, width: 360, borderColor: 'var(--color-border)' }}></input></div>
 		<button style={{ padding: '2px 24px' }} autoFocus disabled={mutation.isLoading} onClick={()=>mutation.mutate()}>COMMIT</button>
 		<button style={{ padding: '2px 24px', marginLeft: 24 }} onClick={() => openPopup(null)}>CANCEL</button>
 	</div>);
