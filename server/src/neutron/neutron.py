@@ -54,7 +54,6 @@ def filter_for_integration(data):
 	std = np.nanstd(data)
 	med = np.nanmean(data)
 	data[np.abs(med - data) / std > 3] = np.nan
-	data[np.count_nonzero(np.isfinite(data)) < len(data) / 2] = np.nan
 	return data
 
 def integrate(data):

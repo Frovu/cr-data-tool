@@ -173,6 +173,8 @@ export default function Neutron() {
 			if (fromIdx == null || primeStation == null) return;
 			const length = selectedRange != null ? (selectedRange[1] - selectedRange[0] + 1) : 1;
 			addCorrection(primeStation, fromIdx, Array(length).fill(STUB_VALUE));
+		} else if ('KeyL' === e.code) {
+			queryClient.invalidateQueries();
 		} else if ('KeyR' === e.code) {
 			setCorrections({});
 		}
@@ -226,7 +228,7 @@ export default function Neutron() {
 								<button style={{ position: 'absolute', top: 2, right: 6, padding: '0 8px' }} disabled={rev.reverted_at != null}
 									onClick={() => revertMutation.mutate(rev.id)}>Revert{rev.reverted_at != null ? 'ed' : ''}</button>
 							</p>
-							{rev.comment ? 'Comment: '+rev.comment : 'Comment asjkfnsadoi shfdsdoif uyghsdfoiyugh sdoyff fsdf sd '}
+							{rev.comment ? 'Comment: '+rev.comment : ''}
 							<p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--color-text-dark)' }}>
 								at {prettyDate(new Date(rev.time*1e3))}{rev.reverted_at != null ? ' / ' + prettyDate(new Date(rev.reverted_at*1e3)) : ''}</p>
 						</div>))}
