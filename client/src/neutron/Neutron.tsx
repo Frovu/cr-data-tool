@@ -44,7 +44,7 @@ function queryFunction(path: string, interval: [Date, Date], qStations: string[]
 			to:   (interval[1].getTime() / 1000).toFixed(0),
 			stations: qStations.join(),
 		}).toString();
-		const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara);
+		const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara, { credentials: 'include' });
 		if (res.status !== 200)
 			throw Error('HTTP '+res.status);
 		const body = await res.json() as { fields: string[], corrected: any[][], revised: any[][], revisions: Revision[]  };

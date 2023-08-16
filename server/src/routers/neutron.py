@@ -1,14 +1,14 @@
 from flask import Blueprint, request
 from neutron import neutron, corrections
-from routers.utils import route_shielded
+from routers.utils import route_shielded, require_auth
 
 bp = Blueprint('neutron', __name__, url_prefix='/api/neutron')
 
 @bp.route('', methods=['GET'])
 @route_shielded
 def get_neutron():
-	t_from = int(request.args.get('from'))
-	t_to = int(request.args.get('to'))
+	t_from = int(request.args.get('from', 'none'))
+	t_to = int(request.args.get('to', 'none'))
 	sts_req = request.args.get('stations', 'all').lower()
 	stations = neutron.get_stations() if sts_req == 'all' \
 		else [s for s in [neutron.resolve_station(s) for s in sts_req.split(',')] if s is not None]
@@ -22,8 +22,8 @@ def get_neutron():
 @bp.route('/rich', methods=['GET'])
 @route_shielded
 def get_rich_neutron():
-	t_from = int(request.args.get('from'))
-	t_to = int(request.args.get('to'))
+	t_from = int(request.args.get('from', 'none'))
+	t_to = int(request.args.get('to', 'none'))
 	sts_req = request.args.get('stations', 'all').lower()
 	stations = neutron.get_stations() if sts_req == 'all' \
 		else [s for s in [neutron.resolve_station(s) for s in sts_req.split(',')] if s is not None]
@@ -36,7 +36,7 @@ def get_rich_neutron():
 @bp.route('/minutes', methods=['GET'])
 @route_shielded
 def get_minutes():
-	timestamp = int(request.args.get('timestamp'))
+	timestamp = int(request.args.get('timestamp', 'none'))
 	sname = request.args.get('station') # FIXME !!
 	station = neutron.resolve_station(sname)
 	if station is None:
@@ -45,9 +45,10 @@ def get_minutes():
 
 @bp.route('/refetch', methods=['GET'])
 @route_shielded
+@require_auth
 def refetch():
-	t_from = int(request.args.get('from'))
-	t_to = int(request.args.get('to'))
+	t_from = int(request.args.get('from', 'none'))
+	t_to = int(request.args.get('to', 'none'))
 	sts_req = request.args.get('stations').lower()
 	stations = [s for s in [neutron.resolve_station(s) for s in sts_req.split(',')] if s is not None]
 	if not len(stations):
@@ -56,8 +57,9 @@ def refetch():
 
 @bp.route('/revision', methods=['POST'])
 @route_shielded
+@require_auth
 def revision():
-	corrs = request.json.get('revisions')
+	corrs = request.json.get('revisions' )
 	author = request.json.get('author', None) # FIXME
 	comment = request.json.get('comment', None) # FIXME
 	resolved = dict()
@@ -70,6 +72,7 @@ def revision():
 
 @bp.route('/revert', methods=['POST'])
 @route_shielded
+@require_auth
 def revert_revision():
 	rid = request.json.get('id')
 	corrections.revert_revision(rid)

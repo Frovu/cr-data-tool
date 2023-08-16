@@ -44,7 +44,7 @@ else:
     app.config['JSON_SORT_KEYS'] = False
 
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_FILE_THRESHOLD'] = 32
+app.config['SESSION_FILE_THRESHOLD'] = 8
 
 Session(app)
 bcrypt = Bcrypt(app)
@@ -58,5 +58,6 @@ def after_request(response):
         response.headers['Access-Control-Allow-Credentials'] = 'true'
     return response
 
-from routers import neutron
+from routers import neutron, auth
+app.register_blueprint(auth.bp)
 app.register_blueprint(neutron.bp)

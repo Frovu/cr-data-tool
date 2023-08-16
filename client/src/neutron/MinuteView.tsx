@@ -17,7 +17,7 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 				timestamp: timestamp.toString(),
 				station
 			}).toString();
-			const res = await fetch(process.env.REACT_APP_API + 'api/neutron/minutes?' + urlPara);
+			const res = await fetch(process.env.REACT_APP_API + 'api/neutron/minutes?' + urlPara, { credentials: 'include' });
 			if (res.status !== 200)
 				throw Error('HTTP '+res.status);
 			const body = await res.json() as { station: string, raw: number[], filtered: number[], integrated: number, idx: number, stateValue: number };

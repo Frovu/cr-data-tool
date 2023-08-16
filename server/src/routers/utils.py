@@ -14,3 +14,11 @@ def route_shielded(func):
 			return {}, 500
 	wrapper.__name__ = func.__name__
 	return wrapper
+
+def require_auth(func):
+	def wrapper():
+		if session.get('uid') is None: 
+			return {}, 401
+		return func()
+	wrapper.__name__ = func.__name__
+	return wrapper
