@@ -145,12 +145,12 @@ def fetch(interval: [int, int], stations: list[Station]):
 	)
 
 	group_partial = True # TODO: actually distinguish full and partial integrity
-
 	global integrity_partial, integrity_full
-	ips, ipe = integrity_partial if group_partial else integrity_full
-	satisfied = ips and ipe and ips <= interval[0] and interval[1] <= ipe 
 
 	with obtain_mutex:
+		ips, ipe = integrity_partial if group_partial else integrity_full
+		satisfied = ips and ipe and ips <= interval[0] and interval[1] <= ipe 
+
 		if not satisfied:
 			req = (
 				ipe if ipe and interval[0] >= ips else interval[0],
