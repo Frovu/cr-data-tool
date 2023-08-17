@@ -120,7 +120,7 @@ export function ManyStationsView({ legendContainer, detailsContainer }:
 	const [u, setUplot] = useState<uPlot>();
 	const [legendIdx, setLegendIdx] = useState<number | null>(null);
 
-	const focusedStation = u?.series.find((s: any) => s.scale !== 'x' && s._focus)?.label ?? primeStation;
+	const focusedStation = primeStation ?? u?.series.find((s: any) => s.scale !== 'x' && s._focus)?.label ?? null;
 	const legend = legendIdx == null ? null :
 		stations.map((st, i) => ({ name: st, value: data[1 + i][legendIdx], focus: st === focusedStation }));
 

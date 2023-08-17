@@ -16,7 +16,7 @@ export function FetchMenu() {
 			to:   interval[1].toFixed(0),
 			stations: stationQuery.join(),
 		}).toString();
-		const res = await fetch(process.env.REACT_APP_API + 'api/neutron/refetch?' + urlPara);
+		const res = await fetch(process.env.REACT_APP_API + 'api/neutron/refetch?' + urlPara, { credentials: 'include' });
 		if (res.status !== 200)
 			throw Error('HTTP '+res.status);
 		const body = await res.json() as { duration: number, changeCounts: {[station: string]: number} };
