@@ -11,8 +11,9 @@ from neutron.nmdb import obtain as obtain_from_nmdb
 
 log = logging.getLogger('crdt')
 
-NMDB_SINCE = datetime(2020, 1, 1).replace(tzinfo=timezone.utc).timestamp()
+NMDB_SINCE = datetime(2022, 1, 1).replace(tzinfo=timezone.utc).timestamp()
 HOUR = 3600
+MAX_OBTAIN_LENGTH = 31 * 24 * HOUR
 MIN_MINUTES = 20
 obtain_mutex = Lock()
 integrity_full = [None, None]
@@ -64,6 +65,16 @@ def integrate(data):
 	return np.round(np.nansum(data) / count, 3)
 
 def _obtain_similar(interval, stations, source):
+	if source == 'nmdb' and interval[1] - interval[0] > MAX_OBTAIN_LENGTH:
+		log.debug(f'Neutron: splitting obtain interval of len {int((interval[1] - interval[0]) / HOUR)} (> {MAX_OBTAIN_LENGTH / HOUR})')
+		i = interval[0]
+		while i < interval[1]:
+			last = i + MAX_OBTAIN_LENGTH > interval[1]
+			to = interval[1] if last else i + MAX_OBTAIN_LENGTH - HOUR
+			_obtain_similar([i, to], stations, source)
+			i = to if last else to + HOUR
+		return
+
 	obtain_fn, src_res = { 'nmdb': (obtain_from_nmdb, 60), 'archive': (obtain_from_archive, 3600) }[source]
 	src_data = obtain_fn(interval, stations)
 	if not src_data:
@@ -119,8 +130,8 @@ def resolve_station(name: str) -> Station:
 
 def obtain_many(interval, stations: list[Station]):
 	if interval[0] < NMDB_SINCE and NMDB_SINCE <= interval[1]:
-		_obtain_many((interval[0], NMDB_SINCE-HOUR), stations)
-		_obtain_many((NMDB_SINCE, interval[1]), stations)
+		obtain_many((interval[0], NMDB_SINCE-HOUR), stations)
+		obtain_many((NMDB_SINCE, interval[1]), stations)
 		return log.debug('Neutron: split interval with NMDB_SINCE')
 
 	nmdb_stations = [s.id for s in stations if s.prefer_nmdb] if interval[0] >= NMDB_SINCE else []
