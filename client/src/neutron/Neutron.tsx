@@ -28,6 +28,7 @@ export const NeutronContext = createContext<{
 	viewRange: number[],
 	selectedRange: number[] | null,
 	corrections: { [st: string]: (number | null)[] },
+	showMinutes: boolean,
 	openPopup: (a: SetStateAction<ActionMenu | null>) => void,
 	setCursorIdx: (a: SetStateAction<number | null>) => void,
 	setPrimeStation: (a: SetStateAction<string | null>) => void,
@@ -82,6 +83,7 @@ export default function Neutron() {
 
 	const [activePopup, openPopup] = useState<ActionMenu | null>(null);
 
+	const [showMinutes, setShowMinutes] = useState(false);
 	const [eff, setEff] = useState<number>(1);
 	const [cursorIdx, setCursorIdx] = useState<number | null>(null);
 	const [primeStation, setPrimeStation] = useState<string | null>(null);
@@ -211,7 +213,7 @@ export default function Neutron() {
 			viewRange, setViewRange,
 			selectedRange, setSelectedRange,
 			corrections, setCorrections, addCorrection,
-			openPopup
+			openPopup, showMinutes
 		}}>
 			{activePopup && query.data && <>
 				<div className='popupBackground'></div>
@@ -240,6 +242,9 @@ export default function Neutron() {
 							<option value='none'>none</option>
 							{dataState?.stations.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
 						</select>
+						<label>&nbsp;
+							Min<input type='checkbox' checked={showMinutes} onChange={(e) => setShowMinutes(e.target.checked)}/>
+						</label>
 					</div>}
 					{dataState && <EfficiencyInput {...{ eff, setEff }}/>}
 					<div ref={node => setTopContainer(node)}></div>

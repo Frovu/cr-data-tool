@@ -11,6 +11,7 @@ function plotOptions(stations: string[], levels: number[]) {
 	const serColor = (u: any, idx: number) => {
 		return u.series[idx].label === u._prime ? (u.series[idx]._focus ? color('gold') : color('green')) : u.series[idx]._focus ? color('orange') : color('cyan');
 	};
+	const levelSize = levels[0] - levels[1];
 	let mouseSelection = false;
 	return {
 		tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
@@ -64,7 +65,7 @@ function plotOptions(stations: string[], levels: number[]) {
 		},
 		scales: {
 			y: {
-				range: (u, min, max) =>  [min - 2, max + 2]
+				range: (u, min, max) =>  [Math.max(min, levels[levels.length-1] - 2*levelSize), Math.min(max, levels[0] + 2*levelSize)]
 			}
 		},
 		axes: [
@@ -111,7 +112,7 @@ function plotOptions(stations: string[], levels: number[]) {
 export function ManyStationsView({ legendContainer, detailsContainer }:
 { legendContainer: Element | null, detailsContainer: Element | null }) {
 	const {
-		data, plotData, primeStation, stations, levels, selectedRange, setCursorIdx, setPrimeStation, setSelectedRange, setViewRange
+		data, plotData, primeStation, stations, levels, selectedRange, showMinutes, setCursorIdx, setPrimeStation, setSelectedRange, setViewRange
 	} = useContext(NeutronContext)!;
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -138,8 +139,11 @@ export function ManyStationsView({ legendContainer, detailsContainer }:
 	}, [u, selectedRange]);
 
 	useEffect(() => {
-		u?.setData(plotData as any, false);
-		u?.redraw();
+		if (!u) return; // FIXME: ehhhhhh
+		if (plotData[0][0] !== u.data[0][0] || plotData[0][plotData[0].length-1] !== u.data[0][u.data[0].length-1])
+			return;
+		u.setData(plotData as any, false);
+		u.redraw();
 	}, [u, plotData]);
 
 	useLayoutEffect(() => {
@@ -194,7 +198,8 @@ export function ManyStationsView({ legendContainer, detailsContainer }:
 			})());
 		} else if (movePrime && e.ctrlKey) {
 			setPrimeStation(p => {
-				const idx = p ? Math.max(0, Math.min(stations.indexOf(p) + movePrime, stations.length - 1)) : movePrime < 0 ? stations.length - 1 : 0;
+				const idx = p ? Math.max(0, Math.min(stations.indexOf(p) + movePrime, stations.length - 1)) :
+					focusedStation ? stations.indexOf(focusedStation) : movePrime < 0 ? stations.length - 1 : 0;
 				if (u.cursor.idx != null)
 					u.setCursor({ left: u.cursor.left!, top: u.valToPos(plotData[sidx(idx)][u.cursor.idx] ?? levels[idx], 'y') });
 				u.setSeries(sidx(idx), { focus: true });
@@ -249,7 +254,7 @@ export function ManyStationsView({ legendContainer, detailsContainer }:
 				</div>}
 			</>
 		), legendContainer)}
-		{focusedStation && legendIdx != null && detailsContainer && createPortal((
+		{showMinutes && focusedStation && legendIdx != null && detailsContainer && createPortal((
 			<div style={{ position: 'relative', border: '2px var(--color-border) solid', width: 356, height: 240 }}>
 				<MinuteView {...{ station: focusedStation, timestamp: data[0][legendIdx] }}/>
 			</div>
