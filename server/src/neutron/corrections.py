@@ -6,13 +6,16 @@ import numpy as np
 log = logging.getLogger('crdt')
 
 def get_minutes(station, timestamp):
-	# FIXME: check if supports 1 min
-	assert station.provides_1min
+	if not station.provides_1min:
+		return {}
 
 	with pool.connection() as conn:
 		curs = conn.execute(f'SELECT corrected FROM nm.{station.id}_1min ' + \
 			'WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s) + \'1 hour\'::interval ORDER BY time', [timestamp, timestamp])
+		if not curs.rowcount:
+			return {}
 		raw = np.array(curs.fetchall(), 'f8')[:,0]
+
 	filtered = filter_for_integration(np.copy(raw))
 	integrated = integrate(np.copy(raw))
 

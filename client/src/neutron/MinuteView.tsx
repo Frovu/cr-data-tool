@@ -24,7 +24,7 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 			// console.log('minutes => ', body);
 			body.idx = allData[0].indexOf(timestamp);
 			body.stateValue = allData[1 + stations.indexOf(station)][body.idx];
-			return body;
+			return body.raw ? body : null;
 		}
 	});
 
@@ -47,7 +47,7 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 		return <div className='center'>LOADING..</div>;
 	if (query.isError)
 		return <div className='center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
-	if (!query.data)
+	if (query.data == null)
 		return <div className='center'>NO DATA</div>;
 
 	const effective = query.data.filtered.map((v, i) => mask[i] ? null : v);
@@ -58,7 +58,7 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 		Array(60).fill(query.data.stateValue),
 		effective,
 		query.data.filtered.map((v, i) => mask[i] ? v : null),
-		query.data.raw.map((v, i) => v === query.data.filtered[i] ? null : v)
+		query.data.raw.map((v, i) => v === query.data?.filtered[i] ? null : v)
 	];
 	
 	const options = {
@@ -99,7 +99,7 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 						const msk = oldMask.slice();
 						for (let i=left; i<=right; ++i)
 							msk[i] = !msk[i];
-						const eff = query.data.filtered.filter((v, i) => !msk[i] && v != null);
+						const eff = query.data!.filtered.filter((v, i) => !msk[i] && v != null);
 						setValue(eff.reduce((a, b) => a + b, 0) / eff.length);
 						return msk;
 					});
@@ -124,8 +124,8 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 				stroke: color('text'),
 				grid: { show: true, stroke: color('grid'), width: 2 },
 				ticks: { stroke: color('grid'), width: 2 },
-				values: (u, vals) => ['', '', `${query.data.station.toUpperCase()} minutes of ${prettyDate(new Date(timestamp*1000))}`, 
-					'', '', `[${query.data.filtered.reduce((s, a) => s + (a == null ? 0 : 1), 0)}/60]`],
+				values: (u, vals) => ['', '', `${query.data!.station.toUpperCase()} minutes of ${prettyDate(new Date(timestamp*1000))}`, 
+					'', '', `[${query.data!.filtered.reduce((s, a) => s + (a == null ? 0 : 1), 0)}/60]`],
 			},
 			{
 				size: 40,
