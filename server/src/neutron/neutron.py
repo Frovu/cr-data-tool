@@ -78,7 +78,7 @@ def _obtain_similar(interval, stations, source):
 	obtain_fn, src_res = { 'nmdb': (obtain_from_nmdb, 60), 'archive': (obtain_from_archive, 3600) }[source]
 	src_data = obtain_fn(interval, stations)
 	if not src_data:
-		log.warn(f'Empty obtain ({source})!')
+		log.warn(f'Empty obtain ({source})! {interval[0]}:{interval[1]}')
 		return # FIXME: handle smh
 	
 	src_data = np.array(src_data)
@@ -100,12 +100,13 @@ def _obtain_similar(interval, stations, source):
 			data[:,si+1] = np.where(~np.isfinite(result), None, result)
 	else:
 		data = src_data
+		data[:,1:] = np.where(data[:,1:] <= 0, None, data[:,1:])
 
 	log.debug(f'Neutron: obtained {source} [{len(data)} * {len(stations)}] {res_dt_interval[0]} to {res_dt_interval[1]}')
 	with pool.connection() as conn:
 		for i, station in enumerate(stations):
 			upsert_many(conn, f'nm.{station}_1h', ['time', 'corrected'],
-				np.column_stack((data[:,0], data[:,1+i])))
+				np.column_stack((data[:,0], data[:,1+i])), write_nulls=True) # FIXME: should we really write_nulls?
 			if src_res == 60:
 				upsert_many(conn, f'nm.{station}_1min', ['time', 'corrected'],
 					np.column_stack((src_data[:,0], src_data[:,1+i])))
