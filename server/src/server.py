@@ -58,6 +58,7 @@ def after_request(response):
         response.headers['Access-Control-Allow-Credentials'] = 'true'
     return response
 
-from routers import neutron, auth
+from routers import neutron, omni, auth
 app.register_blueprint(auth.bp)
+app.register_blueprint(omni.bp)
 app.register_blueprint(neutron.bp)
