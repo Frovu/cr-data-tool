@@ -1,4 +1,4 @@
-import { Reducer, SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react';
+import { ReactElement, Reducer, SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react';
 import { ManyStationsView } from './MultiView';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { CommitMenu, FetchMenu, Help } from './Actions';
@@ -16,7 +16,6 @@ type Revision = {
 };
 type ActionMenu = 'refetch' | 'commit' | 'help';
 const STUB_VALUE = -999;
-const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export const NeutronContext = createContext<{
 	data: number[][],
@@ -43,10 +42,7 @@ export default function Neutron() {
 	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 
-	const [year, setYear] = useState(new Date().getFullYear());
-	const [month, setMonth] = useState(new Date().getMonth());
-	const [monthCount, setMonthCount] = useState(1);
-	const interval = [0, monthCount].map(inc => new Date(Date.UTC(year, month + inc))) as [Date, Date];
+	const [interval, monthInput] = useMonthInput();
 
 	const queryStations = 'all';
 	const query = useQuery(['manyStations', queryStations, interval], async () => {
@@ -158,7 +154,7 @@ export default function Neutron() {
 		setCorrections({});
 		setCursorIdx(null);
 		setSelectedRange(null);
-	}, [queryStations, year, month, monthCount, dataState?.data.length]);
+	}, [queryStations, interval, dataState?.data.length]);
 	
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'Escape')
@@ -211,13 +207,7 @@ export default function Neutron() {
 			<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
 				<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
 					<div style={{ textAlign: 'center', marginRight: 16 }}>
-						[ <select onWheel={e => setMonth(m => Math.max(0, Math.min(m + Math.sign(e.deltaY), 11)))}
-							value={monthNames[month]} onChange={e => setMonth(monthNames.indexOf(e.target.value))}>
-							{monthNames.map(mon => <option key={mon} id={mon}>{mon}</option>)}
-						</select> <input style={{ width: '6ch' }} type='number' min='1957' max={new Date().getFullYear()}
-							value={year} onChange={e => setYear(e.target.valueAsNumber)}
-						/> + <input style={{ width: '3ch' }} type='number' min='1' max='24' value={monthCount} onChange={e => setMonthCount(e.target.valueAsNumber)}
-						/> month{monthCount === 1 ? '' : 's'} ]
+						[ {monthInput} ]
 					</div>
 					{dataState && <div style={{ margin: '0 0 4px 16px' }}>
 						Primary station: <select style={{ color: primeStation ? 'var(--color-green)' : 'var(--color-text)' }} 
@@ -265,6 +255,33 @@ export default function Neutron() {
 			<button style={{ position: 'fixed', left: 4, bottom: 8, height: 24, width: 24, padding: 0, border: '1px var(--color-border) solid' }}
 				onClick={() => openPopup('help')}>?</button>
 		</NeutronContext.Provider>);
+}
+
+const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export function useMonthInput() {
+	type R = Reducer<{ year: number, month: number, count: number, interval: Date[]}, { action: 'month'|'year'|'count', value: number }>;
+	const [{ year, month, count, interval }, dispatch] = useReducer<R>((state, { action, value }) => {
+		const st = { ...state, [action]: value };
+		st.interval = [0, st.count].map(inc => new Date(Date.UTC(st.year, st.month + inc)));
+		return st;
+	}, {
+		year: new Date().getFullYear(),
+		month: new Date().getMonth(),
+		count: 1,
+		interval: [0, 1].map(inc => new Date(Date.UTC(new Date().getFullYear(), new Date().getMonth() + inc)))
+	});
+	const set = (action: 'month'|'year'|'count', value: number) => dispatch({ action, value });
+
+	return [interval, <div style={{ display: 'inline-block' }}>
+		<select onWheel={e => set('month', Math.max(0, Math.min(month + Math.sign(e.deltaY), 11)))}
+			value={monthNames[month]} onChange={e => set('month', monthNames.indexOf(e.target.value))}>
+			{monthNames.map(mon => <option key={mon} id={mon}>{mon}</option>)}
+		</select> <input style={{ width: '6ch' }} type='number' min='1957' max={new Date().getFullYear()}
+			value={year} onChange={e => set('year', e.target.valueAsNumber)}
+		/> + <input style={{ width: '4ch', textAlign: 'center' }} type='number' min='1' max='24'
+			value={count} onChange={e => set('count', e.target.valueAsNumber)}
+		/> month{count === 1 ? '' : 's'}
+	</div>] as [Date[], ReactElement];
 }
 
 const defaultDivisor = 18;  // TODO: smart divisor determination
