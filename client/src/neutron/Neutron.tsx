@@ -1,4 +1,4 @@
-import { ReactElement, Reducer, SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react';
+import { ReactElement, Reducer, SetStateAction, createContext, useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { ManyStationsView } from './MultiView';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { CommitMenu, FetchMenu, Help } from './Actions';
@@ -63,7 +63,6 @@ export default function Neutron() {
 	const [activePopup, openPopup] = useState<ActionMenu | null>(null);
 
 	const [showMinutes, setShowMinutes] = useState(false);
-	const [eff, setEff] = useState<number>(1);
 	const [cursorIdx, setCursorIdx] = useState<number | null>(null);
 	const [primeStation, setPrimeStation] = useState<string | null>(null);
 	const [viewRange, setViewRange] = useState<number[]>([0, 0]);
@@ -128,6 +127,19 @@ export default function Neutron() {
 		};
 	}, [query.data, partialDataState, corrections, hoveredRev]);
 
+	const [efficiency, efficiencyInput] = useEfficiencyInput(!primeStation || !selectedRange, () => {
+		if (!dataState || !primeStation || !selectedRange)
+			return 1;
+		const data = dataState.data[dataState.stations.indexOf(primeStation) + 1];
+		const [li, ri] = selectedRange; // left - lval 
+		const left = data.slice(0, li).findLast(v => v != null);
+		const right = data.slice(ri + 1).find(v => v != null);
+		if (left == null || right == null)
+			return 1;
+		const lEff = data[li] / left, rEff = data[ri] / right;
+		return (lEff + rEff) / 2;
+	});
+
 	const addCorrection = useCallback((station: string, fromIndex: number, values: number[]) => {
 		setCorrections(corr => {
 			if (!dataState) return {};
@@ -176,7 +188,7 @@ export default function Neutron() {
 			if (!dataState || selectedRange == null || primeStation == null) return;
 			const data = dataState.data[dataState.stations.indexOf(primeStation) + 1];
 			const [li, ri] = selectedRange;
-			addCorrection(primeStation, li, data.slice(li, ri + 1).map(v => v / eff));
+			addCorrection(primeStation, li, data.slice(li, ri + 1).map(v => v / efficiency));
 		} else if ('KeyL' === e.code) {
 			queryClient.refetchQueries();
 		} else if ('KeyR' === e.code) {
@@ -219,7 +231,7 @@ export default function Neutron() {
 							Min<input type='checkbox' checked={showMinutes} onChange={(e) => setShowMinutes(e.target.checked)}/>
 						</label>
 					</div>}
-					{dataState && <EfficiencyInput {...{ eff, setEff }}/>}
+					{dataState && efficiencyInput}
 					<div ref={node => setTopContainer(node)}></div>
 					<div ref={node => setContainer(node)}></div>
 					{showRevisions.length > 0 && <div style={{ maxHeight: 154, overflowY: 'scroll', border: '2px var(--color-border) solid', padding: 2 }}>
@@ -285,9 +297,7 @@ export function useMonthInput() {
 }
 
 const defaultDivisor = 18;  // TODO: smart divisor determination
-function EfficiencyInput({ eff, setEff }: { eff: number, setEff: (a: number) => void }) {
-	const { data: allData, selectedRange, primeStation, stations } = useContext(NeutronContext)!;
-
+function useEfficiencyInput(autoDisabled: boolean, auto: () => number) {
 	type R = Reducer<{ text: string, value: number, div: number|null }, { action: 'value'|'div'|'checkbox'|'auto', value?: any }>;
 	const [ { text, value, div }, dispatch ] = useReducer<R>((st, { action, value: aValue }) => {
 		if (action === 'value') {
@@ -300,33 +310,19 @@ function EfficiencyInput({ eff, setEff }: { eff: number, setEff: (a: number) => 
 			const val = aValue ? (st.value * defaultDivisor) : st.value / (st.div || 1);
 			return { text: (Math.round(1000 * val) / 1000).toString(), value: val, div: aValue ? defaultDivisor : null };
 		} else {
-			if (!selectedRange || !primeStation)
-				return st;
-			const data = allData[stations.indexOf(primeStation) + 1];
-			const [li, ri] = selectedRange; // left - lval 
-			const left = data.slice(0, li).findLast(v => v != null);
-			const right = data.slice(ri + 1).find(v => v != null);
-			if (left == null || right == null)
-				return st;
-			const lEff = data[li] / left, rEff = data[ri] / right;
-			const efficiency = (lEff + rEff) / 2;
-			const val = efficiency * (st.div || 1);
+			const val = auto() * (st.div || 1);
 			return { text: (Math.round(1000 * val) / 1000).toString(), value: val, div: st.div };
 		}
-	}, {
-		text: eff.toFixed(1),
-		value: eff,
-		div: null
-	});
+	}, { text: '1.0', value: 1, div: null });
 
-	useEffect(() => setEff(value / (div || 1)), [value, div, setEff]); // FIXME: ehh
+	const efficiency = value / (div || 1);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'KeyA')
 			dispatch({ action: 'auto' });
 	});
 
-	return (<div style={{ display: 'inline-block' }}>
+	return [efficiency, <div style={{ display: 'inline-block' }}>
 		<label> Div<input type='checkbox' onChange={(e) => dispatch({ action: 'checkbox', value: e.target.checked })}/> </label>
 		Eff=
 		<input style={{ width: '6ch', borderColor: 'var(--color-border)', textAlign: 'center' }}
@@ -334,7 +330,7 @@ function EfficiencyInput({ eff, setEff }: { eff: number, setEff: (a: number) => 
 		{div != null && <span>&nbsp;/ <input style={{ width: '6ch', borderColor: 'var(--color-border)', textAlign: 'center' }}
 			type='number' step={1} value={div.toFixed(0)}
 			onChange={(e) => dispatch({ action: 'div', value: e.target.valueAsNumber })}/></span>}
-		<button style={{ marginLeft: 24, padding: '1px 16px' }} disabled={!selectedRange || !primeStation}
+		<button style={{ marginLeft: 24, padding: '1px 16px' }} disabled={autoDisabled}
 			onClick={()=>dispatch({ action: 'auto' })}>AUTO</button>
-	</div>);
+	</div>] as [number, ReactElement];
 }
