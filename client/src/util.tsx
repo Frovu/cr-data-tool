@@ -4,6 +4,28 @@ export function prettyDate(date: Date) {
 	return date.toISOString().replace('T', ' ').replace(/(:00)?\..*/, '');
 }
 
+export async function apiPost(url: string, body: { [k: string]: any }, resolve=true) {
+	const res = await fetch(process.env.REACT_APP_API + 'api/' + url, {
+		method: 'POST', credentials: 'include',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(body)
+	});
+	if (!resolve)
+		return res;
+	if (res.status !== 200)
+		throw new Error('HTTP '+res.status);
+	return await res.json();
+}
+export async function apiGet(url: string, query?: { [k: string]: any }) {
+	let uri = process.env.REACT_APP_API + 'api/' + url;
+	if (query)
+		uri += '?' + new URLSearchParams(query).toString();
+	const res = await fetch(uri, { credentials: 'include' });
+	if (res.status !== 200)
+		throw new Error('HTTP '+res.status);
+	return await res.json();
+}
+
 export function dispatchCustomEvent(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
 }

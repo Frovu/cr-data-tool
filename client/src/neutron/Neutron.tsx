@@ -2,7 +2,7 @@ import { Reducer, SetStateAction, createContext, useCallback, useContext, useEff
 import { ManyStationsView } from './MultiView';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { CommitMenu, FetchMenu, Help } from './Actions';
-import { prettyDate, useEventListener } from '../util';
+import { apiGet, apiPost, prettyDate, useEventListener } from '../util';
 
 type Revision = {
 	id: number,
@@ -38,23 +38,6 @@ export const NeutronContext = createContext<{
 	addCorrection: (station: string, fromIndex: number, values: number[]) => void
 } | null>({} as any);
 
-function queryFunction(path: string, interval: [Date, Date], qStations: string[]) {
-	return async () => {
-		const urlPara = new URLSearchParams({
-			from: (interval[0].getTime() / 1000).toFixed(0),
-			to:   (interval[1].getTime() / 1000).toFixed(0),
-			stations: qStations.join(),
-		}).toString();
-		const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara, { credentials: 'include' });
-		if (res.status !== 200)
-			throw Error('HTTP '+res.status);
-		const body = await res.json() as { fields: string[], corrected: any[][], revised: any[][], revisions: Revision[]  };
-		if (!body?.revised.length) return null;
-		console.log(path, '=>', body);
-		return body;
-	};
-}
-
 export default function Neutron() {
 	const queryClient = useQueryClient();
 	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
@@ -66,18 +49,18 @@ export default function Neutron() {
 	const interval = [0, monthCount].map(inc => new Date(Date.UTC(year, month + inc))) as [Date, Date];
 
 	const queryStations = 'all';
-	const query = useQuery(['manyStations', queryStations, interval], queryFunction('api/neutron/rich', interval, [queryStations]));
+	const query = useQuery(['manyStations', queryStations, interval], async () => {
+		const body = await apiGet('neutron/rich', {
+			from: (interval[0].getTime() / 1000).toFixed(0),
+			to:   (interval[1].getTime() / 1000).toFixed(0),
+			stations: queryStations,
+		}) as { fields: string[], corrected: any[][], revised: any[][], revisions: Revision[]  };
+		if (!body?.revised.length) return null;
+		console.log('neutron/rich =>', body);
+		return body;
+	});
 
-	const revertMutation = useMutation(async (revId: number) => {
-		const res = await fetch(process.env.REACT_APP_API + 'api/neutron/revert', {
-			method: 'POST', credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ id: revId })
-		});
-		if (res.status !== 200)
-			throw Error('HTTP '+res.status);
-		return await res.text();
-	}, {
+	const revertMutation = useMutation((revId: number) => apiPost('neutron/revert', { id: revId }), {
 		onSuccess: () => queryClient.invalidateQueries()
 	});
 

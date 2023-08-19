@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider, useMutation, useQuery } from 'react-query';
 import Neutron from './neutron/Neutron';
-import { useState } from 'react';
-import { useEventListener } from './util';
+import { useEffect, useState } from 'react';
+import { apiGet, apiPost, useEventListener } from './util';
+import { Omni } from './omni/Omni';
 
 const theQueryClient = new QueryClient();
 
@@ -11,11 +12,7 @@ function AuthPrompt() {
 	const [password, setPassword] = useState('');
 
 	const mutation = useMutation(async () => {
-		const res = await fetch(`${process.env.REACT_APP_API}api/auth`, {
-			method: 'POST', credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ login, password })
-		});
+		const res = await apiPost('auth', { login, password }, false);
 		if (res.status === 400)
 			throw new Error('Bad request');
 		if (res.status === 404)
@@ -52,18 +49,27 @@ function AuthPrompt() {
 }
 
 function App() {
-	const query = useQuery(['auth'], async () => {
-		const res = await fetch(`${process.env.REACT_APP_API}api/auth`, { credentials: 'include' });
-		if (res.status !== 200)
-			throw new Error('HTTP '+res.status);
-		return await res.json() as { login: string | null };
-	});
+	const query = useQuery<{ login: string | null }>(['auth'], () => apiGet('auth'));
+	const app = ['neutron', 'omni'].find(a => window.location.pathname.endsWith(a)) ?? 'crdt';
+	useEffect(() => {
+		document.title = {
+			neutron: 'CRDT: NM',
+			omni: 'CRDT: Omni',
+			crdt: 'CRDT'
+		}[app]!;
+	}, [app]);
 	
 	return (
 		<div className='bbox' style={{ height: '100vh', width: '100vw', padding: 8 }}>
 			{query.isError && <div className='center'>FAILED TO LOAD</div>}
 			{query.data && query.data.login == null && <AuthPrompt/>}
-			<Neutron/>
+			{app === 'neutron' && <Neutron/>}
+			{app === 'omni' && <Omni/>}
+			{app === 'crdt' && query.data?.login != null && <div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }}>
+				<h4>Select an application:</h4>
+				- <a href='neutron'>Neutron monitors</a><br/>
+				- <a href='omni'>Interplanetary medium (omni)</a>
+			</div>}
 		</div>
 	);
 }

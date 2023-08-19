@@ -2,7 +2,7 @@ import { useQuery } from 'react-query';
 import uPlot from 'uplot';
 import { color, font } from '../plotUtil';
 import UplotReact from 'uplot-react';
-import { prettyDate, useEventListener } from '../util';
+import { apiGet, prettyDate, useEventListener } from '../util';
 import { useContext, useEffect, useState } from 'react';
 import { NeutronContext } from './Neutron';
 
@@ -13,15 +13,10 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 		queryKey: ['minuteView', timestamp, station],
 		keepPreviousData: true,
 		queryFn: async () => {
-			const urlPara = new URLSearchParams({
+			const body = await apiGet('neutron/minutes', {
 				timestamp: timestamp.toString(),
 				station
-			}).toString();
-			const res = await fetch(process.env.REACT_APP_API + 'api/neutron/minutes?' + urlPara, { credentials: 'include' });
-			if (res.status !== 200)
-				throw Error('HTTP '+res.status);
-			const body = await res.json() as { station: string, raw: number[], filtered: number[], integrated: number, idx: number, stateValue: number };
-			// console.log('minutes => ', body);
+			}) as { station: string, raw: number[], filtered: number[], integrated: number, idx: number, stateValue: number };
 			body.idx = allData[0].indexOf(timestamp);
 			body.stateValue = allData[1 + stations.indexOf(station)][body.idx];
 			return body.raw ? body : null;

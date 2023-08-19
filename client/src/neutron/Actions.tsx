@@ -1,5 +1,5 @@
 import { useContext, useState } from 'react';
-import { prettyDate } from '../util';
+import { apiGet, apiPost, prettyDate } from '../util';
 import { NeutronContext } from './Neutron';
 import { useMutation, useQueryClient } from 'react-query';
 
@@ -11,15 +11,11 @@ export function FetchMenu() {
 	const [report, setReport] = useState('');
 
 	const mutation = useMutation(async (stationQuery: string[]) => {
-		const urlPara = new URLSearchParams({
+		const body = await apiGet('neutron/refetch', {
 			from: interval[0].toFixed(0),
 			to:   interval[1].toFixed(0),
 			stations: stationQuery.join(),
-		}).toString();
-		const res = await fetch(process.env.REACT_APP_API + 'api/neutron/refetch?' + urlPara, { credentials: 'include' });
-		if (res.status !== 200)
-			throw Error('HTTP '+res.status);
-		const body = await res.json() as { duration: number, changeCounts: {[station: string]: number} };
+		}) as { duration: number, changeCounts: {[station: string]: number} };
 		console.log('refetch => ', body);
 		return body;
 	}, {
@@ -60,16 +56,10 @@ export function CommitMenu() {
 		.map(([sta, values]) => [sta,
 			values.map((v, i) => v == null ? null : [data[0][i], v]).filter((ch): ch is number[] => ch != null)]));
 
-	const mutation = useMutation(async () => {
-		const res = await fetch(process.env.REACT_APP_API + 'api/neutron/revision', {
-			method: 'POST', credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ comment: comment || null, revisions: corrections })
-		});
-		if (res.status !== 200)
-			throw Error('HTTP '+res.status);
-		return await res.text();
-	}, {
+	const mutation = useMutation(() => apiPost('neutron/revision', {
+		comment: comment || null,
+		revisions: corrections
+	}), {
 		onError: (e: any) => setReport(e.toString()),
 		onSuccess: () => {
 			queryClient.invalidateQueries();
