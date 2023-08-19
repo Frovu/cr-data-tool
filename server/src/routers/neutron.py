@@ -68,7 +68,7 @@ def revision():
 			raise ValueError('Unknown station: '+s)
 		resolved[sta.id] = corrs[s]
 	corrections.revision(author, comment, resolved)
-	return 'OK'
+	return { 'message': 'OK' }
 
 @bp.route('/revert', methods=['POST'])
 @route_shielded
@@ -76,4 +76,4 @@ def revision():
 def revert_revision():
 	rid = request.json.get('id')
 	corrections.revert_revision(rid)
-	return 'OK'
+	return { 'message': 'OK' }

@@ -44,6 +44,8 @@ def refetch(interval, stations):
 
 def fetch_rich(interval, stations):
 	rows_rev, fields = fetch(interval, stations)
+	if not len(rows_rev):
+		return { 'revised': [] }
 	t_from, t_to = rows_rev[0][0], rows_rev[-1][0]
 	sids = [s.id for s in stations]
 	with pool.connection() as conn:

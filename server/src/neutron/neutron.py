@@ -47,9 +47,6 @@ def _save_integrity_state():
 	with pool.connection() as conn:
 		conn.execute('UPDATE neutron.integrity_state SET full_from=%s, full_to=%s, partial_from=%s, partial_to=%s', [*integrity_full, *integrity_partial])
 
-# filter everything <= 0
-# filter spikes > 5 sigma
-# filter station periods with < 50% coverage
 def filter_for_integration(data):
 	data[data <= 0] = np.nan
 	std = np.nanstd(data)
