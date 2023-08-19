@@ -11,5 +11,5 @@ def get_result():
 	t_from = int(request.args.get('from'))
 	t_to = int(request.args.get('to'))
 	query = request.args.get('query')
-	res, fields = database.fetch([t_from, t_to], query.split(',') if query else None)
+	res, fields = database.select([t_from, t_to], query.split(',') if query else None)
 	return { "fields": fields, "rows": res }

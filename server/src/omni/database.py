@@ -89,7 +89,8 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 
 	data = compute_derived(data, [c.name for c in omni_columns]).tolist()
 	log.debug(f'Omniweb: upserting {len(data)} rows {dstart}-{dend}')
-	upsert_many('omni', ['time', *column_names], data)
+	with pool.connection() as conn:
+		upsert_many(conn, 'omni', ['time', *column_names], data)
 
 def select(interval: [int, int], query=None, epoch=True):
 	columns = [c for c in column_names if c in query] if query else column_names

@@ -50,7 +50,7 @@ export default function Neutron() {
 			from: (interval[0].getTime() / 1000).toFixed(0),
 			to:   (interval[1].getTime() / 1000).toFixed(0),
 			stations: queryStations,
-		}) as { fields: string[], corrected: any[][], revised: any[][], revisions: Revision[]  };
+		}) as { fields: string[], corrected: any[][], revised: any[][], revisions: Revision[] };
 		if (!body?.revised.length) return null;
 		console.log('neutron/rich =>', body);
 		return body;
@@ -270,17 +270,18 @@ export default function Neutron() {
 }
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-export function useMonthInput() {
+export function useMonthInput(initial?: Date) {
 	type R = Reducer<{ year: number, month: number, count: number, interval: Date[]}, { action: 'month'|'year'|'count', value: number }>;
+	const init = initial ?? new Date();
 	const [{ year, month, count, interval }, dispatch] = useReducer<R>((state, { action, value }) => {
 		const st = { ...state, [action]: value };
 		st.interval = [0, st.count].map(inc => new Date(Date.UTC(st.year, st.month + inc)));
 		return st;
 	}, {
-		year: new Date().getFullYear(),
-		month: new Date().getMonth(),
+		year: init.getFullYear(),
+		month: init.getMonth(),
 		count: 1,
-		interval: [0, 1].map(inc => new Date(Date.UTC(new Date().getFullYear(), new Date().getMonth() + inc)))
+		interval: [0, 1].map(inc => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)))
 	});
 	const set = (action: 'month'|'year'|'count', value: number) => dispatch({ action, value });
 
