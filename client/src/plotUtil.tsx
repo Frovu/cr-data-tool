@@ -33,7 +33,7 @@ export function useNavigationState() {
 export function NavigatedPlot({ data, options: opts, moveChosen }:
 { data: number[][], options: () => Omit<uPlot.Options, 'width'|'height'>,
 	moveChosen?: (inc: number, st: NavigationState, pdata: number[][]) => NavigationState }) {
-	const { state: { cursor, selection, focused, chosen, view },
+	const { state: { cursor, selection, focused, chosen },
 		setState } = useContext(NavigationContext);
 	const set = useCallback((changes: Partial<NavigationState>) => setState(st => ({ ...st, ...changes })), [setState]);
 	
@@ -42,7 +42,6 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 	const [u, setUplot] = useState<uPlot>();
 
 	useEffect(() => {
-		console.log('eff cursor', cursor?.idx)
 		if (u && cursor?.lock) {
 			cursor?.lock && u?.setCursor(cursor ? {
 				left: u.valToPos(u.data[0][cursor.idx], 'x'),
@@ -55,7 +54,6 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 	}, [u, cursor, focused]);
 
 	useEffect(() => {
-		console.log('eff selection')
 		const left = selection && u?.valToPos(u.data[0][selection.min], 'x');
 		u?.setSelect(u && selection ? {
 			width: u.valToPos(u.data[0][selection.max], 'x') - left!,
@@ -70,13 +68,11 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 	}, [u, chosen]);
 
 	useEffect(() => {
-		console.log('eff size')
 		u?.setSize(size);
 		set({ cursor: null, selection: null });
 	}, [u, size, set]);
 
 	useEffect(() => {
-		console.log('eff data')
 		// const xScale = { min: data[0][0], max: data[0][data[0].length-1] };
 		// console.log(!!u, !!data, u?.data)
 		u?.setData(data as any, true);
@@ -128,6 +124,7 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 	});
 
 	const plot = useMemo(() => {
+		console.log('PLOT INIT');
 		const uOpts = opts();
 		let selectingWithMouse = false;
 		const options: uPlot.Options = {
@@ -171,7 +168,7 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 							}
 						} else {
 							handler(e);
-							upl.setSelect({ left: 0, top: 0, width: 0, height: 0 }, true);
+							upl.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
 						}
 						selectingWithMouse = false;
 						return null;

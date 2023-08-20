@@ -1,8 +1,9 @@
-import { ReactElement, Reducer, SetStateAction, createContext, useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import { ManyStationsView } from './MultiView';
+import { ReactElement, Reducer, SetStateAction, createContext, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { ManyStationsView } from './NeutronView';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { CommitMenu, FetchMenu, Help } from './Actions';
 import { apiGet, apiPost, prettyDate, useEventListener } from '../util';
+import { NavigationContext, useNavigationState } from '../plotUtil';
 
 type Revision = {
 	id: number,
@@ -22,25 +23,19 @@ export const NeutronContext = createContext<{
 	plotData: number[][],
 	levels: number[],
 	stations: string[],
-	primeStation: string | null,
-	cursorIdx: number | null,
-	viewRange: number[],
-	selectedRange: number[] | null,
 	corrections: { [st: string]: (number | null)[] },
 	showMinutes: boolean,
 	openPopup: (a: SetStateAction<ActionMenu | null>) => void,
-	setCursorIdx: (a: SetStateAction<number | null>) => void,
-	setPrimeStation: (a: SetStateAction<string | null>) => void,
-	setViewRange: (a: SetStateAction<number[]>) => void,
-	setSelectedRange: (a: SetStateAction<number[] | null>) => void,
 	setCorrections: (a: SetStateAction<{ [st: string]: (number | null)[] }>) => void,
 	addCorrection: (station: string, fromIndex: number, values: number[]) => void
 } | null>({} as any);
 
 export default function Neutron() {
 	const queryClient = useQueryClient();
-	const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
-	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	// const [topContainer, setTopContainer] = useState<HTMLDivElement | null>(null);
+	// const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const topContainer = useRef<HTMLDivElement | null>(null);
+	const container = useRef<HTMLDivElement | null>(null);
 
 	const [interval, monthInput] = useMonthInput();
 
@@ -63,10 +58,11 @@ export default function Neutron() {
 	const [activePopup, openPopup] = useState<ActionMenu | null>(null);
 
 	const [showMinutes, setShowMinutes] = useState(false);
-	const [cursorIdx, setCursorIdx] = useState<number | null>(null);
-	const [primeStation, setPrimeStation] = useState<string | null>(null);
-	const [viewRange, setViewRange] = useState<number[]>([0, 0]);
-	const [selectedRange, setSelectedRange] = useState<null | number[]>(null);
+
+	const navigation = useNavigationState();
+	const { selection, cursor } = navigation.state;
+	const hardCursorIdx = cursor?.lock ? cursor.idx : null;
+	const primeStation = navigation.state.chosen?.label ?? null;
 
 	const [corrections, setCorrections] = useState<{ [station: string]: (number|null)[] }>({});
 	const [hoveredRev, setHoveredRev] = useState<number | null>(null);
@@ -127,16 +123,16 @@ export default function Neutron() {
 		};
 	}, [query.data, partialDataState, corrections, hoveredRev]);
 
-	const [efficiency, efficiencyInput] = useEfficiencyInput(!primeStation || !selectedRange, () => {
-		if (!dataState || !primeStation || !selectedRange)
+	const [efficiency, efficiencyInput] = useEfficiencyInput(!primeStation || !selection, () => {
+		if (!dataState || !primeStation || !selection)
 			return 1;
 		const data = dataState.data[dataState.stations.indexOf(primeStation) + 1];
-		const [li, ri] = selectedRange; // left - lval 
-		const left = data.slice(0, li).findLast(v => v != null);
-		const right = data.slice(ri + 1).find(v => v != null);
+		const { min, max } = selection; // left - lval 
+		const left = data.slice(0, min).findLast(v => v != null);
+		const right = data.slice(max + 1).find(v => v != null);
 		if (left == null || right == null)
 			return 1;
-		const lEff = data[li] / left, rEff = data[ri] / right;
+		const lEff = data[min] / left, rEff = data[max] / right;
 		return (lEff + rEff) / 2;
 	});
 
@@ -153,8 +149,8 @@ export default function Neutron() {
 		});
 	}, [dataState]);
 
-	const showRevisions = (primeStation && cursorIdx && query.data?.revisions.filter(rev =>
-		rev.station === primeStation && rev.rev_time.includes(dataState?.data[0][cursorIdx]))) || [];
+	const showRevisions = (primeStation && hardCursorIdx && query.data?.revisions.filter(rev =>
+		rev.station === primeStation && rev.rev_time.includes(dataState?.data[0][hardCursorIdx]))) || [];
 
 	useEffect(() => {
 		setHoveredRev(h => showRevisions.length > 0 ? h : null);
@@ -164,8 +160,9 @@ export default function Neutron() {
 	useEffect(() => {
 		console.log('RESET');
 		setCorrections({});
-		setCursorIdx(null);
-		setSelectedRange(null);
+		// FIXME
+		// setCursorIdx(null);
+		// setSelectedRange(null);
 	}, [queryStations, interval, dataState?.data.length]);
 	
 	useEventListener('keydown', (e: KeyboardEvent) => {
@@ -180,15 +177,15 @@ export default function Neutron() {
 		} else if ('KeyH' === e.code) {
 			openPopup('help');
 		} else if ('Delete' === e.code) {
-			const fromIdx = selectedRange?.[0] ?? cursorIdx;
+			const fromIdx = selection?.min ?? hardCursorIdx;
 			if (fromIdx == null || primeStation == null) return;
-			const length = selectedRange != null ? (selectedRange[1] - selectedRange[0] + 1) : 1;
+			const length = selection != null ? (selection.max - selection.min + 1) : 1;
 			addCorrection(primeStation, fromIdx, Array(length).fill(STUB_VALUE));
 		} else if ('KeyE' === e.code) {
-			if (!dataState || selectedRange == null || primeStation == null) return;
+			if (!dataState || selection == null || primeStation == null) return;
 			const data = dataState.data[dataState.stations.indexOf(primeStation) + 1];
-			const [li, ri] = selectedRange;
-			addCorrection(primeStation, li, data.slice(li, ri + 1).map(v => v / efficiency));
+			const { min, max } = selection;
+			addCorrection(primeStation, min, data.slice(min, max + 1).map(v => v / efficiency));
 		} else if ('KeyL' === e.code) {
 			queryClient.refetchQueries();
 		} else if ('KeyR' === e.code) {
@@ -199,73 +196,74 @@ export default function Neutron() {
 	return (
 		<NeutronContext.Provider value={dataState == null ? null : {
 			...dataState,
-			cursorIdx, setCursorIdx,
-			primeStation, setPrimeStation,
-			viewRange, setViewRange,
-			selectedRange, setSelectedRange,
 			corrections, setCorrections, addCorrection,
-			openPopup, showMinutes
-		}}>
-			{activePopup && query.data && <>
-				<div className='popupBackground'></div>
-				<div className='popup' style={{ left: '50%', top: '45%' }}>
-					<span onClick={() => openPopup(null)}
-						style={{ position: 'absolute', top: 4, right: 5 }} className='closeButton'>&times;</span>
-					{activePopup === 'refetch' && <FetchMenu/>}
-					{activePopup === 'commit' && <CommitMenu/>}
-					{activePopup === 'help' && <Help/>}
-				</div>
-			</>}
-			<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
-				<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-					<div style={{ textAlign: 'center', marginRight: 16 }}>
-						[ {monthInput} ]
+			openPopup, showMinutes }}>
+			<NavigationContext.Provider value={navigation}>
+				{activePopup && query.data && <>
+					<div className='popupBackground'></div>
+					<div className='popup' style={{ left: '50%', top: '45%' }}>
+						<span onClick={() => openPopup(null)}
+							style={{ position: 'absolute', top: 4, right: 5 }} className='closeButton'>&times;</span>
+						{activePopup === 'refetch' && <FetchMenu/>}
+						{activePopup === 'commit' && <CommitMenu/>}
+						{activePopup === 'help' && <Help/>}
 					</div>
-					{dataState && <div style={{ margin: '0 0 4px 16px' }}>
-						Primary station: <select style={{ color: primeStation ? 'var(--color-green)' : 'var(--color-text)' }} 
-							value={primeStation ?? 'none'} onChange={e => setPrimeStation(e.target.value === 'none' ? null : e.target.value)}>
-							<option value='none'>none</option>
-							{dataState?.stations.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
-						</select>
-						<label>&nbsp;
-							Min<input type='checkbox' checked={showMinutes} onChange={(e) => setShowMinutes(e.target.checked)}/>
-						</label>
-					</div>}
-					{dataState && efficiencyInput}
-					<div ref={node => setTopContainer(node)}></div>
-					<div ref={node => setContainer(node)}></div>
-					{showRevisions.length > 0 && <div style={{ maxHeight: 154, overflowY: 'scroll', border: '2px var(--color-border) solid', padding: 2 }}>
-						{showRevisions.map(rev => (<div key={rev.id}
-							style={{ position: 'relative', padding: '4px 0 2px 4px', backgroundColor: hoveredRev === rev.id ? 'var(--color-area)' : 'var(--color-bg)' }}
-							onMouseEnter={() => setHoveredRev(rev.id)} onMouseLeave={() => setHoveredRev(null)} onBlur={() => setHoveredRev(null)}>
-							<p style={{ margin: 0 }}>
-								{rev.author ?? 'anon'} <span style={{ color: 'var(--color-text-dark)' }}>revised</span> [{rev.rev_time.length}] points
-								<button style={{ position: 'absolute', top: 2, right: 6, padding: '0 8px' }} disabled={rev.reverted_at != null}
-									onClick={() => revertMutation.mutate(rev.id)}>Revert{rev.reverted_at != null ? 'ed' : ''}</button>
-							</p>
-							{rev.comment ? 'Comment: '+rev.comment : ''}
-							<p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--color-text-dark)' }}>
-								at {prettyDate(new Date(rev.time*1e3))}{rev.reverted_at != null ? ' / ' + prettyDate(new Date(rev.reverted_at*1e3)) : ''}</p>
-						</div>))}
-					</div>}
-					{Object.keys(corrections).length > 0 && <div style={{ color: 'var(--color-magenta)' }}>
-						[!REV!] {Object.entries(corrections).map(([s, crr]) => `${s.toUpperCase()}:${crr.filter(c => c != null).length} `)}
-					</div>}
+				</>}
+				<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
+					<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+						<div style={{ textAlign: 'center', marginRight: 16 }}>
+							[ {monthInput} ]
+						</div>
+						{dataState && <div style={{ margin: '0 0 4px 16px' }}>
+							Primary station: <select style={{ color: primeStation ? 'var(--color-green)' : 'var(--color-text)' }} 
+								value={primeStation ?? 'none'} onChange={e => navigation.setState(st => ({ ...st,
+									chosen: e.target.value === 'none' ? null : {
+										idx: dataState.stations.indexOf(e.target.value) + dataState.stations.length + 1, label: e.target.value } }))}>
+								<option value='none'>none</option>
+								{dataState.stations.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
+							</select>
+							<label>&nbsp;
+								Min<input type='checkbox' checked={showMinutes} onChange={(e) => setShowMinutes(e.target.checked)}/>
+							</label>
+						</div>}
+						{dataState && efficiencyInput}
+						{/* <div ref={node => setTopContainer(node)}></div>
+						<div ref={node => setContainer(node)}></div> */}
+						<div ref={topContainer}></div>
+						<div ref={container}></div>
+						{showRevisions.length > 0 && <div style={{ maxHeight: 154, overflowY: 'scroll', border: '2px var(--color-border) solid', padding: 2 }}>
+							{showRevisions.map(rev => (<div key={rev.id}
+								style={{ position: 'relative', padding: '4px 0 2px 4px', backgroundColor: hoveredRev === rev.id ? 'var(--color-area)' : 'var(--color-bg)' }}
+								onMouseEnter={() => setHoveredRev(rev.id)} onMouseLeave={() => setHoveredRev(null)} onBlur={() => setHoveredRev(null)}>
+								<p style={{ margin: 0 }}>
+									{rev.author ?? 'anon'} <span style={{ color: 'var(--color-text-dark)' }}>revised</span> [{rev.rev_time.length}] points
+									<button style={{ position: 'absolute', top: 2, right: 6, padding: '0 8px' }} disabled={rev.reverted_at != null}
+										onClick={() => revertMutation.mutate(rev.id)}>Revert{rev.reverted_at != null ? 'ed' : ''}</button>
+								</p>
+								{rev.comment ? 'Comment: '+rev.comment : ''}
+								<p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--color-text-dark)' }}>
+									at {prettyDate(new Date(rev.time*1e3))}{rev.reverted_at != null ? ' / ' + prettyDate(new Date(rev.reverted_at*1e3)) : ''}</p>
+							</div>))}
+						</div>}
+						{Object.keys(corrections).length > 0 && <div style={{ color: 'var(--color-magenta)' }}>
+							[!REV!] {Object.entries(corrections).map(([s, crr]) => `${s.toUpperCase()}:${crr.filter(c => c != null).length} `)}
+						</div>}
+					</div>
+					<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
+						{(()=>{
+							if (query.isLoading)
+								return <div className='center'>LOADING...</div>;
+							if (query.isError)
+								return <div className='center' style={{ color: 'var(--color-red)' }}>FAILED TO LOAD</div>;
+							if (!query.data)
+								return <div className='center'>NO DATA</div>;
+							return <ManyStationsView {...{ legendContainer: topContainer.current, detailsContainer: container.current }}/>;
+						})()}
+					</div>
 				</div>
-				<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
-					{(()=>{
-						if (query.isLoading)
-							return <div className='center'>LOADING...</div>;
-						if (query.isError)
-							return <div className='center' style={{ color: 'var(--color-red)' }}>FAILED TO LOAD</div>;
-						if (!query.data)
-							return <div className='center'>NO DATA</div>;
-						return <ManyStationsView {...{ legendContainer: topContainer, detailsContainer: container }}/>;
-					})()}
-				</div>
-			</div>
-			<button style={{ position: 'fixed', left: 4, bottom: 8, height: 24, width: 24, padding: 0, border: '1px var(--color-border) solid' }}
-				onClick={() => openPopup('help')}>?</button>
+				<button style={{ position: 'fixed', left: 4, bottom: 8, height: 24, width: 24, padding: 0, border: '1px var(--color-border) solid' }}
+					onClick={() => openPopup('help')}>?</button>
+			</NavigationContext.Provider>
 		</NeutronContext.Provider>);
 }
 

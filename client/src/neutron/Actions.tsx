@@ -2,18 +2,21 @@ import { useContext, useState } from 'react';
 import { apiGet, apiPost, prettyDate } from '../util';
 import { NeutronContext } from './Neutron';
 import { useMutation, useQueryClient } from 'react-query';
+import { NavigationContext } from '../plotUtil';
 
 export function FetchMenu() {
 	const queryClient = useQueryClient();
-	const { stations, data: neutronData, primeStation, viewRange, selectedRange } = useContext(NeutronContext)!;
-	const interval = (selectedRange ?? viewRange).map(v => neutronData[0][v]);
+	const { stations, data: neutronData } = useContext(NeutronContext)!;
+	const { state: { selection, view, chosen } } = useContext(NavigationContext);
+	const { min, max } = (selection ?? view);
+	const timeFrom = neutronData[0][min], timeTo = neutronData[0][max];
 
 	const [report, setReport] = useState('');
 
 	const mutation = useMutation(async (stationQuery: string[]) => {
 		const body = await apiGet('neutron/refetch', {
-			from: interval[0].toFixed(0),
-			to:   interval[1].toFixed(0),
+			from: timeFrom.toFixed(0),
+			to:   timeTo.toFixed(0),
 			stations: stationQuery.join(),
 		}) as { duration: number, changeCounts: {[station: string]: number} };
 		console.log('refetch => ', body);
@@ -30,15 +33,15 @@ export function FetchMenu() {
 	return (<div>
 		<h4 style={{ margin: '1em 0 1.5em 0' }}>Re-obtain and re-compute data?</h4>
 		<p style={{ margin: '1em 3em 0 3em', textAlign: 'right', lineHeight: '1.5em' }}>
-			<b>{Math.ceil((interval[1] - interval[0]) / 3600) + 1}</b> hours<br/>
-			from {prettyDate(new Date(1e3*interval[0]))}<br/>
-			to {prettyDate(new Date(1e3*interval[1]))}<br/>
+			<b>{Math.ceil((timeTo - timeFrom) / 3600) + 1}</b> hours<br/>
+			from {prettyDate(new Date(1e3*timeFrom))}<br/>
+			to {prettyDate(new Date(1e3*timeTo))}<br/>
 		</p>
 		<pre style={{ color: mutation.isError ? 'var(--color-red)' :  mutation.isLoading ? 'var(--color-text)' : 'var(--color-green)' }}>
 			{mutation.isLoading ? 'loading..' : report}
 		</pre>
-		<button style={{ padding: '2px 16px' }} disabled={mutation.isLoading || primeStation == null} autoFocus={primeStation != null}
-			onClick={()=>mutation.mutate([primeStation!])}>Fetch {primeStation?.toUpperCase() ?? '???'}</button>
+		<button style={{ padding: '2px 16px' }} disabled={mutation.isLoading || !chosen} autoFocus={!!chosen}
+			onClick={()=>mutation.mutate([chosen!.label])}>Fetch {chosen?.label ?? '???'}</button>
 		<button style={{ padding: '2px 16px', marginLeft: 24 }} disabled={mutation.isLoading}
 			onClick={()=>mutation.mutate(stations)}>Fetch all</button>
 	</div>);
