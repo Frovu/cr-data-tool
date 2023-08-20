@@ -3,7 +3,7 @@ import { useMonthInput } from '../neutron/Neutron';
 import { apiGet } from '../util';
 import uPlot from 'uplot';
 import { NavigationState, NavigatedPlot, NavigationContext, color, font, useNavigationState } from '../plotUtil';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 	return {
@@ -47,7 +47,10 @@ export function Omni() {
 	}));
 
 	const navigation = useNavigationState();
-	const data = query.data?.fields.map((f, i) => query.data.rows.map(r => r[i]))
+	const data = useMemo(() => {
+		return query.data?.fields.map((f, i) => query.data.rows.map(r => r[i]));
+	}, [query.data]);
+
 	return (<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
 		<NavigationContext.Provider value={navigation}>
 			<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -63,7 +66,7 @@ export function Omni() {
 						return <div className='center' style={{ color: 'var(--color-red)' }}>FAILED TO LOAD</div>;
 					if (!query.data)
 						return <div className='center'>NO DATA</div>;
-					return <NavigatedPlot {...{ data: data!, options: plotOptions() }}/>;
+					return <NavigatedPlot {...{ data: data!, options: plotOptions }}/>;
 				})()}
 			</div>
 		</NavigationContext.Provider>
