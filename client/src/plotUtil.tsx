@@ -73,12 +73,14 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 	}, [u, size, set]);
 
 	useEffect(() => {
-		// const xScale = { min: data[0][0], max: data[0][data[0].length-1] };
-		// console.log(!!u, !!data, u?.data)
-		u?.setData(data as any, true);
-		// u?.redraw(true, true);
-		// u?.setScale('x', xScale)
-		// console.log(u?.scales.x)
+		if (!u) return;
+		const scale = { min: data[0][0], max: data[0][data[0].length-1] };
+		const resetScale = u.data[0][0] !== scale.min
+			|| u.data[0][u.data[0].length-1] !== scale.max;
+		u.setData(data as any, resetScale);
+		u.redraw(true, true);
+		if (resetScale || !u.scales.x.max)
+			u.setScale('x', scale);
 	}, [u, data]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
