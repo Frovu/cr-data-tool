@@ -43,9 +43,9 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 
 	useEffect(() => {
 		if (u && cursor?.lock) {
-			cursor?.lock && u?.setCursor(cursor ? {
+			u.setCursor(cursor ? {
 				left: u.valToPos(u.data[0][cursor.idx], 'x'),
-				top: !focused ? u.cursor.top ?? 0 :
+				top: !focused || u.data[focused.idx][cursor.idx] == null ? u.cursor.top ?? -1 :
 					u.valToPos(u.data[focused.idx][cursor.idx]!, u.series[focused.idx].scale!)
 			} : { left: -1, top: -1 }, false);
 			(u as any).cursor._lock = cursor.lock;
@@ -76,10 +76,11 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 		if (!u) return;
 		const scale = { min: data[0][0], max: data[0][data[0].length-1] };
 		const resetScale = u.data[0][0] !== scale.min
-			|| u.data[0][u.data[0].length-1] !== scale.max;
+			|| u.data[0][u.data[0].length-1] !== scale.max
+			|| !u.scales.x.max || u.scales.x.max <= scale.min || u.scales.x.min! >= scale.max;
 		u.setData(data as any, resetScale);
 		u.redraw(true, true);
-		if (resetScale || !u.scales.x.max)
+		if (resetScale || !u.scales.x.max || !u.scales.x.min)
 			u.setScale('x', scale);
 	}, [u, data]);
 
@@ -170,7 +171,7 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 							}
 						} else {
 							handler(e);
-							upl.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
+							set({ selection: null });
 						}
 						selectingWithMouse = false;
 						return null;

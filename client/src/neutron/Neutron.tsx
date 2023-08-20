@@ -141,7 +141,7 @@ export default function Neutron() {
 			if (!dataState) return {};
 			const sidx = dataState?.stations.indexOf(station);
 			const effective = values.map((v, i) => (v === STUB_VALUE ? null : v) === dataState.data[sidx + 1][i + fromIndex] ? null : v);
-			if (effective.filter(v => v != null).length < 1)
+			if (effective.filter(v => v != null).length <= 0)
 				return corr;
 			const corrs = corr[station]?.slice() ?? Array(dataState.data[0].length).fill(null);
 			corrs.splice(fromIndex, effective.length, ...effective);
@@ -160,10 +160,7 @@ export default function Neutron() {
 	useEffect(() => {
 		console.log('RESET');
 		setCorrections({});
-		// FIXME
-		// setCursorIdx(null);
-		// setSelectedRange(null);
-	}, [queryStations, interval, dataState?.data.length]);
+	}, [queryStations, interval]);
 	
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'Escape')
