@@ -51,6 +51,8 @@ export function Omni() {
 		return query.data?.fields.map((f, i) => query.data.rows.map(r => r[i]));
 	}, [query.data]);
 
+	console.log(navigation.state);
+
 	return (<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
 		<NavigationContext.Provider value={navigation}>
 			<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
