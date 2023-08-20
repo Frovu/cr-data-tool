@@ -1,6 +1,6 @@
 import { SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import uPlot from 'uplot';
-import { useSize } from './util';
+import { useEventListener, useSize } from './util';
 import UplotReact from 'uplot-react';
 
 export function color(name: string, opacity=1) {
@@ -30,7 +30,9 @@ export function useNavigationState() {
 	return { state, setState };
 }
 
-export function NavigatedPlot({ data, options: opts }: { data: number[][], options: () => Omit<uPlot.Options, 'width'|'height'> }) {
+export function NavigatedPlot({ data, options: opts, moveChosen }:
+{ data: number[][], options: () => Omit<uPlot.Options, 'width'|'height'>,
+	moveChosen?: (inc: number, st: NavigationState, pdata: number[][]) => NavigationState }) {
 	const { state: { cursor, selection, focused, chosen, view },
 		setState } = useContext(NavigationContext);
 	const set = useCallback((changes: Partial<NavigationState>) => setState(st => ({ ...st, ...changes })), [setState]);
@@ -40,14 +42,16 @@ export function NavigatedPlot({ data, options: opts }: { data: number[][], optio
 	const [u, setUplot] = useState<uPlot>();
 
 	useEffect(() => {
-		console.log('eff cursor', u?.cursor.idx)
-		cursor?.lock && u?.setCursor(cursor ? {
-			left: u.valToPos(u.data[0][cursor.idx], 'x'),
-			top: !focused ? u.cursor.top ?? 0 :
-				u.valToPos(u.data[focused.idx][cursor.idx]!, u.series[focused.idx].scale!)
-		} : { left: -1, top: -1 }, false);
-		if (u && cursor)
+		console.log('eff cursor', cursor?.idx)
+		if (u && cursor?.lock) {
+			cursor?.lock && u?.setCursor(cursor ? {
+				left: u.valToPos(u.data[0][cursor.idx], 'x'),
+				top: !focused ? u.cursor.top ?? 0 :
+					u.valToPos(u.data[focused.idx][cursor.idx]!, u.series[focused.idx].scale!)
+			} : { left: -1, top: -1 }, false);
 			(u as any).cursor._lock = cursor.lock;
+			if (focused) u.setSeries(focused.idx, { focus: true }, false);
+		}
 	}, [u, cursor, focused]);
 
 	useEffect(() => {
@@ -81,8 +85,49 @@ export function NavigatedPlot({ data, options: opts }: { data: number[][], optio
 		// console.log(u?.scales.x)
 	}, [u, data]);
 
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (!u) return;
+		const moveCursor = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+		const moveVertical = { ArrowUp: -1, ArrowDown: 1 }[e.key];
+
+		if (moveCursor) {
+			setState(st => {
+				const left = u.valToIdx(u.scales.x.min!),
+					 right = u.valToIdx(u.scales.x.max!);
+				const len = right - left;
+				const cur = st.cursor?.idx ?? (moveCursor < 0 ? right + 1 : left - 1);
+				const move = moveCursor * (e.ctrlKey ? Math.ceil(len / 48) : 1)
+					* (e.altKey ? Math.ceil(len / 16) : 1);
+				const idx = Math.max(left, Math.min(cur + move, right));
+				
+				const sele = (() => {
+					if (!e.shiftKey) return null;
+					const sel = st.selection, min = sel?.min, max = sel?.max;
+					const vals = (!sel || !((cur !== min) !== (cur !== max)))
+						? [cur, cur + move]
+						: [cur + move, cur !== min ? min! : max!];
+					return vals[0] === vals[1] ? null : {
+						min: Math.max(left, Math.min(Math.min(...vals), right)),
+						max: Math.max(left, Math.min(Math.max(...vals), right))
+					};
+				})();
+
+				return { ...st, cursor: { idx, lock: true }, selection: sele };
+			});
+		} else if (moveVertical && e.ctrlKey) {
+			moveChosen && setState(st => moveChosen(moveVertical, st, data));
+		} else if (e.code === 'KeyZ' && selection) {
+			u.setScale('x', { min: u.data[0][selection.min], max: u.data[0][selection.max] });
+			set({ cursor: null, selection: null });
+		} else if (e.key === 'Enter') {
+			set({ chosen: focused });
+		} else if (e.key === 'Escape') {
+			u.setScale('x', { min: u.data[0][0], max: u.data[0][u.data[0].length-1] });
+			set({ cursor: null, selection: null });
+		}
+	});
+
 	const plot = useMemo(() => {
-		if (!data) return null;
 		const uOpts = opts();
 		let selectingWithMouse = false;
 		const options: uPlot.Options = {
@@ -97,8 +142,11 @@ export function NavigatedPlot({ data, options: opts }: { data: number[][], optio
 				focus: { prox: 32 },
 				drag: { dist: 10 },
 				bind: {
-					dblclick: (upl: any) => () => {
-						upl.cursor._lock = true;
+					dblclick: (upl) => () => {
+						set({ cursor: upl.cursor.idx == null ? null :
+							{ idx: upl.cursor.idx, lock: true } });
+						const fidx = upl.series.findIndex((s: any) => s._focus && s.scale !== 'x');
+						if (fidx > 0) set({ chosen: { idx: fidx, label: upl.series[fidx].label! } });
 						return null;
 					},
 					mousedown: (upl, targ, handler) => e => {
@@ -141,25 +189,28 @@ export function NavigatedPlot({ data, options: opts }: { data: number[][], optio
 							: { idx: upl.cursor.idx, lock: upl.cursor._lock } }) : st)
 				],
 				setScale: [
-					(upl: uPlot) => set({ view: {
+					(upl) => set({ view: {
 						min: upl.valToIdx(upl.scales.x.min!),
 						max: upl.valToIdx(upl.scales.x.max!) } })
 				],
 				setSelect: [
-					(upl: uPlot) => set({ selection:
+					(upl) => set({ selection:
 						upl.select && upl.select.width ? {
 							min: upl.posToIdx(upl.select.left),
 							max: upl.posToIdx(upl.select.left + upl.select.width)
 						} : null })
 				],
 				setSeries: [
-					(upl: any, si: any) => upl.series[si]?._focus
+					(upl: any, si) => si != null && upl.series[si]?._focus
 						&& set({ focused: { idx: si, label: upl.series[si].label } })
+				],
+				ready: [
+					(upl) => upl.setCursor({ left: -1, top: -1 }) // ??
 				]
 			}
 		};
 		return <UplotReact {...{ options, data: data as any, onCreate: setUplot }}/>;
-	}, [!!data, opts, setState]);
+	}, [opts, set]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 		{size.width > 0 && plot}
