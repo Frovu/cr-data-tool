@@ -43,15 +43,17 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 
 	useEffect(() => {
 		if (u && cursor?.lock) {
+			const cof = chosen ?? focused;
+			const val = cof && u.data[cof.idx][cursor.idx];
 			u.setCursor(cursor ? {
 				left: u.valToPos(u.data[0][cursor.idx], 'x'),
-				top: !focused || u.data[focused.idx][cursor.idx] == null ? u.cursor.top ?? -1 :
-					u.valToPos(u.data[focused.idx][cursor.idx]!, u.series[focused.idx].scale!)
+				top: val == null || !cof ? u.cursor.top ?? -1 :
+					u.valToPos(u.data[cof.idx][cursor.idx]!, u.series[cof.idx].scale!)
 			} : { left: -1, top: -1 }, false);
 			(u as any).cursor._lock = cursor.lock;
-			if (focused) u.setSeries(focused.idx, { focus: true }, false);
+			if (cof) u.setSeries(cof.idx, { focus: true }, false);
 		}
-	}, [u, cursor, focused]);
+	}, [u, cursor, focused, chosen]);
 
 	useEffect(() => {
 		const left = selection && u?.valToPos(u.data[0][selection.min], 'x');
@@ -65,6 +67,12 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 		if (!u) return;
 		(u as any)._chosen = chosen?.label;
 		u.redraw(false, true);
+		if (chosen && u.cursor.idx) {
+			const val = u.data[chosen.idx][u.cursor.idx];
+			const top = val == null ? -1 : u.valToPos(val, u.series[chosen.idx].scale ?? 'y');
+			u.setCursor({ left: u.cursor.left!, top }, false);
+			u.setSeries(chosen.idx, { focus: true }, false);
+		}
 	}, [u, chosen]);
 
 	useEffect(() => {

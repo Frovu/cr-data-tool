@@ -117,9 +117,14 @@ export function ManyStationsView({ legendContainer, detailsContainer }:
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const options = useCallback(() => plotOptions(stations, levels), [JSON.stringify(stations)]);
-	
+
 	return (<>
-		<NavigatedPlot {...{ data: plotData, options }}/>
+		<NavigatedPlot {...{ data: plotData, options, moveChosen: (inc, state) => {
+			const foc = (state.chosen ?? state.focused)?.label;
+			const cur = foc ? stations.indexOf(foc) : inc > 0 ? -1 : stations.length;
+			const idx = Math.max(0, Math.min(cur + inc, stations.length - 1));
+			return { ...state, chosen: { idx: idx + stations.length + 1, label: stations[idx] } };
+		} }}/>
 		{legendContainer && createPortal((
 			<>
 				{legend && <div style={{ display: 'grid', border: '2px var(--color-border) solid', padding: '2px 4px',
