@@ -15,6 +15,24 @@ export function font(size=16, scale=false) {
 	return fnt.replace(/\d+px/, (scale ? Math.round(size * devicePixelRatio) : size) + 'px');
 }
 
+export function axisDefaults() {
+	return {
+		font: font(),
+		stroke: color('text'),
+		grid: { show: true, stroke: color('grid'), width: 2 },
+		ticks: { stroke: color('grid'), width: 2 },
+	} as uPlot.Axis;
+}
+
+export function seriesDefaults(name: string, colour: string, scale?: string) {
+	return {
+		scale: scale ?? name,
+		label: name,
+		stroke: color(colour),
+		points: { fill: color('bg'), stroke: color(colour) }
+	} as uPlot.Series;
+}
+
 export type NavigationState = {
 	cursor: { idx: number, lock: boolean } | null,
 	selection: { min: number, max: number } | null,
@@ -30,8 +48,8 @@ export function useNavigationState() {
 	return { state, setState };
 }
 
-export function NavigatedPlot({ data, options: opts, moveChosen }:
-{ data: number[][], options: () => Omit<uPlot.Options, 'width'|'height'>,
+export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight }:
+{ data: number[][], options: () => Omit<uPlot.Options, 'width'|'height'>, legendHeight?: number,
 	moveChosen?: (inc: number, st: NavigationState, pdata: number[][]) => NavigationState }) {
 	const { state: { cursor, selection, focused, chosen },
 		setState } = useContext(NavigationContext);
@@ -76,9 +94,9 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 	}, [u, chosen]);
 
 	useEffect(() => {
-		u?.setSize(size);
+		u?.setSize({ ...size, height: size.height - (legendHeight ?? 0) });
 		set({ cursor: null, selection: null });
-	}, [u, size, set]);
+	}, [u, size, set, legendHeight]);
 
 	useEffect(() => {
 		if (!u) return;
@@ -217,6 +235,8 @@ export function NavigatedPlot({ data, options: opts, moveChosen }:
 				]
 			}
 		};
+		for (const ev in uOpts.hooks) // bruh
+			(options.hooks as any)[ev] = ((options.hooks as any)[ev] ?? []).concat((uOpts.hooks as any)[ev]);
 		return <UplotReact {...{ options, data: data as any, onCreate: setUplot }}/>;
 	}, [opts, set]); // eslint-disable-line react-hooks/exhaustive-deps
 

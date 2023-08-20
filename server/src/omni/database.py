@@ -93,7 +93,7 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 		upsert_many(conn, 'omni', ['time', *column_names], data)
 
 def select(interval: [int, int], query=None, epoch=True):
-	columns = [c for c in column_names if c in query] if query else column_names
+	columns = [c for c in query if c in column_names] if query else column_names
 	with pool.connection() as conn:
 		curs = conn.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
 			'FROM omni WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', interval)
