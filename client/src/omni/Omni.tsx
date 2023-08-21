@@ -6,13 +6,18 @@ import { NavigatedPlot, NavigationContext, color, font, useNavigationState, axis
 import { useMemo, useRef } from 'react';
 
 const spacecraft: any = {
-	51: 'WIND',
-	52: 'WIND',
+	45: 'IMP8',
+	50: 'IMP8',
+	51: 'Wind',
+	52: 'WinD',
 	71: 'ACE',
+	81: 'DSCVR',
 	60: 'GeoT'
 };
 
 function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
+	const filterV =  (u: uPlot, splits: number[]) => splits.map(sp => sp > 200 ? sp : null);
+	const filterB = (u: uPlot, splits: number[]) => [ null, null, ...splits.slice(2, -2), null, null, null ];
 	return {
 		padding: [12, 12, 0, 8],
 		axes: [
@@ -23,13 +28,16 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 				...axisDefaults(),
 				scale: 'imf',
 				size: 36,
+				filter: filterB,
 				font: font(12),
 			}, {
 				...axisDefaults(),
 				scale: 'V',
 				size: 36,
-				side: 1,
+				ticks: { stroke: color('grid'), width: 2, filter: filterV },
+				filter: filterV,
 				grid: {},
+				side: 1,
 				font: font(12),
 			}
 		],
@@ -54,7 +62,7 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 				value: (u, val) => val ? (spacecraft[val] ?? val?.toString()) : '--',
 				show: false
 			}, {
-				...seriesDefaults('🛰imf', 'white'),
+				...seriesDefaults('🛰imf', 'white', '🛰sw'),
 				value: (u, val) => val ? (spacecraft[val] ?? val?.toString()) : '--',
 				show: false
 			}, {
@@ -74,7 +82,8 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 				...seriesDefaults('β', 'magenta'),
 				show: false
 			}, {
-				...seriesDefaults('|B|', 'purple', 'imf')
+				...seriesDefaults('|B|', 'purple', 'imf'),
+				width: 2
 			}, {
 				...seriesDefaults('Bx', 'cyan', 'imf'),
 				show: false
@@ -82,8 +91,7 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 				...seriesDefaults('By', 'green', 'imf'),
 				show: false
 			}, {
-				...seriesDefaults('Bz', 'red', 'imf'),
-				show: false
+				...seriesDefaults('Bz', 'crimson', 'imf'),
 			}, {
 				...seriesDefaults('Dst', 'green')
 			}, {
@@ -97,6 +105,7 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 		hooks: {
 			ready: [
 				(u) => {
+					if (!u.root.children[1]) return;
 					const values = Array.from(u.root.children[1].children).map(tr => tr.children[1]) as HTMLTableCellElement[];
 					values.forEach(td => {
 						td.parentElement!.style.marginRight = '8px';
@@ -106,7 +115,7 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 					values[0].style.width = '17ch';
 					values[1].style.width = '5ch';
 					values[2].style.width = '5ch';
-					values[3].style.width = '6ch';
+					values[3].style.width = '7ch';
 					values.slice(4).forEach(td => { td.style.width = '5ch'; });
 				}
 			]
@@ -126,7 +135,9 @@ export function Omni() {
 
 	const navigation = useNavigationState();
 	const data = useMemo(() => {
-		return query.data?.fields.map((f, i) => query.data.rows.map(r => r[i]));
+		const plotData = query.data?.fields.map((f, i) => query.data.rows.map(r => r[i]));
+		console.log('data:', plotData);
+		return plotData;
 	}, [query.data]);
 
 	console.log(JSON.stringify(navigation.state));
