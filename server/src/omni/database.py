@@ -97,13 +97,13 @@ def obtain(source: str, interval: [datetime, datetime], group: str='all'):
 		'sw': sw_cols,
 		'imf': imf_cols
 	}[group]
-	res, fields = {
+	res = {
 		'omniweb': _obtain_omniweb,
 		'ace': lambda g, i: _obtain_izmiran('ace', g, i),
 		'dscovr': lambda g, i: _obtain_izmiran('dscovr', g, i),
 	}[source](query, interval)
 
-	data, fields = compute_derived(res, fields).tolist()
+	data = compute_derived(res, [c.name for c in query]).tolist()
 
 	log.info(f'Omni: upserting *{group} from {source}: [{len(data)}] rows from {interval[0]} to {interval[1]}')
 	with pool.connection() as conn:

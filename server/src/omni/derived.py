@@ -16,6 +16,8 @@ def _temperature_index(values, columns):
 
 def compute_derived(data, columns):
 	data = np.array(data)
+	if 'sw_temperature' not in columns or 'sw_speed' not in columns:
+		return data, columns
 	time, values = data[:,0], data[:,1:]
 	t_idx = _temperature_index(values, columns)
 	res_cols =  columns + ['temperature_idx']
