@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { useMonthInput } from '../neutron/Neutron';
-import { apiGet } from '../util';
+import { apiGet, apiPost, prettyDate } from '../util';
 import uPlot from 'uplot';
 import { NavigatedPlot, NavigationContext, color, font, useNavigationState, axisDefaults, seriesDefaults } from '../plotUtil';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+const PARAM_GROUP = ['all', 'SW', 'IMF'] as const;
 const spacecraft: any = {
 	45: 'IMP8',
 	50: 'IMP8',
@@ -95,10 +96,10 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 			}, {
 				...seriesDefaults('Dst', 'green')
 			}, {
-				...seriesDefaults('Kp', 'crimson'),
+				...seriesDefaults('Kp', 'cyan'),
 				show: false
 			}, {
-				...seriesDefaults('Ap', 'crimson'),
+				...seriesDefaults('Ap', 'cyan'),
 				show: false
 			}
 		],
@@ -124,8 +125,12 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 }
 
 export function Omni() {
+	const queryClient = useQueryClient();
 	const [interval, monthInput] = useMonthInput(new Date(Date.now() - 864e5 * 60));
-	const legendContainer = useRef<HTMLDivElement>(null);
+	const [group, setGroup] = useState<typeof PARAM_GROUP[number]>('all');
+	const [overwrite, setOverwrite] = useState(false);
+	const [report, setReport] = useState<{ error?: string, success?: string }>({});
+	const navigation = useNavigationState();
 
 	const query = useQuery<{ fields: string[], rows: number[][] }>(['omni', interval], () => apiGet('omni', {
 		from: Math.floor(interval[0].getTime() / 1e3),
@@ -133,14 +138,38 @@ export function Omni() {
 		query: 'spacecraft_id_sw,spacecraft_id_imf,sw_temperature,sw_density,sw_speed,temperature_idx,plasma_beta,imf_scalar,imf_x,imf_y,imf_z,dst_index,kp_index,ap_index'
 	}));
 
-	const navigation = useNavigationState();
 	const data = useMemo(() => {
 		const plotData = query.data?.fields.map((f, i) => query.data.rows.map(r => r[i]));
 		console.log('data:', plotData);
 		return plotData;
 	}, [query.data]);
 
-	console.log(JSON.stringify(navigation.state));
+	const { min, max } = (navigation.state.selection ?? navigation.state.view);
+	const [fetchFrom, fetchTo] = !data ? [null, null] : [min, max].map(i => data[0][i]);
+
+	const mutation = useMutation(async (sat: string) => {
+		const res = await apiPost('omni/fetch', {
+			from: fetchFrom,
+			to: fetchTo,
+			source: sat,
+			group, overwrite
+		});
+		return res.message;
+	}, {
+		onSuccess: (success: string) => {
+			queryClient.invalidateQueries('omni');
+			setReport({ success });
+		},
+		onError: (e: Error) => {
+			setReport({ error: e.toString() });
+		}
+	});
+
+	useEffect(() => {
+		const what = navigation.state.chosen?.label;
+		if (what)
+			setGroup(['V','T','Tidx','D'].includes(what) ? 'SW' : ['|B|','Bx','By','Bz'].includes(what) ? 'IMF' : 'all');
+	}, [navigation.state.chosen]);
 
 	return (<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
 		<NavigationContext.Provider value={navigation}>
@@ -148,8 +177,36 @@ export function Omni() {
 				<div style={{ textAlign: 'center', marginRight: 16 }}>
 					[ {monthInput} ]
 				</div>
-				<div ref={legendContainer}>
-
+				<div style={{ margin: '8px 16px', lineHeight: '2em' }}>
+					<div onWheel={(e) => setGroup(g => PARAM_GROUP[(PARAM_GROUP.indexOf(g) + (e.deltaY > 0 ? 1 : -1) + PARAM_GROUP.length) % PARAM_GROUP.length])}>
+						Parameter group: <select style={{ color: color({ all: 'cyan', SW: 'acid', IMF: 'purple' }[group]) }}
+							value={group} onChange={(e) => setGroup(e.target.value as any)}>
+							{PARAM_GROUP.map(pa => <option key={pa} value={pa}>{pa}</option>)}
+						</select>
+					</div>
+					<div onWheel={(e) => setOverwrite(ow => !ow)}>
+						<label> Overwrite present data:
+							<input type='checkbox' checked={overwrite} onChange={e => setOverwrite(e.target.checked)} hidden={true}/>
+							<span style={{ color: color(overwrite ? 'magenta' : 'cyan') }}> {overwrite ? 'true' : 'false'}</span>
+						</label></div>
+					{fetchTo && fetchFrom && <>
+						<div style={{ color: color('cyan'), margin: 4, verticalAlign: 'top' }}>
+							[{Math.ceil((fetchTo - fetchFrom) / 3600)} h]
+							<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
+								{prettyDate(new Date(1e3 * fetchFrom))}<br/>
+								&nbsp;&nbsp;to {prettyDate(new Date(1e3 * fetchTo))}
+							</div>
+						</div>
+						<div style={{ margin: '4px 0 8px 16px', lineHeight: '36px' }}>
+							<button style={{ width: 196 }} onClick={() => mutation.mutate('omni')}>Fetch OMNI&nbsp;</button>
+							<button style={{ width: 196 }} onClick={() => mutation.mutate('ace')}>Fetch ACE&nbsp;&nbsp;</button>
+							<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR</button>
+						</div>
+					</>}
+					<div style={{ margin: '20px 4px', lineHeight: 1.5, cursor: 'pointer' }} onClick={() => setReport({})}>
+						<div style={{ color: color('red') }}>{report.error}</div>
+						<div style={{ color: color('green') }}>{report.success}</div>
+					</div>
 				</div>
 			</div>
 			<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
