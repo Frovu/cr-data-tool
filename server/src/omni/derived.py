@@ -18,4 +18,5 @@ def compute_derived(data, columns):
 	data = np.array(data)
 	time, values = data[:,0], data[:,1:]
 	t_idx = _temperature_index(values, columns)
-	return np.column_stack((time, values, t_idx))
+	res_cols =  columns + ['temperature_idx']
+	return np.column_stack((time, values, t_idx)), res_cols

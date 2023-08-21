@@ -9,7 +9,7 @@ omniweb_url = 'https://omniweb.gsfc.nasa.gov/cgi/nx1.cgi'
 PERIOD = 3600
 
 omni_columns = None
-column_names = None
+all_column_names = None
 dump_info = None
 dump_info_path = os.path.join(os.path.dirname(__file__), '../../data/omni_dump_info.json')
 
@@ -21,7 +21,7 @@ class OmniColumn:
 		self.is_int = is_int
 
 def _init():
-	global omni_columns, column_names, dump_info
+	global omni_columns, all_column_names, dump_info
 	json_path = os.path.join(os.path.dirname(__file__), './database.json')
 	vard_path = os.path.join(os.path.dirname(__file__), './omni_variables.txt')
 	with open(json_path) as file, pool.connection() as conn:
@@ -40,18 +40,16 @@ def _init():
 					continue
 				# Note: omniweb variables descriptions ids start with 1 but internally they start with 0, hence -1
 				omni_columns.append(OmniColumn(column, owid - 1, spl[2], 'int' in typedef.lower()))
-	column_names = [c.name for c in omni_columns] + [col for col, [td, owid] in columns.items() if owid is None and col != 'time']
+	all_column_names = [c.name for c in omni_columns] + [col for col, [td, owid] in columns.items() if owid is None and col != 'time']
 	try:
 		with open(dump_info_path) as file:
 			dump_info = json.load(file)
 	except:
 		log.warn('Omniweb: Failed to read ' + str(dump_info_path))
-
 _init()
 
-
-def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
-	dstart, dend = [d.strftime('%Y%m%d') for d in [dt_from, dt_to]]
+def _obtain_omniweb(columns, interval):
+	dstart, dend = [d.strftime('%Y%m%d') for d in interval]
 	log.debug(f'Omniweb: querying {dstart}-{dend}')
 	r = requests.post(omniweb_url, stream=True, data = {
 		'activity': 'retrieve',
@@ -59,7 +57,7 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 		'spacecraft': 'omni2',
 		'start_date': dstart,
 		'end_date': dend,
-		'vars': [c.omniweb_id for c in omni_columns]
+		'vars': [c.omniweb_id for c in columns]
 	})
 	if r.status_code != 200:
 		log.warn('Omniweb: query failed - HTTP {r.status_code}')
@@ -72,7 +70,7 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 			try:
 				split = line.split()
 				time = datetime(int(split[0]), 1, 1, tzinfo=timezone.utc) + timedelta(days=int(split[1])-1, hours=int(split[2]))
-				row = [time] + [(int(v) if c.is_int else float(v)) if v != c.stub_value else None for v, c in zip(split[3:], omni_columns)]
+				row = [time] + [(int(v) if c.is_int else float(v)) if v != c.stub_value else None for v, c in zip(split[3:], columns)]
 				data.append(row)
 			except:
 				log.error('Omniweb: failed to parse line:\n' + line)
@@ -81,19 +79,38 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 		elif 'INVALID' in line:
 			correct_range = re.findall(r' (\d+)', line)
 			new_range = [datetime.strptime(s, '%Y%m%d').replace(tzinfo=timezone.utc) for s in correct_range]
-			if dt_to < new_range[0] or new_range[1] < dt_from:
+			if interval[1] < new_range[0] or new_range[1] < interval[0]:
 				log.info(f'Omniweb: out of bounds')
 				return 
 			log.info(f'Omniweb: correcting range to fit {correct_range[0]}:{correct_range[1]}')
-			return _obtain_omniweb(max(new_range[0], dt_from), min(new_range[1], dt_to))
+			return _obtain_omniweb(max(new_range[0], interval[0]), min(new_range[1], interval[1]))
+	return data
 
-	data = compute_derived(data, [c.name for c in omni_columns]).tolist()
-	log.debug(f'Omniweb: upserting {len(data)} rows {dstart}-{dend}')
+def _obtain_izmiran(columns, interval):
+	pass
+
+def obtain(source: str, interval: [datetime, datetime], group: str='all'):
+	sw_cols = [c for c in omni_columns if c.name in ['sw_speed', 'sw_density', 'sw_temperature']]
+	imf_cols = [c for c in omni_columns if c.name in ['imf_scalar', 'imf_x', 'imf_y', 'imf_z']]
+	query = {
+		'all': omni_columns if source == 'omniweb' else sw_cols + imf_cols,
+		'sw': sw_cols,
+		'imf': imf_cols
+	}[group]
+	res, fields = {
+		'omniweb': _obtain_omniweb,
+		'ace': lambda g, i: _obtain_izmiran('ace', g, i),
+		'dscovr': lambda g, i: _obtain_izmiran('dscovr', g, i),
+	}[source](query, interval)
+
+	data, fields = compute_derived(res, fields).tolist()
+
+	log.info(f'Omni: upserting *{group} from {source}: [{len(data)}] rows from {interval[0]} to {interval[1]}')
 	with pool.connection() as conn:
-		upsert_many(conn, 'omni', ['time', *column_names], data)
+		upsert_many(conn, 'omni', ['time', *fields], data)
 
 def select(interval: [int, int], query=None, epoch=True):
-	columns = [c for c in query if c in column_names] if query else column_names
+	columns = [c for c in query if c in all_column_names] if query else all_column_names
 	with pool.connection() as conn:
 		curs = conn.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
 			'FROM omni WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', interval)
@@ -103,14 +120,14 @@ def ensure_prepared(interval: [int, int]):
 	global dump_info
 	if dump_info and dump_info.get('from') <= interval[0] and dump_info.get('to') >= interval[1]:
 		return
-	log.info(f'Omniweb: beginning bulk fetch {interval[0]}:{interval[1]}')
+	log.info(f'Omni: beginning bulk fetch {interval[0]}:{interval[1]}')
 	batch_size = 3600 * 24 * 1000
 	with ThreadPoolExecutor(max_workers=4) as executor:
 		for start in range(interval[0], interval[1]+1, batch_size):
 			end = start + batch_size
 			interv = [start, end if end < interval[1] else interval[1]]
-			executor.submit(_obtain_omniweb, *[datetime.utcfromtimestamp(i) for i in interv])
-	log.info(f'Omniweb: bulk fetch finished')
+			executor.submit(obtain, 'omniweb', *[datetime.utcfromtimestamp(i) for i in interv])
+	log.info(f'Omni: bulk fetch finished')
 	with open(dump_info_path, 'w') as file:
 		dump_info = { 'from': int(interval[0]), 'to': int(interval[1]), 'at': int(datetime.now().timestamp()) }
 		json.dump(dump_info, file)
