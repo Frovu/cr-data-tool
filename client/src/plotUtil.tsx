@@ -60,17 +60,20 @@ export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight }:
 	const [u, setUplot] = useState<uPlot>();
 
 	useEffect(() => {
-		if (u && cursor?.lock) {
+		if (!u) return;
+		if (cursor?.lock) {
 			const cof = chosen ?? focused;
 			const val = cof && u.data[cof.idx][cursor.idx];
-			u.setCursor(cursor ? {
+			u.setCursor({
 				left: u.valToPos(u.data[0][cursor.idx], 'x'),
 				top: val == null || !cof ? u.cursor.top ?? -1 :
 					u.valToPos(u.data[cof.idx][cursor.idx]!, u.series[cof.idx].scale!)
-			} : { left: -1, top: -1 }, false);
-			(u as any).cursor._lock = cursor.lock;
+			}, false);
 			if (cof) u.setSeries(cof.idx, { focus: true }, false);
+		} else if (!cursor) {
+			u.setCursor({ top: -1, left: -1 }, false);
 		}
+		(u as any).cursor._lock = cursor?.lock ?? false;
 	}, [u, cursor, focused, chosen]);
 
 	useEffect(() => {
@@ -147,8 +150,8 @@ export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight }:
 		} else if (e.key === 'Enter') {
 			set({ chosen: focused });
 		} else if (e.key === 'Escape') {
-			u.setScale('x', { min: u.data[0][0], max: u.data[0][u.data[0].length-1] });
 			set({ cursor: null, selection: null });
+			u.setScale('x', { min: u.data[0][0], max: u.data[0][u.data[0].length-1] });
 		}
 	});
 
