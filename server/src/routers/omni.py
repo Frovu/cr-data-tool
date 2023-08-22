@@ -20,8 +20,8 @@ def get_result():
 def fetch():
 	t_from = int(request.json.get('from'))
 	t_to = int(request.json.get('to'))
-	src = request.json.get('source', 'omniweb')
-	group = request.json.get('group', 'all')
+	src = request.json.get('source', 'omniweb').lower()
+	group = request.json.get('group', 'all').lower()
 	ovw = request.json.get('overwrite', 'false') == 'true'
 
 	count = database.obtain(src, [t_from, t_to], group, ovw)
@@ -33,7 +33,7 @@ def fetch():
 def remove():
 	t_from = int(request.json.get('from'))
 	t_to = int(request.json.get('to'))
-	group = request.json.get('group', 'all')
+	group = request.json.get('group', 'all').lower()
 
 	count = database.remove([t_from, t_to], group)
 	return { 'message': f'Removed [{count}] hour{"s" if count == 1 else ""} *{group}' }

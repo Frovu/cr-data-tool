@@ -30,6 +30,7 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 				scale: 'imf',
 				size: 36,
 				filter: filterB,
+				ticks: { stroke: color('grid'), width: 2, filter: filterB },
 				font: font(12),
 			}, {
 				...axisDefaults(),
@@ -222,8 +223,7 @@ export function Omni() {
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('omniweb')}>Fetch OMNI&nbsp;&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('ace')}>Fetch ACE&nbsp;&nbsp;&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR&nbsp;</button>
-							<button style={{ width: 196, boxShadow: '0 0 20px -6px var(--color-crimson)' }}
-								onClick={() => mutation.mutate('remove')}>&nbsp;REMOVE POINTS</button>
+							<button style={{ width: 196 }} onClick={() => mutation.mutate('remove')}>&nbsp;REMOVE POINTS</button>
 						</div>
 					</>}
 					<div style={{ margin: '16px 0 0 4px', lineHeight: 1.5, cursor: 'pointer' }} onClick={() => setReport({})}>
@@ -238,7 +238,7 @@ export function Omni() {
 						return <div className='center'>LOADING...</div>;
 					if (query.isError)
 						return <div className='center' style={{ color: 'var(--color-red)' }}>FAILED TO LOAD</div>;
-					if (!query.data)
+					if (!data || data[0].length <= 1)
 						return <div className='center'>NO DATA</div>;
 					return <NavigatedPlot {...{ data: data!, options: plotOptions, legendHeight: 72 }}/>;
 				})()}
