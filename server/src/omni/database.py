@@ -8,6 +8,10 @@ from omni.derived import compute_derived
 log = logging.getLogger('crdt')
 omniweb_url = 'https://omniweb.gsfc.nasa.gov/cgi/nx1.cgi'
 PERIOD = 3600
+SPACECRAFT_ID = {
+	'ace': 71,
+	'dscovr': 81
+}
 
 omni_columns = None
 all_column_names = None
@@ -111,17 +115,20 @@ def _obtain_izmiran(source, columns, interval):
 	finally:
 		conn.close()
 
-def _cols(group, source='omniweb'):
+def _cols(group, source='omniweb', remove=False):
 	if group not in ['all', 'sw', 'imf']:
 		raise ValueError('Bad param group')
 	if source not in ['omniweb', 'ace', 'dscovr']:
 		raise ValueError('Unknown source')
 	sw_cols = [c for c in omni_columns if c.name in ['sw_speed', 'sw_density', 'sw_temperature']]
 	imf_cols = [c for c in omni_columns if c.name in ['imf_scalar', 'imf_x', 'imf_y', 'imf_z']]
+
 	return {
-		'all': omni_columns if source == 'omniweb' else sw_cols + imf_cols,
-		'sw': sw_cols,
-		'imf': imf_cols
+		'all': omni_columns if source == 'omniweb' or remove else sw_cols + imf_cols,
+		'sw':  ([c for c in omni_columns if c.name == 'spacecraft_id_sw']
+			if source == 'omniweb' or remove else []) + sw_cols,
+		'imf': ([c for c in omni_columns if c.name == 'spacecraft_id_imf']
+			if source == 'omniweb' or remove else []) + imf_cols
 	}[group]
 
 def obtain(source: str, interval: [int, int], group: str='all', overwrite=False):
@@ -143,11 +150,20 @@ def obtain(source: str, interval: [int, int], group: str='all', overwrite=False)
 
 	log.info(f'Omni: {"hard " if overwrite else ""}upserting *{group} from {source}: [{len(data)}] rows from {dt_interval[0]} to {dt_interval[1]}')
 	with pool.connection() as conn:
+		if source != 'omniweb':
+			cid = SPACECRAFT_ID[source]
+			if group != 'imf':
+				conn.execute('UPDATE omni SET spacecraft_id_sw = %s WHERE %s <= time AND time <= %s' +
+					(' AND imf_scalar IS NULL' if not overwrite else ''), [cid, *dt_interval])
+			if group != 'sw':
+				conn.execute('UPDATE omni SET spacecraft_id_imf = %s WHERE %s <= time AND time <= %s' +
+					(' AND sw_speed IS NULL' if not overwrite else ''), [cid, *dt_interval])
 		upsert_many(conn, 'omni', ['time', *fields], data, write_nulls=overwrite, write_values=overwrite)
+
 	return len(data)
 
 def remove(interval: [int, int], group):
-	cols = [c.name for c in _cols(group)]
+	cols = [c.name for c in _cols(group, remove=True)]
 	with pool.connection() as conn:
 		curs = conn.execute('UPDATE omni SET ' + ', '.join([f'{c} = NULL' for c in cols]) +
 			' WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)', interval)
