@@ -99,7 +99,7 @@ def _obtain_izmiran(source, columns, interval):
 			password=os.environ.get('CRS_PASS'),
 			database=source)
 		with conn.cursor() as cursor:
-			query =  'SELECT min(dt) as time,' + ', '.join([f'round(avg({c.crs_name}), 2)' for c in columns]) +\
+			query =  'SELECT min(dt) as time,' + ', '.join([f'round(avg(if({c.crs_name} > -999, {c.crs_name}, NULL)), 2)' for c in columns]) +\
 			f' FROM {source} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
 			cursor.execute(query, interval)
 			data = cursor.fetchall()
@@ -141,7 +141,7 @@ def obtain(source: str, interval: [int, int], group: str='all', overwrite=False)
 		log.warn('Omni: got no data')
 		return 0
 
-	log.info(f'Omni: upserting *{group} from {source}: [{len(data)}] rows from {dt_interval[0]} to {dt_interval[1]}')
+	log.info(f'Omni: {"hard " if overwrite else ""}upserting *{group} from {source}: [{len(data)}] rows from {dt_interval[0]} to {dt_interval[1]}')
 	with pool.connection() as conn:
 		upsert_many(conn, 'omni', ['time', *fields], data, write_nulls=overwrite, write_values=overwrite)
 	return len(data)

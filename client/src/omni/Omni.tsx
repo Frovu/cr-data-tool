@@ -75,7 +75,8 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 				...seriesDefaults('D', 'peach'),
 				show: false
 			}, {
-				...seriesDefaults('V', 'acid')
+				...seriesDefaults('V', 'acid'),
+				value: (u, val) => val?.toFixed(0) ?? '--',
 			}, {
 				...seriesDefaults('Tidx', 'blue'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
@@ -134,28 +135,30 @@ export function Omni() {
 	const navigation = useNavigationState();
 
 	const query = useQuery<{ fields: string[], rows: number[][] }>(['omni', interval], () => apiGet('omni', {
-		from: Math.floor(interval[0].getTime() / 1e3),
-		to:   Math.floor(interval[1].getTime() / 1e3),
+		from: interval[0],
+		to:   interval[1],
 		query: 'spacecraft_id_sw,spacecraft_id_imf,sw_temperature,sw_density,sw_speed,temperature_idx,plasma_beta,imf_scalar,imf_x,imf_y,imf_z,dst_index,kp_index,ap_index'
 	}));
 
 	const data = useMemo(() => {
+		if (query.data?.rows.length! <= 1)
+			return null;
 		const plotData = query.data?.fields.map((f, i) => query.data.rows.map(r => r[i]));
 		console.log('data:', plotData);
 		return plotData;
 	}, [query.data]);
 
 	const { min, max } = (navigation.state.selection ?? navigation.state.view);
-	const [fetchFrom, fetchTo] = !data ? [null, null] : [min, max].map(i => data[0][i]);
+	const [fetchFrom, fetchTo] = !data ? interval : [min, max].map(i => data[0][i]);
 
 	const mutation = useMutation(async (sat: string) => {
 		const rm = sat === 'remove';
 		const { cursor, selection } = navigation.state;
-		if (!data || (rm && !cursor?.lock && !selection))
+		if (rm && (!data || (!cursor?.lock && !selection)))
 			return '';
 		const [from, to] = !rm ? [fetchFrom, fetchTo] :
-			cursor?.lock ? Array(2).fill(data[0][cursor.idx]) :
-				[selection!.min, selection!.max].map(i => data[0][i]);
+			cursor?.lock ? Array(2).fill(data![0][cursor.idx]) :
+				[selection!.min, selection!.max].map(i => data![0][i]);
 
 		const res = await apiPost(rm ? 'omni/remove' : 'omni/fetch', {
 			from, to,
@@ -238,7 +241,7 @@ export function Omni() {
 						return <div className='center'>LOADING...</div>;
 					if (query.isError)
 						return <div className='center' style={{ color: 'var(--color-red)' }}>FAILED TO LOAD</div>;
-					if (!data || data[0].length <= 1)
+					if (!data)
 						return <div className='center'>NO DATA</div>;
 					return <NavigatedPlot {...{ data: data!, options: plotOptions, legendHeight: 72 }}/>;
 				})()}

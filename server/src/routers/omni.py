@@ -22,7 +22,7 @@ def fetch():
 	t_to = int(request.json.get('to'))
 	src = request.json.get('source', 'omniweb').lower()
 	group = request.json.get('group', 'all').lower()
-	ovw = request.json.get('overwrite', 'false') == 'true'
+	ovw = request.json.get('overwrite', False)
 
 	count = database.obtain(src, [t_from, t_to], group, ovw)
 	return { 'message': f'Upserted [{count} h] of *{group} from {src}' }

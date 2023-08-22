@@ -42,8 +42,8 @@ export default function Neutron() {
 	const queryStations = 'all';
 	const query = useQuery(['manyStations', queryStations, interval], async () => {
 		const body = await apiGet('neutron/rich', {
-			from: (interval[0].getTime() / 1000).toFixed(0),
-			to:   (interval[1].getTime() / 1000).toFixed(0),
+			from: interval[0].toFixed(0),
+			to:   interval[1].toFixed(0),
 			stations: queryStations,
 		}) as { fields: string[], corrected: any[][], revised: any[][], revisions: Revision[] };
 		if (!body?.revised.length) return null;
@@ -266,17 +266,17 @@ export default function Neutron() {
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export function useMonthInput(initial?: Date) {
-	type R = Reducer<{ year: number, month: number, count: number, interval: Date[]}, { action: 'month'|'year'|'count', value: number }>;
+	type R = Reducer<{ year: number, month: number, count: number, interval: number[]}, { action: 'month'|'year'|'count', value: number }>;
 	const init = initial ?? new Date();
 	const [{ year, month, count, interval }, dispatch] = useReducer<R>((state, { action, value }) => {
 		const st = { ...state, [action]: value };
-		st.interval = [0, st.count].map(inc => new Date(Date.UTC(st.year, st.month + inc)));
+		st.interval = [0, st.count].map(inc => new Date(Date.UTC(st.year, st.month + inc)).getTime() / 1e3);
 		return st;
 	}, {
 		year: init.getFullYear(),
 		month: init.getMonth(),
 		count: 1,
-		interval: [0, 1].map(inc => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)))
+		interval: [0, 1].map(inc => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3)
 	});
 	const set = (action: 'month'|'year'|'count', value: number) => dispatch({ action, value });
 
@@ -289,7 +289,7 @@ export function useMonthInput(initial?: Date) {
 		/> + <input style={{ width: '4ch', textAlign: 'center' }} type='number' min='1' max='24'
 			value={count} onChange={e => set('count', e.target.valueAsNumber)}
 		/> month{count === 1 ? '' : 's'}
-	</div>] as [Date[], ReactElement];
+	</div>] as [number[], ReactElement];
 }
 
 const defaultDivisor = 18;  // TODO: smart divisor determination
