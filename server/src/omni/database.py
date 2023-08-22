@@ -89,20 +89,23 @@ def _obtain_omniweb(columns, interval):
 def _obtain_izmiran(columns, interval):
 	pass
 
-def obtain(source: str, interval: [int, int], group: str='all', overwrite=False):
-	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
+def _cols(group, source='omniweb'):
 	if group not in ['all', 'sw', 'imf']:
 		raise ValueError('Bad param group')
 	if source not in ['omniweb', 'ace', 'dscovr']:
 		raise ValueError('Unknown source')
-
 	sw_cols = [c for c in omni_columns if c.name in ['sw_speed', 'sw_density', 'sw_temperature']]
 	imf_cols = [c for c in omni_columns if c.name in ['imf_scalar', 'imf_x', 'imf_y', 'imf_z']]
-	query = {
+	return {
 		'all': omni_columns if source == 'omniweb' else sw_cols + imf_cols,
 		'sw': sw_cols,
 		'imf': imf_cols
 	}[group]
+
+def obtain(source: str, interval: [int, int], group: str='all', overwrite=False):
+	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
+
+	query = _cols(group, source)
 	res = {
 		'omniweb': _obtain_omniweb,
 		'ace': lambda g, i: _obtain_izmiran('ace', g, i),
@@ -115,6 +118,13 @@ def obtain(source: str, interval: [int, int], group: str='all', overwrite=False)
 	with pool.connection() as conn:
 		upsert_many(conn, 'omni', ['time', *fields], data, write_nulls=overwrite, write_values=overwrite)
 	return len(data)
+
+def remove(interval: [int, int], group):
+	cols = [c.name for c in _cols(group)]
+	with pool.connection() as conn:
+		curs = conn.execute('UPDATE omni SET ' + ', '.join([f'{c} = NULL' for c in cols]) +
+			' WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)', interval)
+		return curs.rowcount
 
 def select(interval: [int, int], query=None, epoch=True):
 	columns = [c for c in query if c in all_column_names] if query else all_column_names

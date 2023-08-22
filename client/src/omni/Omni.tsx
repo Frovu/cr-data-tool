@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { useMonthInput } from '../neutron/Neutron';
-import { apiGet, apiPost, prettyDate } from '../util';
+import { apiGet, apiPost, prettyDate, useEventListener } from '../util';
 import uPlot from 'uplot';
 import { NavigatedPlot, NavigationContext, color, font, useNavigationState, axisDefaults, seriesDefaults } from '../plotUtil';
 import { useEffect, useMemo, useState } from 'react';
@@ -148,12 +148,21 @@ export function Omni() {
 	const [fetchFrom, fetchTo] = !data ? [null, null] : [min, max].map(i => data[0][i]);
 
 	const mutation = useMutation(async (sat: string) => {
-		const res = await apiPost('omni/fetch', {
-			from: fetchFrom,
-			to: fetchTo,
-			source: sat,
+		const rm = sat === 'remove';
+		const { cursor, selection } = navigation.state;
+		if (!data || (rm && !cursor?.lock && !selection))
+			return '';
+		const [from, to] = !rm ? [fetchFrom, fetchTo] :
+			cursor?.lock ? Array(2).fill(data[0][cursor.idx]) :
+				[selection!.min, selection!.max].map(i => data[0][i]);
+
+		const res = await apiPost(rm ? 'omni/remove' : 'omni/fetch', {
+			from, to,
 			group,
-			overwrite
+			...(rm && { 
+				source: sat,
+				overwrite 
+			})
 		});
 		return res.message;
 	}, {
@@ -164,6 +173,17 @@ export function Omni() {
 		onError: (e: Error) => {
 			setReport({ error: e.toString() });
 		}
+	});
+
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (e.code === 'Delete')
+			mutation.mutate('remove');
+		if (e.code === 'KeyO')
+			mutation.mutate('omniweb');
+		if (e.code === 'KeyA')
+			mutation.mutate('ace');
+		if (e.code === 'KeyD')
+			mutation.mutate('dscovr');
 	});
 
 	useEffect(() => {
@@ -178,7 +198,7 @@ export function Omni() {
 				<div style={{ textAlign: 'center', marginRight: 16 }}>
 					[ {monthInput} ]
 				</div>
-				<div style={{ margin: '8px 16px', lineHeight: '2em' }}>
+				<div style={{ padding: '8px 16px', lineHeight: '2em' }}>
 					<div onWheel={(e) => setGroup(g => PARAM_GROUP[(PARAM_GROUP.indexOf(g) + (e.deltaY > 0 ? 1 : -1) + PARAM_GROUP.length) % PARAM_GROUP.length])}>
 						Parameter group: <select style={{ color: color({ all: 'cyan', SW: 'acid', IMF: 'purple' }[group]) }}
 							value={group} onChange={(e) => setGroup(e.target.value as any)}>
@@ -199,12 +219,14 @@ export function Omni() {
 							</div>
 						</div>
 						<div style={{ margin: '4px 0 8px 16px', lineHeight: '36px' }}>
-							<button style={{ width: 196 }} onClick={() => mutation.mutate('omniweb')}>Fetch OMNI&nbsp;</button>
-							<button style={{ width: 196 }} onClick={() => mutation.mutate('ace')}>Fetch ACE&nbsp;&nbsp;</button>
-							<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR</button>
+							<button style={{ width: 196 }} onClick={() => mutation.mutate('omniweb')}>Fetch OMNI&nbsp;&nbsp;</button>
+							<button style={{ width: 196 }} onClick={() => mutation.mutate('ace')}>Fetch ACE&nbsp;&nbsp;&nbsp;</button>
+							<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR&nbsp;</button>
+							<button style={{ width: 196, boxShadow: '0 0 20px -6px var(--color-crimson)' }}
+								onClick={() => mutation.mutate('remove')}>&nbsp;REMOVE POINTS</button>
 						</div>
 					</>}
-					<div style={{ margin: '20px 4px', lineHeight: 1.5, cursor: 'pointer' }} onClick={() => setReport({})}>
+					<div style={{ margin: '16px 0 0 4px', lineHeight: 1.5, cursor: 'pointer' }} onClick={() => setReport({})}>
 						<div style={{ color: color('red') }}>{report.error}</div>
 						<div style={{ color: color('green') }}>{report.success}</div>
 					</div>
