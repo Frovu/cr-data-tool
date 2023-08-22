@@ -1,4 +1,5 @@
-import os, json, logging, requests, re
+import os, json, logging, re
+import requests, pymysql
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from database import pool, upsert_many
@@ -14,8 +15,9 @@ dump_info = None
 dump_info_path = os.path.join(os.path.dirname(__file__), '../../data/omni_dump_info.json')
 
 class OmniColumn:
-	def __init__(self, name: str, owid: int, stub: str, is_int: bool=False):
+	def __init__(self, name: str, crs_name: str, owid: int, stub: str, is_int: bool=False):
 		self.name = name
+		self.crs_name = crs_name
 		self.omniweb_id = owid
 		self.stub_value = stub
 		self.is_int = is_int
@@ -35,12 +37,14 @@ def _init():
 		for line in file:
 			if not line.strip(): continue
 			spl = line.strip().split()
-			for column, [typedef, owid] in columns.items():
+			for column, desc in columns.items():
+				typedef, owid = desc[:2]
+				crs_name = desc[2] if len(desc) > 2 else None
 				if owid is None or spl[0] != str(owid):
 					continue
 				# Note: omniweb variables descriptions ids start with 1 but internally they start with 0, hence -1
-				omni_columns.append(OmniColumn(column, owid - 1, spl[2], 'int' in typedef.lower()))
-	all_column_names = [c.name for c in omni_columns] + [col for col, [td, owid] in columns.items() if owid is None and col != 'time']
+				omni_columns.append(OmniColumn(column, crs_name, owid - 1, spl[2], 'int' in typedef.lower()))
+	all_column_names = [c.name for c in omni_columns] + [col for col, desc in columns.items() if desc[1] is None and col != 'time']
 	try:
 		with open(dump_info_path) as file:
 			dump_info = json.load(file)
@@ -86,8 +90,26 @@ def _obtain_omniweb(columns, interval):
 			return _obtain_omniweb(max(new_range[0], interval[0]), min(new_range[1], interval[1]))
 	return data
 
-def _obtain_izmiran(columns, interval):
-	pass
+def _obtain_izmiran(source, columns, interval):
+	try:
+		conn = pymysql.connect(
+			host=os.environ.get('CRS_HOST'),
+			port=int(os.environ.get('CRS_PORT', 0)),
+			user=os.environ.get('CRS_USER'),
+			password=os.environ.get('CRS_PASS'),
+			database=source)
+		with conn.cursor() as cursor:
+			query =  'SELECT min(dt) as time,' + ', '.join([f'round(avg({c.crs_name}), 2)' for c in columns]) +\
+			f' FROM {source} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
+			cursor.execute(query, interval)
+			data = cursor.fetchall()
+			for r in data:
+				print(*r)
+		return data
+	except Exception as e:
+		log.error(f'Omni: failed to query izmiran/{source}: {e}')
+	finally:
+		conn.close()
 
 def _cols(group, source='omniweb'):
 	if group not in ['all', 'sw', 'imf']:
@@ -104,6 +126,7 @@ def _cols(group, source='omniweb'):
 
 def obtain(source: str, interval: [int, int], group: str='all', overwrite=False):
 	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
+	log.debug(f'Omni: querying *{group} from {source} {dt_interval[0]} to {dt_interval[1]}')
 
 	query = _cols(group, source)
 	res = {
@@ -113,6 +136,10 @@ def obtain(source: str, interval: [int, int], group: str='all', overwrite=False)
 	}[source](query, dt_interval)
 
 	data, fields = compute_derived(res, [c.name for c in query])
+
+	if not data:
+		log.warn('Omni: got no data')
+		return 0
 
 	log.info(f'Omni: upserting *{group} from {source}: [{len(data)}] rows from {dt_interval[0]} to {dt_interval[1]}')
 	with pool.connection() as conn:

@@ -160,7 +160,7 @@ export function Omni() {
 		const res = await apiPost(rm ? 'omni/remove' : 'omni/fetch', {
 			from, to,
 			group,
-			...(rm && { 
+			...(!rm && { 
 				source: sat,
 				overwrite 
 			})
@@ -179,11 +179,11 @@ export function Omni() {
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'Delete')
 			mutation.mutate('remove');
-		if (e.code === 'KeyO')
+		if (e.shiftKey && e.code === 'KeyO')
 			mutation.mutate('omniweb');
-		if (e.code === 'KeyA')
+		if (e.shiftKey && e.code === 'KeyA')
 			mutation.mutate('ace');
-		if (e.code === 'KeyD')
+		if (e.shiftKey && e.code === 'KeyD')
 			mutation.mutate('dscovr');
 	});
 
