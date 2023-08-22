@@ -89,7 +89,13 @@ def _obtain_omniweb(columns, interval):
 def _obtain_izmiran(columns, interval):
 	pass
 
-def obtain(source: str, interval: [datetime, datetime], group: str='all'):
+def obtain(source: str, interval: [int, int], group: str='all', overwrite=False):
+	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
+	if group not in ['all', 'sw', 'imf']:
+		raise ValueError('Bad param group')
+	if source not in ['omniweb', 'ace', 'dscovr']:
+		raise ValueError('Unknown source')
+
 	sw_cols = [c for c in omni_columns if c.name in ['sw_speed', 'sw_density', 'sw_temperature']]
 	imf_cols = [c for c in omni_columns if c.name in ['imf_scalar', 'imf_x', 'imf_y', 'imf_z']]
 	query = {
@@ -101,13 +107,14 @@ def obtain(source: str, interval: [datetime, datetime], group: str='all'):
 		'omniweb': _obtain_omniweb,
 		'ace': lambda g, i: _obtain_izmiran('ace', g, i),
 		'dscovr': lambda g, i: _obtain_izmiran('dscovr', g, i),
-	}[source](query, interval)
+	}[source](query, dt_interval)
 
-	data = compute_derived(res, [c.name for c in query]).tolist()
+	data, fields = compute_derived(res, [c.name for c in query])
 
-	log.info(f'Omni: upserting *{group} from {source}: [{len(data)}] rows from {interval[0]} to {interval[1]}')
+	log.info(f'Omni: upserting *{group} from {source}: [{len(data)}] rows from {dt_interval[0]} to {dt_interval[1]}')
 	with pool.connection() as conn:
-		upsert_many(conn, 'omni', ['time', *fields], data)
+		upsert_many(conn, 'omni', ['time', *fields], data, write_nulls=overwrite, write_values=overwrite)
+	return len(data)
 
 def select(interval: [int, int], query=None, epoch=True):
 	columns = [c for c in query if c in all_column_names] if query else all_column_names
@@ -126,7 +133,7 @@ def ensure_prepared(interval: [int, int]):
 		for start in range(interval[0], interval[1]+1, batch_size):
 			end = start + batch_size
 			interv = [start, end if end < interval[1] else interval[1]]
-			executor.submit(obtain, 'omniweb', *[datetime.utcfromtimestamp(i) for i in interv])
+			executor.submit(obtain, 'omniweb', interv)
 	log.info(f'Omni: bulk fetch finished')
 	with open(dump_info_path, 'w') as file:
 		dump_info = { 'from': int(interval[0]), 'to': int(interval[1]), 'at': int(datetime.now().timestamp()) }

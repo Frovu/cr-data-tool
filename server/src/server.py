@@ -45,6 +45,7 @@ else:
 
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_FILE_THRESHOLD'] = 8
+app.url_map.strict_slashes = False
 
 Session(app)
 bcrypt = Bcrypt(app)

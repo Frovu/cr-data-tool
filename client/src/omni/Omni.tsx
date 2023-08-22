@@ -152,7 +152,8 @@ export function Omni() {
 			from: fetchFrom,
 			to: fetchTo,
 			source: sat,
-			group, overwrite
+			group,
+			overwrite
 		});
 		return res.message;
 	}, {
@@ -198,7 +199,7 @@ export function Omni() {
 							</div>
 						</div>
 						<div style={{ margin: '4px 0 8px 16px', lineHeight: '36px' }}>
-							<button style={{ width: 196 }} onClick={() => mutation.mutate('omni')}>Fetch OMNI&nbsp;</button>
+							<button style={{ width: 196 }} onClick={() => mutation.mutate('omniweb')}>Fetch OMNI&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('ace')}>Fetch ACE&nbsp;&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR</button>
 						</div>

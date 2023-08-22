@@ -15,10 +15,10 @@ def _temperature_index(values, columns):
 	return np.where(np.isnan(result), None, np.round(result, 3))
 
 def compute_derived(data, columns):
-	data = np.array(data)
 	if 'sw_temperature' not in columns or 'sw_speed' not in columns:
 		return data, columns
+	data = np.array(data)
 	time, values = data[:,0], data[:,1:]
 	t_idx = _temperature_index(values, columns)
 	res_cols =  columns + ['temperature_idx']
-	return np.column_stack((time, values, t_idx)), res_cols
+	return np.column_stack((time, values, t_idx)).tolist(), res_cols
