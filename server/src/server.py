@@ -44,7 +44,7 @@ else:
     app.config['JSON_SORT_KEYS'] = False
 
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_FILE_THRESHOLD'] = 8
+app.config['SESSION_FILE_THRESHOLD'] = 32
 app.url_map.strict_slashes = False
 
 Session(app)

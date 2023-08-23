@@ -8,8 +8,8 @@ bp = Blueprint('omni', __name__, url_prefix='/api/omni')
 @bp.route('', methods=['GET'])
 @route_shielded
 def get_result():
-	t_from = int(request.args.get('from'))
-	t_to = int(request.args.get('to'))
+	t_from = int(request.args.get('from', 0))
+	t_to = int(request.args.get('to', 86400))
 	query = request.args.get('query')
 	res, fields = database.select([t_from, t_to], query.split(',') if query else None)
 	return { 'fields': fields, 'rows': res }
