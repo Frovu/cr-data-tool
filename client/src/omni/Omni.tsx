@@ -234,6 +234,7 @@ export function Omni() {
 						<div style={{ color: color('red') }}>{report.error}</div>
 						<div style={{ color: color('green') }}>{report.success}</div>
 					</div>
+					<CovregareView/>
 				</div>
 			</div>
 			<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
@@ -249,4 +250,45 @@ export function Omni() {
 			</div>
 		</NavigationContext.Provider>
 	</div>);
+}
+
+function CovregareView() {
+	const queryClient = useQueryClient();
+	const [editing, setEditing] = useState(false);
+	const [newTo, setNewTo] = useState<Date | null>(null);
+
+	const query = useQuery<{ from: number, to: number, at: number }>(['omni', 'coverage'], () =>
+		apiGet('omni/ensure'));
+
+	const mutation = useMutation(async () => {
+		if (!query.data || !newTo || isNaN(newTo.getTime()))
+			return;
+		return await apiPost('omni/ensure', {
+			from: query.data.from,
+			to: Math.floor(newTo.getTime() / 36e5) * 3600,
+		});;
+	}, {
+		onSuccess: () => queryClient.invalidateQueries('omni')
+	});
+
+	useEffect(() => {
+		setNewTo(null);
+		setEditing(false);
+	}, [query.data]);
+
+	const to = prettyDate(query.data?.to ? new Date(1e3 * query.data.to) : newTo ?? new Date(0));
+	return !query.data ? null :  (
+		<div style={{ cursor: 'pointer', lineHeight: 1.25, color: color(editing ? 'text' : 'text-dark'), position: 'fixed', bottom: 16 }}
+			onClick={() => setEditing(e => !e)}>
+			<span style={{ textDecoration: editing ? 'underline' : 'unset' }}>COVERAGE INFO</span><br/>
+			{editing && <button style={{ padding: '0 8px', margin: '4px 8px' }} disabled={!newTo || isNaN(newTo.getTime())}
+				onClick={e => { e.stopPropagation(); mutation.mutate(); }}>COMMIT</button>}
+			<span style={{ color: color('text-dark') }}>{editing && newTo && prettyDate(newTo)}</span><br/>
+			&nbsp;&nbsp;&nbsp;{prettyDate(new Date(1e3 * query.data.from)).split(' ')[0]}<br/>
+			to <input type='text' style={{ marginLeft: -5, padding: '0 4px', width: '10ch', ...(!editing && { borderColor: 'transparent' }) }}
+				onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()} defaultValue={to.split(' ')[0]} disabled={!editing}
+				onChange={e => setNewTo(new Date(e.target.value.split(' ')[0]))}/><br/>
+			at {prettyDate(new Date(1e3 * query.data.at))}<br/>
+		</div>
+	);
 }

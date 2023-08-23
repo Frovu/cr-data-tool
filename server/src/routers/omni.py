@@ -14,6 +14,25 @@ def get_result():
 	res, fields = database.select([t_from, t_to], query.split(',') if query else None)
 	return { 'fields': fields, 'rows': res }
 
+@bp.route('/ensure', methods=['POST'])
+@require_auth
+@route_shielded
+def ensure_trust():
+	t_from = request.json.get('from')
+	t_to = request.json.get('to')
+	return database.ensure_prepared([t_from, t_to], trust=True)
+
+@bp.route('/ensure', methods=['GET'])
+@route_shielded
+def ensure():
+	if 'from' not in request.args:
+		return database.dump_info
+	t_from = int(request.args.get('from'))
+	t_to = int(request.args.get('to'))
+	if t_to < t_from:
+		raise ValueError('Negative interval')
+	return database.ensure_prepared([t_from, t_to])
+
 @bp.route('/fetch', methods=['POST'])
 @require_auth
 @route_shielded

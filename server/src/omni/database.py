@@ -189,18 +189,26 @@ def select(interval: [int, int], query=None, epoch=True):
 			'FROM omni WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', interval)
 		return curs.fetchall(), [desc[0] for desc in curs.description]
 
-def ensure_prepared(interval: [int, int]):
+def ensure_prepared(interval: [int, int], trust=False):
 	global dump_info
-	if dump_info and dump_info.get('from') <= interval[0] and dump_info.get('to') >= interval[1]:
-		return
-	log.info(f'Omni: beginning bulk fetch {interval[0]}:{interval[1]}')
-	batch_size = 3600 * 24 * 1000
-	with ThreadPoolExecutor(max_workers=4) as executor:
-		for start in range(interval[0], interval[1]+1, batch_size):
-			end = start + batch_size
-			interv = [start, end if end < interval[1] else interval[1]]
-			executor.submit(obtain, 'omniweb', interv)
-	log.info(f'Omni: bulk fetch finished')
+	if not trust:
+		if dump_info and dump_info.get('from') <= interval[0] and dump_info.get('to') >= interval[1]:
+			return dump_info
+		res_from = dump_info.get('from', interval[0])
+		ffrom, fto = min(res_from, interval[0]), interval[1]
+		log.info(f'Omni: beginning bulk fetch {ffrom}:{fto}')
+		batch_size = 3600 * 24 * 1000
+		with ThreadPoolExecutor(max_workers=4) as executor:
+			for start in range(ffrom, fto+1, batch_size):
+				end = start + batch_size
+				interv = [start, end if end < fto else fto]
+				executor.submit(obtain, 'omniweb', interv)
+		log.info(f'Omni: bulk fetch finished')
+	else:
+		res_from, fto = interval
+		log.info(f'Omni: force setting coverarge to {res_from}:{fto}')
+
 	with open(dump_info_path, 'w') as file:
-		dump_info = { 'from': int(interval[0]), 'to': int(interval[1]), 'at': int(datetime.now().timestamp()) }
+		dump_info = { 'from': int(res_from), 'to': int(fto), 'at': int(datetime.now().timestamp()) }
 		json.dump(dump_info, file)
+	return dump_info
