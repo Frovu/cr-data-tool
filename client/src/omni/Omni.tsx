@@ -5,7 +5,7 @@ import uPlot from 'uplot';
 import { NavigatedPlot, NavigationContext, color, font, useNavigationState, axisDefaults, seriesDefaults } from '../plotUtil';
 import { useEffect, useMemo, useState } from 'react';
 
-const PARAM_GROUP = ['all', 'SW', 'IMF'] as const;
+const PARAM_GROUP = ['all', 'SW', 'IMF', 'Geomag'] as const;
 const spacecraft: any = {
 	45: 'IMP8',
 	50: 'IMP8',
@@ -204,7 +204,7 @@ export function Omni() {
 				</div>
 				<div style={{ padding: '8px 16px', lineHeight: '2em' }}>
 					<div onWheel={(e) => setGroup(g => PARAM_GROUP[(PARAM_GROUP.indexOf(g) + (e.deltaY > 0 ? 1 : -1) + PARAM_GROUP.length) % PARAM_GROUP.length])}>
-						Parameter group: <select style={{ color: color({ all: 'cyan', SW: 'acid', IMF: 'purple' }[group]) }}
+						Parameter group: <select style={{ color: color({ all: 'cyan', SW: 'acid', IMF: 'purple', Geomag: 'peach' }[group]) }}
 							value={group} onChange={(e) => setGroup(e.target.value as any)}>
 							{PARAM_GROUP.map(pa => <option key={pa} value={pa}>{pa}</option>)}
 						</select>
@@ -226,6 +226,7 @@ export function Omni() {
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('omniweb')}>Fetch OMNI&nbsp;&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('ace')}>Fetch ACE&nbsp;&nbsp;&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR&nbsp;</button>
+							<button style={{ width: 196 }} onClick={() => mutation.mutate('geomag')}>&nbsp;Fetch Geomag&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('remove')}>&nbsp;REMOVE POINTS</button>
 						</div>
 					</>}

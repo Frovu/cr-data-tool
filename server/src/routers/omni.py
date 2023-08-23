@@ -24,6 +24,9 @@ def fetch():
 	group = request.json.get('group', 'all').lower()
 	ovw = request.json.get('overwrite', False)
 
+	if group == 'geomag' and src not in ['geomag', 'omniweb']:
+		return { 'message': 'Geomag can only be fetched from Geomag' }
+
 	count = database.obtain(src, [t_from, t_to], group, ovw)
 	return { 'message': f'Upserted [{count} h] of *{group} from {src}' }
 

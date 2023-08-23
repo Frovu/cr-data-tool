@@ -103,12 +103,22 @@ def _obtain_izmiran(source, columns, interval):
 			password=os.environ.get('CRS_PASS'),
 			database=source)
 		with conn.cursor() as cursor:
-			query =  'SELECT min(dt) as time,' + ', '.join([f'round(avg(if({c.crs_name} > -999, {c.crs_name}, NULL)), 2)' for c in columns]) +\
-			f' FROM {source} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
+			if source == 'geomag':
+				query = 'SELECT dst.dt, ' + ', '.join([c.crs_name for c in columns]) +\
+					' FROM dst JOIN noaa_1h ON dst.dt = noaa_1h.dt WHERE dst.dt >= %s AND dst.dt <= %s'
+			else:
+				# TODO: insert sw_cnt, imf_cnt
+				query = 'SELECT min(dt) as time,' + ', '.join([f'round(avg(if({c.crs_name} > -999, {c.crs_name}, NULL)), 2)' for c in columns]) +\
+					f' FROM {source} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
 			cursor.execute(query, interval)
-			data = cursor.fetchall()
-			for r in data:
-				print(*r)
+			data = list(cursor.fetchall())
+			if source == 'geomag':
+				kp_col = [c.name for c in columns].index('kp_index')
+				kp_inc = { 'M': -3, 'Z': 0, 'P': 3 }
+				parse_kp = lambda s: int(s[:-1]) * 10 + kp_inc[s[-1]]
+				for i in range(len(data)):
+					row = data[i] = list(data[i])
+					row[1 + kp_col] = parse_kp(row[1 + kp_col])
 		return data
 	except Exception as e:
 		log.error(f'Omni: failed to query izmiran/{source}: {e}')
@@ -116,6 +126,9 @@ def _obtain_izmiran(source, columns, interval):
 		conn.close()
 
 def _cols(group, source='omniweb', remove=False):
+	if 'geomag' in [source, group]:
+		return [c for c in omni_columns if c.name in ['kp_index', 'ap_index', 'dst_index']]
+
 	if group not in ['all', 'sw', 'imf']:
 		raise ValueError('Bad param group')
 	if source not in ['omniweb', 'ace', 'dscovr']:
@@ -133,14 +146,14 @@ def _cols(group, source='omniweb', remove=False):
 
 def obtain(source: str, interval: [int, int], group: str='all', overwrite=False):
 	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
+	if source == 'geomag': group = 'geomag'
 	log.debug(f'Omni: querying *{group} from {source} {dt_interval[0]} to {dt_interval[1]}')
 
 	query = _cols(group, source)
-	res = {
-		'omniweb': _obtain_omniweb,
-		'ace': lambda g, i: _obtain_izmiran('ace', g, i),
-		'dscovr': lambda g, i: _obtain_izmiran('dscovr', g, i),
-	}[source](query, dt_interval)
+	if source == 'omniweb':
+		res = _obtain_omniweb(query, dt_interval)
+	else:
+		res = _obtain_izmiran(source, query, dt_interval)
 
 	data, fields = compute_derived(res, [c.name for c in query])
 
@@ -150,7 +163,7 @@ def obtain(source: str, interval: [int, int], group: str='all', overwrite=False)
 
 	log.info(f'Omni: {"hard " if overwrite else ""}upserting *{group} from {source}: [{len(data)}] rows from {dt_interval[0]} to {dt_interval[1]}')
 	with pool.connection() as conn:
-		if source != 'omniweb':
+		if source in ['ace', 'dscovr']:
 			cid = SPACECRAFT_ID[source]
 			if group != 'imf':
 				conn.execute('UPDATE omni SET spacecraft_id_sw = %s WHERE %s <= time AND time <= %s' +

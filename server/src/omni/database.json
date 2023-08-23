@@ -15,7 +15,7 @@
 	"sw_density": ["REAL", 24, "dsw"],
 	"sw_speed": ["REAL", 25, "vsw"],
 	"plasma_beta": ["REAL", 37],
-	"dst_index": ["SMALLINT", 41],
-	"kp_index": ["SMALLINT", 39],
-	"ap_index": ["SMALLINT", 50]
+	"dst_index": ["SMALLINT", 41, "dst"],
+	"kp_index": ["SMALLINT", 39, "kp"],
+	"ap_index": ["SMALLINT", 50, "ap"]
 }
