@@ -54,6 +54,7 @@ def _init():
 		with open(dump_info_path) as file:
 			dump_info = json.load(file)
 	except:
+		dump_info = {}
 		log.warn('Omniweb: Failed to read ' + str(dump_info_path))
 _init()
 
@@ -87,12 +88,12 @@ def _obtain_omniweb(columns, interval):
 			data = [] # start reading data
 		elif 'INVALID' in line:
 			correct_range = re.findall(r' (\d+)', line)
-			new_range = [datetime.strptime(s, '%Y%m%d').replace(tzinfo=timezone.utc) for s in correct_range]
+			new_range = [datetime.strptime(s, '%Y%m%d') for s in correct_range]
 			if interval[1] < new_range[0] or new_range[1] < interval[0]:
 				log.info(f'Omniweb: out of bounds')
-				return 
+				return None
 			log.info(f'Omniweb: correcting range to fit {correct_range[0]}:{correct_range[1]}')
-			return _obtain_omniweb(max(new_range[0], interval[0]), min(new_range[1], interval[1]))
+			return _obtain_omniweb(columns, (max(new_range[0], interval[0]), min(new_range[1], interval[1])))
 	return data
 
 def _obtain_izmiran(source, columns, interval):
@@ -162,11 +163,11 @@ def obtain(source: str, interval: [int, int], group: str='all', overwrite=False)
 	else:
 		res = _obtain_izmiran(source, query, dt_interval)
 
-	data, fields = compute_derived(res, [c.name for c in query])
-
-	if not data:
+	if not res:
 		log.warn('Omni: got no data')
 		return 0
+
+	data, fields = compute_derived(res, [c.name for c in query])
 
 	log.info(f'Omni: {"hard " if overwrite else ""}upserting *{group} from {source}: [{len(data)}] rows from {dt_interval[0]} to {dt_interval[1]}')
 	with pool.connection() as conn:
@@ -201,9 +202,9 @@ def ensure_prepared(interval: [int, int], trust=False):
 	if not trust:
 		if dump_info and dump_info.get('from') <= interval[0] and dump_info.get('to') >= interval[1]:
 			return dump_info
-		cov_from, cov_to = dump_info.get('from', interval[0]), dump_info.get('to', interval[1])
-		res_from = min(cov_from, interval[0])
-		ffrom, fto = cov_to if cov_from <= interval[0] else interval[0], interval[1]
+		cov_from, cov_to = dump_info.get('from'), dump_info.get('to', interval[1])
+		res_from = min(cov_from, interval[0]) if cov_from else interval[0]
+		ffrom, fto = cov_to if cov_from and cov_from <= interval[0] else interval[0], interval[1]
 		log.info(f'Omni: beginning bulk fetch {ffrom}:{fto}')
 		batch_size = 3600 * 24 * 1000
 		with ThreadPoolExecutor(max_workers=4) as executor:
