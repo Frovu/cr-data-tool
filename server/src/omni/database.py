@@ -104,18 +104,24 @@ def _obtain_izmiran(source, columns, interval):
 			database=source)
 		with conn.cursor() as cursor:
 			if source == 'geomag':
+				geomag_q = '\nUNION '.join([f'SELECT dt + interval {h} hour as dt, kp{1 + h//3} as kp, ap{1 + h//3} as ap FROM geomag' for h in range(24)])
 				query = 'SELECT dst.dt, ' + ', '.join([c.crs_name for c in columns]) +\
-					' FROM dst JOIN noaa_1h ON dst.dt = noaa_1h.dt WHERE dst.dt >= %s AND dst.dt <= %s'
+					f' FROM dst JOIN (SELECT * FROM ({geomag_q}) gq WHERE dt > %s - interval 1 day AND dt < %s + interval 1 day) gm ' +\
+					'ON dst.dt = gm.dt WHERE dst.dt >= %s AND dst.dt <= %s'
+				print(query)
+				interval += interval
 			else:
 				# TODO: insert sw_cnt, imf_cnt
 				query = 'SELECT min(dt) as time,' + ', '.join([f'round(avg(if({c.crs_name} > -999, {c.crs_name}, NULL)), 2)' for c in columns]) +\
 					f' FROM {source} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
 			cursor.execute(query, interval)
 			data = list(cursor.fetchall())
+			for r in data:
+				print(*r)
 			if source == 'geomag':
 				kp_col = [c.name for c in columns].index('kp_index')
 				kp_inc = { 'M': -3, 'Z': 0, 'P': 3 }
-				parse_kp = lambda s: int(s[:-1]) * 10 + kp_inc[s[-1]]
+				parse_kp = lambda s: None if s == '-1' else int(s[:-1]) * 10 + kp_inc[s[-1]]
 				for i in range(len(data)):
 					row = data[i] = list(data[i])
 					row[1 + kp_col] = parse_kp(row[1 + kp_col])
