@@ -149,7 +149,7 @@ export function Omni() {
 	}, [query.data]);
 
 	const { min, max } = (navigation.state.selection ?? navigation.state.view);
-	const [fetchFrom, fetchTo] = !data ? interval : [min, max].map(i => data[0][i]);
+	const [fetchFrom, fetchTo] = (!data || (min === 0 && max === data[0].length - 1)) ? interval : [min, max].map(i => data[0][i]);
 
 	const mutation = useMutation(async (sat: string) => {
 		const rm = sat === 'remove';

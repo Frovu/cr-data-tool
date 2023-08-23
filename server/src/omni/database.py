@@ -108,7 +108,6 @@ def _obtain_izmiran(source, columns, interval):
 				query = 'SELECT dst.dt, ' + ', '.join([c.crs_name for c in columns]) +\
 					f' FROM dst JOIN (SELECT * FROM ({geomag_q}) gq WHERE dt > %s - interval 1 day AND dt < %s + interval 1 day) gm ' +\
 					'ON dst.dt = gm.dt WHERE dst.dt >= %s AND dst.dt <= %s'
-				print(query)
 				interval += interval
 			else:
 				# TODO: insert sw_cnt, imf_cnt
@@ -116,8 +115,6 @@ def _obtain_izmiran(source, columns, interval):
 					f' FROM {source} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
 			cursor.execute(query, interval)
 			data = list(cursor.fetchall())
-			for r in data:
-				print(*r)
 			if source == 'geomag':
 				kp_col = [c.name for c in columns].index('kp_index')
 				kp_inc = { 'M': -3, 'Z': 0, 'P': 3 }
