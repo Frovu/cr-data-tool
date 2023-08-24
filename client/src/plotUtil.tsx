@@ -10,7 +10,7 @@ export function color(name: string, opacity=1) {
 	return parts ? `rgba(${parts.join(',')},${opacity})` : col;
 }
 
-export function font(size=16, scale=false) {
+export function font(size=14, scale=false) {
 	const fnt = window.getComputedStyle(document.body).font;
 	return fnt.replace(/\d+px/, (scale ? Math.round(size * devicePixelRatio) : size) + 'px');
 }
