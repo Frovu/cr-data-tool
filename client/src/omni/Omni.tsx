@@ -37,6 +37,7 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 				scale: 'V',
 				size: 36,
 				ticks: { stroke: color('grid'), width: 2, filter: filterV },
+				values: (u, values) => values.map(v => v?.toString()),
 				filter: filterV,
 				grid: {},
 				side: 1,
@@ -229,7 +230,7 @@ export function Omni() {
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('geomag')}>&nbsp;Fetch Geomag&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('remove')}>&nbsp;REMOVE POINTS</button>
 							<br/><br/>
-							<LoadFile path='omni/parse'/>
+							<LoadFile path='omni/upload'/>
 						</div>
 					</>}
 					<div style={{ margin: '16px 0 0 4px', lineHeight: 1.5, cursor: 'pointer' }} onClick={() => setReport({})}>

@@ -189,6 +189,15 @@ def remove(interval: [int, int], group):
 		curs = conn.execute('UPDATE omni SET ' + ', '.join([f'{c} = NULL' for c in cols]) +
 			' WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)', interval)
 		return curs.rowcount
+		
+def insert(var, data):
+	if not var in all_column_names:
+		raise ValueError('Unknown var: '+var)
+	for row in data:
+		row[0] = datetime.utcfromtimestamp(row[0])
+	log.info(f'Omni: upserting from ui: [{len(data)}] rows from {data[0][0]} to {data[-1][0]}')
+	with pool.connection() as conn:
+		upsert_many(conn, 'omni', ['time', var], data)
 
 def select(interval: [int, int], query=None, epoch=True):
 	columns = [c for c in query if c in all_column_names] if query else all_column_names

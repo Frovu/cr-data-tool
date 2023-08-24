@@ -33,6 +33,15 @@ def ensure():
 		raise ValueError('Negative interval')
 	return database.ensure_prepared([t_from, t_to])
 
+@bp.route('/upload', methods=['POST'])
+@require_auth
+@route_shielded
+def upload():
+	data = request.json['rows']
+	var = request.json['variable']
+	database.insert(var, data)
+	return { 'message': 'OK' }
+
 @bp.route('/fetch', methods=['POST'])
 @require_auth
 @route_shielded
