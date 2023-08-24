@@ -229,14 +229,14 @@ export function Omni() {
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('geomag')}>&nbsp;Fetch Geomag&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('remove')}>&nbsp;REMOVE POINTS</button>
-							<br/><br/>
-							<LoadFile path='omni/upload'/>
 						</div>
 					</>}
 					<div style={{ margin: '16px 0 0 4px', lineHeight: 1.5, cursor: 'pointer' }} onClick={() => setReport({})}>
 						<div style={{ color: color('red') }}>{report.error}</div>
 						<div style={{ color: color('green') }}>{report.success}</div>
 					</div>
+					<div style={{ margin: 16 }}><LoadFile path='omni/upload'/></div>
+					
 					<CovregareView/>
 				</div>
 			</div>
