@@ -158,7 +158,7 @@ export function Omni() {
 		if (rm && (!data || (!cursor?.lock && !selection)))
 			return '';
 		const [from, to] = !rm ? [fetchFrom, fetchTo] :
-			cursor?.lock ? Array(2).fill(data![0][cursor.idx]) :
+			!selection ? Array(2).fill(data![0][cursor!.idx]) :
 				[selection!.min, selection!.max].map(i => data![0][i]);
 
 		const res = await apiPost(rm ? 'omni/remove' : 'omni/fetch', {
