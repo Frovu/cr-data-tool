@@ -239,7 +239,7 @@ export default function Neutron() {
 								</p>
 								{rev.comment ? 'Comment: '+rev.comment : ''}
 								<p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--color-text-dark)' }}>
-									at {prettyDate(new Date(rev.time*1e3))}{rev.reverted_at != null ? ' / ' + prettyDate(new Date(rev.reverted_at*1e3)) : ''}</p>
+									at {prettyDate(rev.time)}{rev.reverted_at != null ? ' / ' + prettyDate(rev.reverted_at) : ''}</p>
 							</div>))}
 						</div>}
 						{Object.keys(corrections).length > 0 && <div style={{ color: 'var(--color-magenta)' }}>

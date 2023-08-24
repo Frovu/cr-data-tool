@@ -4,6 +4,7 @@ import { apiGet, apiPost, prettyDate, useEventListener } from '../util';
 import uPlot from 'uplot';
 import { NavigatedPlot, NavigationContext, color, font, useNavigationState, axisDefaults, seriesDefaults } from '../plotUtil';
 import { useEffect, useMemo, useState } from 'react';
+import LoadFile from './LoadFile';
 
 const PARAM_GROUP = ['all', 'SW', 'IMF', 'Geomag'] as const;
 const spacecraft: any = {
@@ -24,7 +25,6 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 		axes: [
 			{
 				...axisDefaults(),
-				font: font(14),
 			}, {
 				...axisDefaults(),
 				scale: 'imf',
@@ -218,8 +218,8 @@ export function Omni() {
 						<div style={{ color: color('cyan'), margin: 4, verticalAlign: 'top' }}>
 							[{Math.ceil((fetchTo - fetchFrom) / 3600)} h]
 							<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
-								{prettyDate(new Date(1e3 * fetchFrom))}<br/>
-								&nbsp;&nbsp;to {prettyDate(new Date(1e3 * fetchTo))}
+								{prettyDate(fetchFrom)}<br/>
+								&nbsp;&nbsp;to {prettyDate(fetchTo)}
 							</div>
 						</div>
 						<div style={{ margin: '4px 0 8px 16px', lineHeight: '36px' }}>
@@ -228,6 +228,8 @@ export function Omni() {
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('geomag')}>&nbsp;Fetch Geomag&nbsp;</button>
 							<button style={{ width: 196 }} onClick={() => mutation.mutate('remove')}>&nbsp;REMOVE POINTS</button>
+							<br/><br/>
+							<LoadFile path='omni/parse'/>
 						</div>
 					</>}
 					<div style={{ margin: '16px 0 0 4px', lineHeight: 1.5, cursor: 'pointer' }} onClick={() => setReport({})}>
@@ -284,11 +286,11 @@ function CovregareView() {
 			{editing && <button style={{ padding: '0 8px', margin: '4px 8px' }} disabled={!newTo || isNaN(newTo.getTime())}
 				onClick={e => { e.stopPropagation(); mutation.mutate(); }}>COMMIT</button>}
 			<span style={{ color: color('text-dark') }}>{editing && newTo && prettyDate(newTo)}</span><br/>
-			&nbsp;&nbsp;&nbsp;{prettyDate(new Date(1e3 * query.data.from)).split(' ')[0]}<br/>
+			&nbsp;&nbsp;&nbsp;{prettyDate(query.data.from).split(' ')[0]}<br/>
 			to <input type='text' style={{ marginLeft: -5, padding: '0 4px', width: '10ch', ...(!editing && { borderColor: 'transparent' }) }}
 				onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()} defaultValue={to.split(' ')[0]} disabled={!editing}
 				onChange={e => setNewTo(new Date(e.target.value.split(' ')[0]))}/><br/>
-			at {prettyDate(new Date(1e3 * query.data.at))}<br/>
+			at {prettyDate(query.data.at)}<br/>
 		</div>
 	);
 }

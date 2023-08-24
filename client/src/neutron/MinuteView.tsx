@@ -119,7 +119,7 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 				stroke: color('text'),
 				grid: { show: true, stroke: color('grid'), width: 2 },
 				ticks: { stroke: color('grid'), width: 2 },
-				values: (u, vals) => ['', '', `${query.data!.station.toUpperCase()} minutes of ${prettyDate(new Date(timestamp*1000))}`, 
+				values: (u, vals) => ['', '', `${query.data!.station.toUpperCase()} minutes of ${prettyDate(timestamp)}`, 
 					'', '', `[${query.data!.filtered.reduce((s, a) => s + (a == null ? 0 : 1), 0)}/60]`],
 			},
 			{

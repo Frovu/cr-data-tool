@@ -34,8 +34,8 @@ export function FetchMenu() {
 		<h4 style={{ margin: '1em 0 1.5em 0' }}>Re-obtain and re-compute data?</h4>
 		<p style={{ margin: '1em 3em 0 3em', textAlign: 'right', lineHeight: '1.5em' }}>
 			<b>{Math.ceil((timeTo - timeFrom) / 3600) + 1}</b> hours<br/>
-			from {prettyDate(new Date(1e3*timeFrom))}<br/>
-			to {prettyDate(new Date(1e3*timeTo))}<br/>
+			from {prettyDate(timeFrom)}<br/>
+			to {prettyDate(timeTo)}<br/>
 		</p>
 		<pre style={{ color: mutation.isError ? 'var(--color-red)' :  mutation.isLoading ? 'var(--color-text)' : 'var(--color-green)' }}>
 			{mutation.isLoading ? 'loading..' : report}
@@ -78,7 +78,7 @@ export function CommitMenu() {
 				<p key={sta} style={{ margin: '1em 0 0 0' }}>
 					<span style={{ color: 'var(--color-magenta)' }}>[{sta.toUpperCase()}]</span> <b>{corrs.length} </b>
 					change{corrs.length === 1 ? '' : 's'} between&nbsp;
-					{prettyDate(new Date(1e3*corrs[0][0]))}<br/> and {prettyDate(new Date(1e3*corrs[corrs.length-1][0]))} </p>)}
+					{prettyDate(corrs[0][0])}<br/> and {prettyDate(corrs[corrs.length-1][0])} </p>)}
 		</div>
 		<pre style={{ margin: 4, height: '1.25em', color: mutation.isError ? 'var(--color-red)' :  mutation.isLoading ? 'var(--color-text)' : 'var(--color-green)' }}>
 			{mutation.isLoading ? 'loading..' : report}

@@ -1,6 +1,7 @@
 import React, { SetStateAction, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-export function prettyDate(date: Date) {
+export function prettyDate(inp: Date | number) {
+	const date = typeof inp === 'number' ? new Date(1e3 * inp) : inp;
 	return isNaN(date.getTime()) ? 'Invalid' : date.toISOString().replace('T', ' ').replace(/(:00)?\..*/, '');
 }
 
@@ -30,7 +31,7 @@ export function dispatchCustomEvent(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
 }
 
-export function useEventListener(eventName: string, callback: (e: any) => any | (() => any), elementRef?: React.RefObject<HTMLElement>) {
+export function useEventListener(eventName: string, callback: (e: any) => void | (() => void), elementRef?: React.RefObject<HTMLElement>) {
 	const savedCallback = useRef(callback);
 	savedCallback.current = callback;
 
