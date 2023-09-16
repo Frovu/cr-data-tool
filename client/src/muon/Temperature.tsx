@@ -59,6 +59,7 @@ export default function TemperatureApp() {
 	});
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const [legendContainer, setLegendContainer] = useState<HTMLDivElement | null>(null);
 	const [u, setUplot] = useState<uPlot | null>(null);
 	const size = useSize(container);
 
@@ -71,7 +72,8 @@ export default function TemperatureApp() {
 
 		const data = fields.map((f, i) => rows.map(row => row[i]));
 
-		return <UplotReact {...{ options: { ...size, ...plotOptions() }, data: data as any, onCreate: setUplot }}/>;
+		return <UplotReact {...{ options: { ...size, ...plotOptions(), legend: { mount: (upl, el) => legendContainer?.append(el) } },
+			data: data as any, onCreate: setUplot }}/>;
 	}, [query.data]); // eslint-disable-line
 
 	return <NavigationContext.Provider value={navigation}>
@@ -83,6 +85,8 @@ export default function TemperatureApp() {
 					{Object.entries(query.data?.downloading ?? {}).map(([year, progr]) => <div key={year}>
 						downloading {year}: {(progr * 100).toFixed(0)} %
 					</div>)}
+				</div>
+				<div ref={el => setLegendContainer(el)}>
 				</div>
 			</div>
 			<div ref={el => setContainer(el)} style={{ position: 'relative' }}>
