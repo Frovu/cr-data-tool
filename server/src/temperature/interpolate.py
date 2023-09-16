@@ -1,0 +1,3 @@
+
+def interpolate(data):
+	pass
