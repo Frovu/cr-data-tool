@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from 'react-query';
-import { useMonthInput } from '../neutron/Neutron';
+import { useMonthInput } from '../util';
 import { apiGet, apiPost, prettyDate, useEventListener } from '../util';
 import uPlot from 'uplot';
 import { NavigatedPlot, NavigationContext, color, font, useNavigationState, axisDefaults, seriesDefaults } from '../plotUtil';

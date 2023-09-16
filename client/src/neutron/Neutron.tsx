@@ -2,7 +2,7 @@ import { ReactElement, Reducer, SetStateAction, createContext, useCallback, useE
 import { ManyStationsView } from './NeutronView';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { CommitMenu, FetchMenu, Help } from './Actions';
-import { apiGet, apiPost, prettyDate, useEventListener } from '../util';
+import { apiGet, apiPost, prettyDate, useEventListener, useMonthInput } from '../util';
 import { NavigationContext, useNavigationState } from '../plotUtil';
 
 type Revision = {
@@ -262,34 +262,6 @@ export default function Neutron() {
 					onClick={() => openPopup('help')}>?</button>
 			</NavigationContext.Provider>
 		</NeutronContext.Provider>);
-}
-
-const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-export function useMonthInput(initial?: Date) {
-	type R = Reducer<{ year: number, month: number, count: number, interval: number[]}, { action: 'month'|'year'|'count', value: number }>;
-	const init = initial ?? new Date();
-	const [{ year, month, count, interval }, dispatch] = useReducer<R>((state, { action, value }) => {
-		const st = { ...state, [action]: value };
-		st.interval = [0, st.count].map(inc => new Date(Date.UTC(st.year, st.month + inc)).getTime() / 1e3);
-		return st;
-	}, {
-		year: init.getFullYear(),
-		month: init.getMonth(),
-		count: 1,
-		interval: [0, 1].map(inc => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3)
-	});
-	const set = (action: 'month'|'year'|'count', value: number) => dispatch({ action, value });
-
-	return [interval, <div style={{ display: 'inline-block' }}>
-		<select onWheel={e => set('month', Math.max(0, Math.min(month + Math.sign(e.deltaY), 11)))}
-			value={monthNames[month]} onChange={e => set('month', monthNames.indexOf(e.target.value))}>
-			{monthNames.map(mon => <option key={mon} id={mon}>{mon}</option>)}
-		</select> <input style={{ width: '6ch' }} type='number' min='1957' max={new Date().getFullYear()}
-			value={year} onChange={e => set('year', e.target.valueAsNumber)}
-		/> + <input style={{ width: '4ch', textAlign: 'center' }} type='number' min='1' max='24'
-			value={count} onChange={e => set('count', e.target.valueAsNumber)}
-		/> month{count === 1 ? '' : 's'}
-	</div>] as [number[], ReactElement];
 }
 
 const defaultDivisor = 18;  // TODO: smart divisor determination

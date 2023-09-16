@@ -3,6 +3,8 @@ import Neutron from './neutron/Neutron';
 import { useEffect, useState } from 'react';
 import { apiGet, apiPost, useEventListener } from './util';
 import { Omni } from './omni/Omni';
+import MuonApp from './muon/Muon';
+import TemperatureApp from './muon/Temperature';
 
 const theQueryClient = new QueryClient();
 
@@ -50,10 +52,12 @@ function AuthPrompt() {
 
 function App() {
 	const query = useQuery<{ login: string | null }>(['auth'], () => apiGet('auth'));
-	const app = ['neutron', 'omni'].find(a => window.location.pathname.endsWith(a)) ?? 'crdt';
+	const app = ['temperature', 'muon', 'neutron', 'omni'].find(a => window.location.pathname.endsWith(a)) ?? 'crdt';
 	useEffect(() => {
 		document.title = {
+			temperature: 'CRDT: temperature',
 			neutron: 'CRDT: NM',
+			muon: 'CRDT: Muon',
 			omni: 'CRDT: Omni',
 			crdt: 'CRDT'
 		}[app]!;
@@ -62,12 +66,16 @@ function App() {
 	return (
 		<div className='bbox' style={{ height: '100vh', width: '100vw', padding: 8 }}>
 			{query.isError && <div className='center'>FAILED TO LOAD</div>}
-			{query.data && query.data.login == null && <AuthPrompt/>}
+			{!['crdt', 'temperature'].includes(app) && query.data && query.data.login == null && <AuthPrompt/>}
+			{app === 'temperature' && <TemperatureApp/>}
 			{app === 'neutron' && <Neutron/>}
+			{app === 'muon' && <MuonApp/>}
 			{app === 'omni' && <Omni/>}
-			{app === 'crdt' && query.data?.login != null && <div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }}>
+			{app === 'crdt' && <div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }}>
 				<h4>Select an application:</h4>
+				- <a href='temperature'>Atmospheric temperature</a><br/>
 				- <a href='neutron'>Neutron monitors</a><br/>
+				- <a href='muon'>Muon telescopes</a><br/>
 				- <a href='omni'>Interplanetary medium (omni)</a>
 			</div>}
 		</div>
