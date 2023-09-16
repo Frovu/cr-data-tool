@@ -1,8 +1,8 @@
-from routers.utils import route_shielded, require_auth
-from flask import Blueprint, request, session
-from server import bcrypt
-from database import pool
 import logging, os
+from utils import route_shielded
+from flask import Blueprint, request, session
+from database import pool
+from server import bcrypt
 
 log = logging.getLogger('crdt')
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
@@ -27,17 +27,18 @@ init()
 
 @bp.route('', methods=['POST'])
 @route_shielded
-def login():
+def do_login():
 	login = request.json.get('login')
 	passw = request.json.get('password')
 	if not login or not passw:
 		return {}, 400
 	with pool.connection() as conn:
 		res = conn.execute('SELECT uid, login, password FROM users WHERE login = %s', [login]).fetchone()
-		if not res: return {}, 404
+		if not res:
+			return msg('User not found'), 404
 		uid, uname, pwd = res
 		if not bcrypt.check_password_hash(pwd.encode(), passw):
-			return {}, 401
+			return msg('Wrong password'), 401
 		conn.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE login = %s', [login])
 	session['uid'] = uid
 	session['uname'] = uname
@@ -51,7 +52,7 @@ def get_user():
 
 @bp.route('/logout', methods=['POST'])
 @route_shielded
-def logout():
+def do_logout():
 	uname = session.get('uname')
 	if uname:
 		session['uid'] = None

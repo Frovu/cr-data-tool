@@ -13,18 +13,7 @@ function AuthPrompt() {
 	const [login, setLogin] = useState('');
 	const [password, setPassword] = useState('');
 
-	const mutation = useMutation(async () => {
-		const res = await apiPost('auth', { login, password }, false);
-		if (res.status === 400)
-			throw new Error('Bad request');
-		if (res.status === 404)
-			throw new Error('User not found');
-		if (res.status === 401)
-			throw new Error('Wrong password');
-		if (res.status !== 200)
-			throw new Error(`HTTP: ${res.status}`);
-		return await res.text();
-	}, {
+	const mutation = useMutation(() => apiPost('auth', { login, password }), {
 		onError: (e: any) => setError(e.toString()),
 		onSuccess: () => theQueryClient.invalidateQueries('auth')
 	});
@@ -51,7 +40,7 @@ function AuthPrompt() {
 }
 
 function App() {
-	const query = useQuery<{ login: string | null }>(['auth'], () => apiGet('auth'));
+	const query = useQuery(['auth'], () => apiGet<{ login: string | null }>('auth'));
 	const app = ['temperature', 'muon', 'neutron', 'omni'].find(a => window.location.pathname.endsWith(a)) ?? 'crdt';
 	useEffect(() => {
 		document.title = {

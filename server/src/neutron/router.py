@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from neutron import neutron, corrections
-from routers.utils import route_shielded, require_auth
+from utils import route_shielded, require_auth
 
 bp = Blueprint('neutron', __name__, url_prefix='/api/neutron')
 

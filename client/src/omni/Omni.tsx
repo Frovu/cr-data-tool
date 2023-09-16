@@ -135,7 +135,7 @@ export function Omni() {
 	const [report, setReport] = useState<{ error?: string, success?: string }>({});
 	const navigation = useNavigationState();
 
-	const query = useQuery<{ fields: string[], rows: number[][] }>(['omni', interval], () => apiGet('omni', {
+	const query = useQuery(['omni', interval], () => apiGet<{ fields: string[], rows: number[][] }>('omni', {
 		from: interval[0],
 		to:   interval[1],
 		query: 'spacecraft_id_sw,spacecraft_id_imf,sw_temperature,sw_density,sw_speed,temperature_idx,plasma_beta,imf_scalar,imf_x,imf_y,imf_z,dst_index,kp_index,ap_index'
@@ -169,7 +169,7 @@ export function Omni() {
 				overwrite 
 			})
 		});
-		return res.message;
+		return res.message!;
 	}, {
 		onSuccess: (success: string) => {
 			queryClient.invalidateQueries('omni');
@@ -260,8 +260,8 @@ function CovregareView() {
 	const [editing, setEditing] = useState(false);
 	const [newTo, setNewTo] = useState<Date | null>(null);
 
-	const query = useQuery<{ from: number, to: number, at: number }>(['omni', 'coverage'], () =>
-		apiGet('omni/ensure'));
+	const query = useQuery(['omni', 'coverage'], () =>
+		apiGet<{ from: number, to: number, at: number }>('omni/ensure'));
 
 	const mutation = useMutation(async () => {
 		if (!query.data || !newTo || isNaN(newTo.getTime()))

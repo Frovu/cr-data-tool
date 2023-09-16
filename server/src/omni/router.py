@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 
 from omni import database
-from routers.utils import route_shielded, require_auth
+from utils import route_shielded, require_auth
 
 bp = Blueprint('omni', __name__, url_prefix='/api/omni')
 

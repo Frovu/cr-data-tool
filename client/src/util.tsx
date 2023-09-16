@@ -5,26 +5,26 @@ export function prettyDate(inp: Date | number) {
 	return isNaN(date.getTime()) ? 'Invalid' : date.toISOString().replace('T', ' ').replace(/(:00)?\..*/, '');
 }
 
-export async function apiPost(url: string, body: { [k: string]: any }, resolve=true) {
+export async function apiPost<T = { message?: string }>(url: string, body?: { [k: string]: any }): Promise<T> {
 	const res = await fetch(process.env.REACT_APP_API + 'api/' + url, {
 		method: 'POST', credentials: 'include',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(body)
+		body: body && JSON.stringify(body)
 	});
-	if (!resolve)
-		return res;
+	const json = await res.json();
 	if (res.status !== 200)
-		throw new Error('HTTP '+res.status);
-	return await res.json();
+		throw new Error(json.message ?? ('HTTP '+res.status));
+	return json;
 }
-export async function apiGet(url: string, query?: { [k: string]: any }) {
+export async function apiGet<T = { message?: string }>(url: string, query?: { [k: string]: any }): Promise<T> {
 	let uri = process.env.REACT_APP_API + 'api/' + url;
 	if (query)
 		uri += '?' + new URLSearchParams(query).toString();
 	const res = await fetch(uri, { credentials: 'include' });
+	const json = await res.json();
 	if (res.status !== 200)
-		throw new Error('HTTP '+res.status);
-	return await res.json();
+		throw new Error(json.message ?? ('HTTP '+res.status));
+	return json;
 }
 
 export function dispatchCustomEvent(eventName: string, detail?: {}) {
