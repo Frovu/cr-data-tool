@@ -1,12 +1,17 @@
 import { useMemo, useState } from 'react';
 import { apiGet, apiPost, prettyDate, useMonthInput } from '../util';
 import { NavigatedPlot, NavigationContext, useNavigationState, axisDefaults, seriesDefaults, color } from '../plotUtil';
-import { useMutation, useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import uPlot from 'uplot';
 
 function options(): Omit<uPlot.Options, 'width'|'height'> {
+	const filter = (dir: number): uPlot.Axis.Filter => (u, splits, ax) => {
+		const scale = u.scales[u.axes[ax].scale!];
+		const threshold = scale.min! + (scale.max! - scale.min!) * 2 / 3;
+		return splits.map((spl, i) => (dir > 0 ? spl > threshold : spl < threshold) ? spl : null);
+	};
 	return {
-		padding: [12, 12, 0, 8],
+		padding: [12, 0, 0, 0],
 		scales: {
 			temp: {
 				range: (u, min, max) => [min-(max-min)*2, max+1]
@@ -15,38 +20,59 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 				range: (u, min, max) => [min-(max-min)*2, max+1]
 			},
 			variation: {
-				range: (u, min, max) => [min-.1, max*3/2]
+				range: (u, min, max) => [min-.1, max+(max-min)*2/3]
 			}
 		},
 		axes: [
 			{
+				
 				...axisDefaults(),
 			}, {
-				...axisDefaults(),
-				scale: 'temp'
+				...axisDefaults(true, filter(-1)),
+				scale: 'variation',
 			}, {
-				...axisDefaults(),
-				scale: 'temp'
+				...axisDefaults(false, filter(1)),
+				scale: 'temp',
+				ticks: { show: false },
+				gap: -36,
 			}, {
-				...axisDefaults(),
-				scale: 'temp'
+				...axisDefaults(false, filter(1)),
+				side: 1,
+				scale: 'press',
+				values: (u, vals) => vals.map(v => v?.toString())
 			}
 		],
 		series: [
 			{
 				value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC',
 				stroke: color('text')
-			},
-			{
-				...seriesDefaults('t_m_avg', 'green', 't'),
+			}, {
+				...seriesDefaults('pressure', 'magenta', 'press'),
 				value: (u, val) => val?.toFixed(1) ?? '--',
-				width: 2,
-			},
+				width: 1,
+			}, {
+				...seriesDefaults('t_m_avg', 'gold', 'temp'),
+				value: (u, val) => val?.toFixed(1) ?? '--',
+				width: 1,
+			}, {
+				...seriesDefaults('original', 'purple', 'variation'),
+				value: (u, val) => val?.toFixed(1) ?? '--',
+				width: 1,
+			}, {
+				...seriesDefaults('corrected', 'cyan', 'variation'),
+				value: (u, val) => val?.toFixed(1) ?? '--',
+				width: 1,
+			}, {
+				...seriesDefaults('revised', 'magenta', 'variation'),
+				value: (u, val) => val?.toFixed(1) ?? '--',
+				width: 1,
+			}
 		]
 	};
 }
 
 export default function MuonApp() {
+	const queryClient = useQueryClient();
 	const [interval, monthInput] = useMonthInput(new Date(Date.now() - 864e5*365), 12);
 	const [experiment, setExperiment] = useState('Moscow-pioneer');
 	const navigation = useNavigationState();
@@ -78,10 +104,13 @@ export default function MuonApp() {
 		experiment
 	}), {
 		onSuccess: ({ status }) => {
-			if (status === 'busy')
+			if (status === 'busy') {
 				setTimeout(() => obtainMutation.mutate(), 500);
-			else 
+			} else {
+				if (status === 'ok')
+					queryClient.invalidateQueries('muon');
 				setTimeout(() => obtainMutation.isSuccess && obtainMutation.reset(), 3000);
+			}
 		}
 	});
 
@@ -106,7 +135,7 @@ export default function MuonApp() {
 						<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
 							{isObtaining ? 'stand by...' : 'Obtain everything'}</button>
 						<button style={{ padding: 2, marginTop: 4, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
-							{isObtaining ? 'stand by...' : 'Obtain only counts'}</button>
+							{isObtaining ? 'stand by...' : 'Obtain muon counts'}</button>
 						{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
 					</div>
 					{/* <button style={{ padding: '2px 12px' }} onClick={() => computeMutation.mutate()}>Compute</button> */}
@@ -123,7 +152,7 @@ export default function MuonApp() {
 			<div style={{ position: 'relative' }}>
 				{query.isLoading && <div className='center'>LOADING...</div>}
 				{query.data && !data && <div className='center'>NO DATA</div>}
-				{data && <NavigatedPlot {...{ data, options }}/>}
+				{data && <NavigatedPlot {...{ data, options, legendHeight: 72 }}/>}
 			</div>
 		</div>
 	</NavigationContext.Provider>;

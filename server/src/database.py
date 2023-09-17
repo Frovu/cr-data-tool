@@ -13,6 +13,7 @@ pool = ConnectionPool(kwargs = {
 def upsert_many(conn, table, columns, data, constants=[], conflict_constraint='time', do_nothing=False, write_nulls=False, write_values=True):
 	with conn.cursor() as cur, conn.transaction():
 		tmpname = table.split('.')[-1] + '_tmp'
+		cur.execute(f'DROP TABLE IF EXISTS {tmpname}')
 		cur.execute(f'CREATE TEMP TABLE {tmpname} (LIKE {table} INCLUDING DEFAULTS) ON COMMIT DROP')
 		for col in columns[:len(constants)]:
 			cur.execute(f'ALTER TABLE {tmpname} DROP COLUMN {col}')

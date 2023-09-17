@@ -15,12 +15,14 @@ export function font(size=14, scale=false) {
 	return fnt.replace(/\d+px/, (scale ? Math.round(size * devicePixelRatio) : size) + 'px');
 }
 
-export function axisDefaults() {
+export function axisDefaults(grid?: boolean, filter?: uPlot.Axis.Filter): uPlot.Axis {
 	return {
 		font: font(),
+		labelFont: font(14),
 		stroke: color('text'),
-		grid: { show: true, stroke: color('grid'), width: 2 },
-		ticks: { stroke: color('grid'), width: 2 },
+		grid: { show: grid ?? true, stroke: color('grid'), width: 2 },
+		ticks: { stroke: color('grid'), width: 2, ...(filter && { filter }) },
+		...(filter && { filter })
 	} as uPlot.Axis;
 }
 

@@ -26,7 +26,7 @@ def select(t_from, t_to, experiment, channel_name, query):
 	query = ', '.join((f if f != 'revised' else 'COALESCE(revised, corrected) as revised' for f in fields)) 
 	join_conditions = any((a in fields for a in ['t_mass_average', 'pressure']))
 	with pool.connection() as conn:
-		curs = conn.execute('SELECT EXTRACT(EPOCH FROM c.time) as time, ' + query + \
+		curs = conn.execute('SELECT EXTRACT(EPOCH FROM c.time)::integer as time, ' + query + \
 			' FROM muon.counts_data c ' +\
 			('LEFT JOIN muon.conditions_data m ON m.experiment = '+\
 				' (SELECT id FROM muon.experiments WHERE name = %s) AND m.time = c.time ' if join_conditions else '') + \
@@ -46,12 +46,10 @@ def _do_obtain_all(t_from, t_to, experiment):
 	try:
 		with pool.connection() as conn:
 			obtain_status = { 'status': 'busy' }
-			row = conn.execute('SELECT id, lat, lon, array(select id from muon.channels where experiment = e.name) ' +\
-				'FROM muon.experiments e WHERE name = %s', [experiment]).fetchone()
+			row = conn.execute('SELECT id, lat, lon FROM muon.experiments e WHERE name = %s', [experiment]).fetchone()
 			if row is None:
 				raise ValueError(f'Experiment not found: {experiment}')
-			exp_id, lat, lon, channels = row
-			print(channels)
+			exp_id, lat, lon = row
 			obtain_status['message'] = 'obtaining temperature..'
 			while True:
 				progress, result = ncep.obtain([t_from, t_to], lat, lon)
@@ -68,7 +66,17 @@ def _do_obtain_all(t_from, t_to, experiment):
 				data, constants=[exp_id], conflict_constraint='time,experiment')
 			
 			obtain_status['message'] = 'obtaining pressure..'
+			data = obtain_raw(t_from, t_to, experiment, 'pressure')
+			upsert_many(conn, 'muon.conditions_data', ['experiment', 'time', 'pressure'],
+				data, constants=[exp_id], conflict_constraint='time, experiment')
 			
+			obtain_status['message'] = 'obtaining counts..'
+			channels = conn.execute('SELECT id, name FROM muon.channels WHERE experiment = %s', [experiment]).fetchall()
+			for ch_id, ch_name in channels:
+				obtain_status['message'] = 'obtaining counts: ' + ch_name
+				data = obtain_raw(t_from, t_to, experiment, ch_name)
+				upsert_many(conn, 'muon.counts_data', ['channel', 'time', 'original'],
+					data, constants=[ch_id], conflict_constraint='time, channel')
 
 			obtain_status = { 'status': 'ok' }
 			

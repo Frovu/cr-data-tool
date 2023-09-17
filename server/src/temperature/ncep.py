@@ -125,7 +125,7 @@ def obtain(t_interval, lat, lon):
 	log.debug(f"NCEP/NCAR: Approximated ({lat},{lon}) {dt_from} to {dt_to}")
 	times_1h, result = _interpolate_time(times_6h, approximated)
 	log.debug(f"NCEP/NCAR: Interpolated [{result.shape[0]}] ({lat},{lon}) {dt_from} to {dt_to}")
-	t_m = _t_mass_average(result)
+	t_m = np.round(_t_mass_average(result), 2)
 	log.debug(f"NCEP/NCAR: T_m [{t_m.shape[0]}] ({lat},{lon}) {dt_from} to {dt_to}")
 
 	return None, np.column_stack((times_1h, t_m, result))

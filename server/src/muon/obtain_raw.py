@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 import requests, json
+requests.packages.urllib3.disable_warnings() # pylint: disable=no-member
 
 log = logging.getLogger('crdt')
 
@@ -9,7 +10,7 @@ def _obtain_moscow(t_from: int, t_to: int, experiment: str, what: str):
 	what = what if what == 'pressure' else 'vertical'
 	assert dev is not None
 	query = f'https://tools.izmiran.ru/sentinel/api/data?from={t_from}&to={t_to+3600}&dev={dev}&fields={what}'
-	res = requests.get(query, timeout=10000)
+	res = requests.get(query, verify=False, timeout=10000)
 	if res.status_code != 200:
 		logging.warning(f'Muones: failed raw -{res.status_code}- {experiment} {t_from}:{t_to}')
 		return []

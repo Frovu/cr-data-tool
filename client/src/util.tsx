@@ -1,7 +1,8 @@
 import React, { ReactElement, Reducer, SetStateAction, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 
-export function prettyDate(inp: Date | number) {
-	const date = typeof inp === 'number' ? new Date(1e3 * inp) : inp;
+export function prettyDate(inp: Date | number | null) {
+	if (inp == null) return 'N/A';
+	const date = inp instanceof Date ? inp : new Date(1e3 * inp);
 	return isNaN(date.getTime()) ? 'Invalid' : date.toISOString().replace('T', ' ').replace(/(:00)?\..*/, '');
 }
 
