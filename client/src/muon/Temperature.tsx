@@ -85,7 +85,7 @@ export default function TemperatureApp() {
 		a.href = URL.createObjectURL(new Blob([
 			JSON.stringify({
 				createdAt: new Date().toISOString(),
-				info: 'Atmospheric temperature data of NCEP/NCAR Reanalysis project (https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html) interpolated for scpecific location and for 1 hour time period. Obtained at: '+document.location.toString(),
+				info: 'Atmospheric temperature data of NCEP/NCAR Reanalysis project (https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html) interpolated for scpecific location and for 1 hour time resolution. Obtained at: '+document.location.toString(),
 				latitude: coords.lat,
 				longitude: coords.lon,
 				fields: query.data?.fields,
@@ -114,7 +114,7 @@ export default function TemperatureApp() {
 				<div style={{ padding: '16px 4px' }}>
 					<details style={{ paddingBottom: 16, textAlign: 'justify' }}>
 						<summary>Dataset info</summary>
-						Atmospheric temperature on 18 barometric levels is obtained from <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> and interpolated for scpecific location and for 1 hour time period using B-splines.
+						Atmospheric temperature on 18 barometric levels is obtained from <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> and interpolated for scpecific location and for 1 hour time resolution using B-splines.
 					</details>
 					<button style={{ padding: '2px 12px' }} onClick={download}>Download .json</button>
 				</div>
