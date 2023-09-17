@@ -11,9 +11,9 @@ bp = Blueprint('muon', __name__, url_prefix='/api/muon')
 def select_result():
 	t_from = int(request.args.get('from'))
 	t_to = int(request.args.get('to'))
-	station = request.args.get('station')
+	experiment = request.args.get('experiment')
 	channel = request.args.get('cahnnel', 'V')
-	query = request.args.get('fields', 'revised').split(',')
-	rows, fields = select(t_from, t_to, station, channel)
+	query = request.args.get('query', 'revised').split(',')
+	rows, fields = select(t_from, t_to, experiment, channel, query)
 	return { 'fields': fields, 'rows': rows }
 

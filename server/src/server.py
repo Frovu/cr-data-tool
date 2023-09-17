@@ -61,10 +61,12 @@ def after_request(response):
 
 from temperature.router import bp as temp
 from neutron.router import bp as neutron
+from muon.router import bp as muon
 from omni.router import bp as omni
 from auth import bp as auth
 
 app.register_blueprint(auth)
 app.register_blueprint(temp)
 app.register_blueprint(omni)
+app.register_blueprint(muon)
 app.register_blueprint(neutron)

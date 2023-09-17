@@ -21,9 +21,9 @@ export async function apiGet<T = { message?: string }>(url: string, query?: { [k
 	if (query)
 		uri += '?' + new URLSearchParams(query).toString();
 	const res = await fetch(uri, { credentials: 'include' });
-	const json = await res.json();
-	if (res.status !== 200)
-		throw new Error(json.message ?? ('HTTP '+res.status));
+	const json = await res.json().catch(() => {});
+	if (!json || res.status !== 200)
+		throw new Error(json?.message ?? ('HTTP '+res.status));
 	return json;
 }
 
@@ -94,7 +94,7 @@ export function useSize<T extends HTMLElement>(target: T | null | undefined) {
 }
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-export function useMonthInput(initial?: Date) {
+export function useMonthInput(initial?: Date, initialMonths?: number) {
 	type R = Reducer<{ year: number, month: number, count: number, interval: number[]}, { action: 'month'|'year'|'count', value: number }>;
 	const init = initial ?? new Date();
 	const [{ year, month, count, interval }, dispatch] = useReducer<R>((state, { action, value }) => {
@@ -104,7 +104,7 @@ export function useMonthInput(initial?: Date) {
 	}, {
 		year: init.getFullYear(),
 		month: init.getMonth(),
-		count: 1,
+		count: initialMonths ?? 1,
 		interval: [0, 1].map(inc => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3)
 	});
 	const set = (action: 'month'|'year'|'count', value: number) => dispatch({ action, value });

@@ -1,5 +1,5 @@
 import { useQuery } from 'react-query';
-import { NavigationContext, color, useNavigationState, axisDefaults, seriesDefaults } from '../plotUtil';
+import { color, axisDefaults, seriesDefaults } from '../plotUtil';
 import { apiGet, useMonthInput, useSize } from '../util';
 import { useEffect, useMemo, useState } from 'react';
 import UplotReact from 'uplot-react';
@@ -47,7 +47,6 @@ function plotOptions(): Omit<uPlot.Options,'width'|'height'> {
 
 export default function TemperatureApp() {
 	const [interval, monthInput] = useMonthInput(new Date(Date.now() - 864e5 * 365));
-	const navigation = useNavigationState();
 	const [coords, setCoords] = useState({ lat: 55.47, lon: 37.32 });
 
 	const query = useQuery({
@@ -96,7 +95,7 @@ export default function TemperatureApp() {
 		a.click();
 	};
 
-	return <NavigationContext.Provider value={navigation}>
+	return <>
 		<div style={{ height: '100%', display: 'grid', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
 			<div>
 				{monthInput}
@@ -128,5 +127,5 @@ export default function TemperatureApp() {
 			</div>
 
 		</div>
-	</NavigationContext.Provider>;
+	</>;
 }

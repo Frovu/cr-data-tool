@@ -10,22 +10,25 @@ def _init():
 
 _init()
 
-def select(t_from, t_to, station_name, channel_name, query):
+def select(t_from, t_to, experiment, channel_name, query):
 	fields = [f for f in query if f in ['original', 'corrected', 'revised', 't_mass_average', 'pressure' ]]
-	query = ', '.join(fields.replace('revised', 'COALESCE(revised, corrected) as revised')) 
+	query = ', '.join((f if f != 'revised' else 'COALESCE(revised, corrected) as revised' for f in fields)) 
+	join_conditions = any((a in fields for a in ['t_mass_average', 'pressure']))
 	with pool.connection() as conn:
-		return conn.execute('SELECT EXTRACT(EPOCH FROM c.time) as time, ' + query + \
-			'FROM muon.counts_data c' +\
-			('OUTER JOIN muon.conditions m ON m.station = ((SELECT id FROM muon.stations WHERE name = %s) m.time = c.time' \
-				if any((a in fields for a in ['t_mass_average', 'pressure'])) else '') + \
-			'WHERE channel = (SELECT id FROM muon.channels WHERE station_name = %s, channel_name = %s)' + \
-			'AND to_timestamp(%s) <= time AND time <= to_timestamp(%s)', [station_name, channel_name, t_from, t_to]).fetchall()
+		curs = conn.execute('SELECT EXTRACT(EPOCH FROM c.time) as time, ' + query + \
+			' FROM muon.counts_data c ' +\
+			('LEFT JOIN muon.conditions_data m ON m.experiment = '+\
+				' (SELECT id FROM muon.experiments WHERE name = %s) AND m.time = c.time ' if join_conditions else '') + \
+			'WHERE channel = (SELECT id FROM muon.channels WHERE experiment = %s AND name = %s)' + \
+			'AND to_timestamp(%s) <= c.time AND c.time <= to_timestamp(%s)' \
+			, [*[experiment]*(2 if join_conditions else 1), channel_name, t_from, t_to])
+		return curs.fetchall(), [desc[0] for desc in curs.description]
 	
-def obtain_temperature(t_from, t_to, station_name):
+def obtain_temperature(t_from, t_to, experiment):
 	pass
 
-def obtain_pressure(t_from, t_to, station_name):
+def obtain_pressure(t_from, t_to, experiment):
 	pass
 
-def obtain_counts(t_from, t_to, station_name, channel_name, target='original'):
+def obtain_counts(t_from, t_to, experiment, channel_name, target='original'):
 	pass
