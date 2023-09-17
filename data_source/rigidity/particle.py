@@ -1,3 +1,0 @@
-
-# TODO: coordinate system
-# TODO: ...

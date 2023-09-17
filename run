@@ -1,8 +1,0 @@
-#!/bin/sh
-export $(cat .env | xargs)
-if [[ $1 = "test" ]]
-then
-	python a.py
-else
-	flask run
-fi

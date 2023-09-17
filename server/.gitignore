@@ -1,0 +1,5 @@
+data
+log
+.env
+__pycache__
+flask_session
