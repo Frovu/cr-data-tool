@@ -1,6 +1,17 @@
 
-import os
-from database import pool
+import os, time, logging
+from threading import Thread, Lock
+from datetime import datetime
+import numpy as np
+
+from database import pool, upsert_many
+from temperature import ncep
+from muon.obtain_raw import obtain as obtain_raw
+
+log = logging.getLogger('crdt')
+
+obtain_mutex = Lock()
+obtain_status = { 'status': 'idle' }
 
 def _init():
 	with open(os.path.join(os.path.dirname(__file__), './_init_db.sql'), encoding='utf-8') as file:
@@ -30,5 +41,52 @@ def obtain_temperature(t_from, t_to, experiment):
 def obtain_pressure(t_from, t_to, experiment):
 	pass
 
-def obtain_counts(t_from, t_to, experiment, channel_name, target='original'):
-	pass
+def _do_obtain_all(t_from, t_to, experiment):
+	global obtain_status
+	try:
+		with pool.connection() as conn:
+			obtain_status = { 'status': 'busy' }
+			row = conn.execute('SELECT id, lat, lon, array(select id from muon.channels where experiment = e.name) ' +\
+				'FROM muon.experiments e WHERE name = %s', [experiment]).fetchone()
+			if row is None:
+				raise ValueError(f'Experiment not found: {experiment}')
+			exp_id, lat, lon, channels = row
+			print(channels)
+			obtain_status['message'] = 'obtaining temperature..'
+			while True:
+				progress, result = ncep.obtain([t_from, t_to], lat, lon)
+				obtain_status['downloading'] = progress
+				if progress is None:
+					break
+				time.sleep(.1)
+			if result is None:
+				raise ValueError('NCEP returned None')
+			t_m = result[:,1]
+			times = np.array([datetime.utcfromtimestamp(t) for t in result[:,0]])
+			data = np.column_stack((times, np.where(np.isnan(t_m), None, t_m))).tolist()
+			upsert_many(conn, 'muon.conditions_data', ['experiment', 'time', 't_mass_average'],
+				data, constants=[exp_id], conflict_constraint='time,experiment')
+			
+			obtain_status['message'] = 'obtaining pressure..'
+			
+
+			obtain_status = { 'status': 'ok' }
+			
+			# progr, data = ncep.obtain([t_from, t_to], lat, lon)
+	except Exception as err:
+		log.error('Failed muones obtain_all: %s', str(err))
+		obtain_status = { 'status': 'error', 'message': str(err) }
+
+def obtain_all(t_from, t_to, experiment):
+	global obtain_status
+	with obtain_mutex:
+		if obtain_status['status'] != 'idle':
+			saved = obtain_status
+			if obtain_status['status'] in ['ok', 'error']:
+				obtain_status = { 'status': 'idle' }
+			return saved
+		
+		obtain_status = { 'status': 'busy' }
+		Thread(target=_do_obtain_all, args=(t_from, t_to, experiment)).start()
+		time.sleep(.1) # meh
+		return obtain_status

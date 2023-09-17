@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 
-from muon.database import select
-from utils import route_shielded
+from muon.database import select, obtain_all
+from utils import route_shielded, require_auth
 import numpy as np
 
 bp = Blueprint('muon', __name__, url_prefix='/api/muon')
@@ -17,3 +17,11 @@ def select_result():
 	rows, fields = select(t_from, t_to, experiment, channel, query)
 	return { 'fields': fields, 'rows': rows }
 
+@bp.route('obtain', methods=['POST'])
+@route_shielded
+@require_auth
+def do_obtain_all():
+	t_from = int(request.json.get('from'))
+	t_to = int(request.json.get('to'))
+	experiment = request.json.get('experiment')
+	return obtain_all(t_from, t_to, experiment)

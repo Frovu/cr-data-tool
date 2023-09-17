@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS muon.conditions_data (
 	experiment INTEGER NOT NULL REFERENCES muon.experiments ON DELETE CASCADE,
 	time timestamptz NOT NULL,
 	t_mass_average REAL,
-	pressure REAL
+	pressure REAL,
+	UNIQUE(experiment, time)
 );
 
 CREATE TABLE IF NOT EXISTS muon.counts_data (
@@ -36,7 +37,8 @@ CREATE TABLE IF NOT EXISTS muon.counts_data (
 	time timestamptz NOT NULL,
 	original REAL,
 	corrected REAL,
-	revised REAL
+	revised REAL,
+	UNIQUE(channel, time)
 );
 
 INSERT INTO muon.experiments(lat, lon, elevation_m, name, operational_since) VALUES

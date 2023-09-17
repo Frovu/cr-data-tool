@@ -11,9 +11,9 @@ export async function apiPost<T = { message?: string }>(url: string, body?: { [k
 		headers: { 'Content-Type': 'application/json' },
 		body: body && JSON.stringify(body)
 	});
-	const json = await res.json();
-	if (res.status !== 200)
-		throw new Error(json.message ?? ('HTTP '+res.status));
+	const json = await res.json().catch(() => {});
+	if (!json || res.status !== 200)
+		throw new Error(json?.message ?? ('HTTP '+res.status));
 	return json;
 }
 export async function apiGet<T = { message?: string }>(url: string, query?: { [k: string]: any }): Promise<T> {
@@ -105,7 +105,7 @@ export function useMonthInput(initial?: Date, initialMonths?: number) {
 		year: init.getFullYear(),
 		month: init.getMonth(),
 		count: initialMonths ?? 1,
-		interval: [0, 1].map(inc => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3)
+		interval: [0, initialMonths ?? 1].map(inc => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3)
 	});
 	const set = (action: 'month'|'year'|'count', value: number) => dispatch({ action, value });
 
