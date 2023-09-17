@@ -47,25 +47,25 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 				value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC',
 				stroke: color('text')
 			}, {
-				...seriesDefaults('pressure', 'magenta', 'press'),
+				...seriesDefaults('pressure', 'purple', 'press'),
 				value: (u, val) => val?.toFixed(1) ?? '--',
 				width: 1,
 			}, {
-				...seriesDefaults('t_m_avg', 'gold', 'temp'),
-				value: (u, val) => val?.toFixed(1) ?? '--',
+				...seriesDefaults('t_m', 'gold', 'temp'),
+				value: (u, val) => val?.toFixed(2) ?? '--',
 				width: 1,
 			}, {
 				...seriesDefaults('original', 'purple', 'variation'),
-				value: (u, val) => val?.toFixed(1) ?? '--',
-				width: 1,
+				value: (u, val) => val?.toFixed(2) ?? '--',
+				points: { show: true, size: 2, fill: color('purple') },
+				width: 2,
 			}, {
-				...seriesDefaults('corrected', 'cyan', 'variation'),
-				value: (u, val) => val?.toFixed(1) ?? '--',
-				width: 1,
+				...seriesDefaults('revised', 'blue', 'variation'),
+				value: (u, val) => val?.toFixed(2) ?? '--',
 			}, {
-				...seriesDefaults('revised', 'magenta', 'variation'),
-				value: (u, val) => val?.toFixed(1) ?? '--',
-				width: 1,
+				...seriesDefaults('corrected', 'magenta', 'variation'),
+				value: (u, val) => val?.toFixed(2) ?? '--',
+				width: 2,
 			}
 		]
 	};
@@ -79,23 +79,30 @@ export default function MuonApp() {
 
 	const query = useQuery({
 		queryKey: ['muon', interval],
-		queryFn: () => apiGet<{ fields: string[], rows: number[][] }>('muon', {
+		queryFn: () => apiGet<{ fields: string[], rows: (number | null)[][] }>('muon', {
 			from: interval[0],
 			to: interval[1],
 			experiment,
-			query: 'pressure,t_mass_average,original,corrected,revised'
+			query: 'pressure,t_mass_average,original,revised,corrected'
 		})
 	});
 
 	const data = useMemo(() => {
 		if (!query.data) return null;
 		const transposed = query.data.fields.map((f, i) => query.data.rows.map(row => row[i]));
+		const [avgOri, avgCorr] = [3, 5].map(ii =>
+			transposed[ii].reduce((a, b) => a! + (b ?? 0), 0)! / transposed[ii].filter(v => v != null).length);
+		transposed[3] = transposed[3].map((v, i) => v !== transposed[4][i] ? v : null)
+			.map(v => v == null ? null : (v / avgOri - 1) * 100);
+		transposed[4] = transposed[4].map(v => v == null ? null : (v / avgOri - 1) * 100);
+		transposed[5] = transposed[5].map(v => v == null ? null : (v / avgCorr - 1) * 100);
+
 		return transposed[0].length < 2 ? null : transposed;
 	}, [query.data]);
 
 	const { min, max } = (navigation.state.selection ?? navigation.state.view);
 	const [fetchFrom, fetchTo] = (!data || (min === 0 && max === data[0].length - 1))
-		? interval : [min, max].map(i => data[0][i]);
+		? interval : [min, max].map(i => data[0][i]!);
 
 	type mutResp = { status: 'busy'|'ok'|'error', downloading?: { [key: string]: number }, message?: string };
 	const obtainMutation = useMutation(() => apiPost<mutResp>('muon/obtain', {

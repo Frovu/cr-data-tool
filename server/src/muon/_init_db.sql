@@ -36,8 +36,8 @@ CREATE TABLE IF NOT EXISTS muon.counts_data (
 	channel INTEGER NOT NULL REFERENCES muon.channels ON DELETE CASCADE,
 	time timestamptz NOT NULL,
 	original REAL,
-	corrected REAL,
 	revised REAL,
+	corrected REAL,
 	UNIQUE(channel, time)
 );
 

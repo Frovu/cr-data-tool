@@ -40,17 +40,21 @@ def _download(year):
 	log.info(f'Downloaded file: {fname}')
 
 def _parse_file(dt_from, dt_to, include_last=True):
-	year = dt_from.year
-	data = Dataset(os.path.join(PATH, file_name(year)), 'r')
-	assert 'NMC reanalysis' in data.title
-	log.debug(f'Reading ncep: {year} from {dt_from} to {dt_to}')
-	times = data.variables['time']
-	start_idx = date2index(dt_from, times)
-	end_idx = None if dt_to >= num2date(times[-1], times.units) else (date2index(dt_to, times) + (1 if include_last else 0))
-	time_values = num2date(times[start_idx:end_idx], units=times.units,
-		only_use_cftime_datetimes=False, only_use_python_datetimes=True)
-	epoch_times = np.array([dt.replace(tzinfo=timezone.utc).timestamp() for dt in time_values], dtype='f8')
-	return epoch_times, data.variables['air'][start_idx:end_idx]
+	try:
+		year = dt_from.year
+		data = Dataset(os.path.join(PATH, file_name(year)), 'r')
+		assert 'NMC reanalysis' in data.title
+		log.debug(f'Reading ncep: {year} from {dt_from} to {dt_to}')
+		times = data.variables['time']
+		start_idx = date2index(dt_from, times)
+		end_idx = None if dt_to >= num2date(times[-1], times.units) else (date2index(dt_to, times) + (1 if include_last else 0))
+		time_values = num2date(times[start_idx:end_idx], units=times.units,
+			only_use_cftime_datetimes=False, only_use_python_datetimes=True)
+		epoch_times = np.array([dt.replace(tzinfo=timezone.utc).timestamp() for dt in time_values], dtype='f8')
+		return epoch_times, data.variables['air'][start_idx:end_idx]
+	except Exception as err:
+		os.remove(os.path.join(PATH, file_name(year)))
+		raise err
 
 def ensure_downloaded(dt_from, dt_to):
 	progress = {}

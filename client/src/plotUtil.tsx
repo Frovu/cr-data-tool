@@ -51,8 +51,8 @@ export function useNavigationState() {
 }
 
 export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight }:
-{ data: number[][], options: () => Omit<uPlot.Options, 'width'|'height'>, legendHeight?: number,
-	moveChosen?: (inc: number, st: NavigationState, pdata: number[][]) => NavigationState }) {
+{ data: (number | null)[][], options: () => Omit<uPlot.Options, 'width'|'height'>, legendHeight?: number,
+	moveChosen?: (inc: number, st: NavigationState, pdata: (number | null)[][]) => NavigationState }) {
 	const { state: { cursor, selection, focused, chosen },
 		setState } = useContext(NavigationContext);
 	const set = useCallback((changes: Partial<NavigationState>) => setState(st => ({ ...st, ...changes })), [setState]);
@@ -105,7 +105,7 @@ export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight }:
 
 	useEffect(() => {
 		if (!u) return;
-		const scale = { min: data[0][0], max: data[0][data[0].length-1] };
+		const scale = { min: data[0][0]!, max: data[0][data[0].length-1]! };
 		const resetScale = u.data[0][0] !== scale.min
 			|| u.data[0][u.data[0].length-1] !== scale.max
 			|| !u.scales.x.max || u.scales.x.max <= scale.min || u.scales.x.min! >= scale.max;
@@ -183,7 +183,7 @@ export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight }:
 					mousedown: (upl, targ, handler) => e => {
 						handler(e);
 						if (e.button !== 0) return null;
-						upl.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
+						upl.setSelect({ left: 0, top: 0, width: 0, height: 0 });
 						if (!e.ctrlKey && !e.shiftKey)
 							selectingWithMouse = true;
 						return null;

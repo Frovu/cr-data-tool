@@ -22,8 +22,8 @@ def _init():
 _init()
 
 def select(t_from, t_to, experiment, channel_name, query):
-	fields = [f for f in query if f in ['original', 'corrected', 'revised', 't_mass_average', 'pressure' ]]
-	query = ', '.join((f if f != 'revised' else 'COALESCE(revised, corrected) as revised' for f in fields)) 
+	fields = [f for f in query if f in ['original', 'revised', 'corrected', 't_mass_average', 'pressure' ]]
+	query = ', '.join((f if f != 'revised' else 'COALESCE(revised, original) as revised' for f in fields)) 
 	join_conditions = any((a in fields for a in ['t_mass_average', 'pressure']))
 	with pool.connection() as conn:
 		curs = conn.execute('SELECT EXTRACT(EPOCH FROM c.time)::integer as time, ' + query + \
