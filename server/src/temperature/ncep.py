@@ -102,6 +102,8 @@ def obtain(t_interval, lat, lon):
 		max(q_from, MODEL_EPOCH),
 		min(q_to, datetime.utcnow())
 	]
+	if dt_to <= dt_from:
+		return None, None
 
 	if progr := ensure_downloaded(dt_from, dt_to):
 		return progr, None

@@ -53,7 +53,7 @@ export default function TemperatureApp() {
 	const query = useQuery({
 		queryKey: ['temperature', interval],
 		queryFn: () => apiGet<{ status: 'ok' | 'busy', downloading?: { [key: string]: number },
-			fields: string[], rows: number[][] }>('temperature', {
+			fields: string[], rows: null | number[][] }>('temperature', {
 			from: interval[0],
 			to: interval[1],
 			...coords
@@ -72,7 +72,7 @@ export default function TemperatureApp() {
 	const plotComponent = useMemo(() => {
 		if (!query.data) return null;
 		const { status, rows, fields } = query.data;
-		if (status !== 'ok') return null;
+		if (status !== 'ok' || rows == null) return null;
 
 		const data = fields.map((f, i) => rows.map(row => row[i]));
 
@@ -89,7 +89,7 @@ export default function TemperatureApp() {
 				latitude: coords.lat,
 				longitude: coords.lon,
 				fields: query.data?.fields,
-				rows: query.data?.rows.map(row => [new Date(row[0] * 1e3), ...row.slice(1)])
+				rows: query.data?.rows?.map(row => [new Date(row[0] * 1e3), ...row.slice(1)])
 			}, null, 2)
 		], { type: 'application/json' }));
 		a.download = 'air_temperature.json';
@@ -121,6 +121,7 @@ export default function TemperatureApp() {
 			</div>
 			<div ref={el => setContainer(el)} style={{ position: 'relative' }}>
 				{query.isLoading && <div className='center'>LOADING...</div>}
+				{query.data && query.data.rows == null && <div className='center'>NO DATA</div>}
 				<div style={{ position: 'absolute' }}>
 					{plotComponent}
 				</div>
