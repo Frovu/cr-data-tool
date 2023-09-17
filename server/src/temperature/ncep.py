@@ -39,14 +39,14 @@ def _download(year):
 		ftp.retrbinary(f'RETR {fname}', write)
 	log.info(f'Downloaded file: {fname}')
 
-def _parse_file(dt_from, dt_to):
+def _parse_file(dt_from, dt_to, include_last=True):
 	year = dt_from.year
 	data = Dataset(os.path.join(PATH, file_name(year)), 'r')
 	assert 'NMC reanalysis' in data.title
 	log.debug(f'Reading ncep: {year} from {dt_from} to {dt_to}')
 	times = data.variables['time']
 	start_idx = date2index(dt_from, times)
-	end_idx = None if dt_to >= num2date(times[-1], times.units) else date2index(dt_to, times) + 1 # inclusive
+	end_idx = None if dt_to >= num2date(times[-1], times.units) else (date2index(dt_to, times) + (1 if include_last else 0))
 	time_values = num2date(times[start_idx:end_idx], units=times.units,
 		only_use_cftime_datetimes=False, only_use_python_datetimes=True)
 	epoch_times = np.array([dt.replace(tzinfo=timezone.utc).timestamp() for dt in time_values], dtype='f8')
@@ -103,18 +103,18 @@ def obtain(t_interval, lat, lon):
 		min(q_to, datetime.utcnow())
 	]
 
-	log.info(f"NCEP: Obtaining ({lat},{lon}) {dt_from} to {dt_to}")
 	if progr := ensure_downloaded(dt_from, dt_to):
 		return progr, None
 
+	log.info(f"NCEP: Obtaining ({lat},{lon}) {dt_from} to {dt_to}")
 	if dt_from.year == dt_to.year:
 		results = [_parse_file(dt_from, dt_to)]
 	else:
 		year = dt_from.year + 1
-		results = [_parse_file(dt_from, datetime(year, 1, 1))]
-		results += [_parse_file(datetime(y, 1, 1), datetime(y + 1, 1, 1))
-			for y in range(year + 1, dt_to.year)]
-		results += [_parse_file(datetime(dt_to.year, 1, 1), dt_to)]
+		results = [_parse_file(dt_from, datetime(year, 1, 1), include_last=False)]
+		results += [_parse_file(datetime(y, 1, 1), datetime(y + 1, 1, 1), include_last=False)
+			for y in range(year, dt_to.year)]
+		results += [_parse_file(datetime(dt_to.year, 1, 1), dt_to, include_last=True)]
 
 	times_6h = np.concatenate([r[0] for r in results])
 	data = np.concatenate([r[1] for r in results])

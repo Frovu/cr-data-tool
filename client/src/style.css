@@ -83,7 +83,7 @@ input:disabled, button:disabled, select:disabled {
 	color: var(--color-text-dark);
 }
 
-details:hover {
+summary:hover {
 	text-decoration: underline;
 }
 

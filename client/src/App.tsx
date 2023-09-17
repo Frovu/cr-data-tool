@@ -5,6 +5,7 @@ import { apiGet, apiPost, useEventListener } from './util';
 import { Omni } from './omni/Omni';
 import MuonApp from './muon/Muon';
 import TemperatureApp from './muon/Temperature';
+import { color } from './plotUtil';
 
 const theQueryClient = new QueryClient();
 
@@ -54,7 +55,7 @@ function App() {
 	
 	return (
 		<div className='bbox' style={{ height: '100vh', width: '100vw', padding: 8 }}>
-			{query.isError && <div className='center'>FAILED TO LOAD</div>}
+			{query.isError && <div style={{ color: color('red'), position: 'fixed', left: 16, bottom: 16 }}>FAILED TO LOAD AUTH</div>}
 			{!['crdt', 'temperature'].includes(app) && query.data && query.data.login == null && <AuthPrompt/>}
 			{app === 'temperature' && <TemperatureApp/>}
 			{app === 'neutron' && <Neutron/>}
