@@ -23,7 +23,7 @@ _init()
 
 def select(t_from, t_to, experiment, channel_name, query):
 	fields = [f for f in query if f in ['original', 'revised', 'corrected', 't_mass_average', 'pressure' ]]
-	query = ', '.join((f if f != 'revised' else 'COALESCE(revised, original) as revised' for f in fields)) 
+	query = ', '.join((f if f != 'revised' else 'NULLIF(COALESCE(revised, original), \'NaN\') as revised' for f in fields)) 
 	join_conditions = any((a in fields for a in ['t_mass_average', 'pressure']))
 	with pool.connection() as conn:
 		curs = conn.execute('SELECT EXTRACT(EPOCH FROM c.time)::integer as time, ' + query + \
@@ -77,8 +77,7 @@ def _do_obtain_all(t_from, t_to, experiment):
 					data, constants=[ch_id], conflict_constraint='time, channel')
 
 			obtain_status = { 'status': 'ok' }
-			
-			# progr, data = ncep.obtain([t_from, t_to], lat, lon)
+
 	except Exception as err:
 		log.error('Failed muones obtain_all: %s', str(err))
 		obtain_status = { 'status': 'error', 'message': str(err) }

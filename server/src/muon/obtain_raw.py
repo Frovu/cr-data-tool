@@ -5,11 +5,9 @@ requests.packages.urllib3.disable_warnings() # pylint: disable=no-member
 
 log = logging.getLogger('crdt')
 
-def _obtain_moscow(t_from: int, t_to: int, experiment: str, what: str):
-	dev = 'muon-pioneer' if experiment == 'Moscow-pioneer' else None
+def _obtain_moscow(t_from, t_to, experiment, what, device):
 	what = what if what == 'pressure' else 'vertical'
-	assert dev is not None
-	query = f'https://tools.izmiran.ru/sentinel/api/data?from={t_from}&to={t_to+3600}&dev={dev}&fields={what}'
+	query = f'https://tools.izmiran.ru/sentinel/api/data?from={t_from}&to={t_to+3600}&dev={device}&fields={what}'
 	res = requests.get(query, verify=False, timeout=10000)
 	if res.status_code != 200:
 		logging.warning(f'Muones: failed raw -{res.status_code}- {experiment} {t_from}:{t_to}')
@@ -34,8 +32,8 @@ def _obtain_apatity(t_from, t_to, experiment, what):
 	return result
 
 def obtain(t_from, t_to, experiment, what):
-	if experiment == 'Moscow-pioneer':
-		return _obtain_moscow(t_from, t_to, experiment, what)
+	if experiment in ['Moscow-pioneer', 'Moscow-cell']:
+		return _obtain_moscow(t_from, t_to, experiment, what, 'muon-pioneer')
 	if experiment in ['Apatity', 'Barentzburg']:
 		return _obtain_apatity(t_from, t_to, experiment, what)
 	

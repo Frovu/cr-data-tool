@@ -4,6 +4,8 @@ import { NavigatedPlot, NavigationContext, useNavigationState, axisDefaults, ser
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import uPlot from 'uplot';
 
+const ORDER = ['time', 'original', 'revised', 'corrected', 'predicted', 't_mass_average', 'pressure'];
+
 function options(): Omit<uPlot.Options, 'width'|'height'> {
 	const filter = (dir: number): uPlot.Axis.Filter => (u, splits, ax) => {
 		const scale = u.scales[u.axes[ax].scale!];
@@ -51,25 +53,25 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 				value: '{YYYY}-{MM}-{DD} {HH}:{mm}',
 				stroke: color('text')
 			}, {
-				...seriesDefaults('ori', 'purple', 'variation'),
+				...seriesDefaults('original', 'purple', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
 				points: { show: true, size: 2, fill: color('purple') },
 				width: 2,
 			}, {
-				...seriesDefaults('rev', 'blue', 'variation'),
+				...seriesDefaults('revori', 'blue', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
 			}, {
-				...seriesDefaults('corr', 'magenta', 'variation'),
+				...seriesDefaults('corrected', 'green', 'variation'),
+				value: (u, val) => val?.toFixed(2) ?? '--'
+			}, {
+				...seriesDefaults('predicted', 'orange', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
-				width: 2,
 			}, {
 				...seriesDefaults('t_m', 'gold', 'temp'),
-				value: (u, val) => val?.toFixed(2) ?? '--',
-				width: 1,
+				value: (u, val) => val?.toFixed(2) ?? '--'
 			}, {
 				...seriesDefaults('p', 'purple', 'press'),
-				value: (u, val) => val?.toFixed(1) ?? '--',
-				width: 1,
+				value: (u, val) => val?.toFixed(1) ?? '--'
 			}
 		]
 	};
@@ -90,23 +92,33 @@ export default function MuonApp() {
 			query: 'original,revised,corrected,t_mass_average,pressure'
 		})
 	});
+	const gsmQuery = useQuery(['muon/predicted'], () => apiGet<{ fields: string[], rows: (number | null)[][] }>('muon/predicted', {
+		from: interval[0],
+		to: interval[1],
+		experiment,
+	}));
 
-	const data = useMemo(() => {
+	const plotData = useMemo(() => {
 		if (!query.data) return null;
-		const transposed = query.data.fields.map((f, i) => query.data.rows.map(row => row[i]));
-		const [avgOri, avgCorr] = [2, 3].map(ii =>
-			transposed[ii].reduce((a, b) => a! + (b ?? 0), 0)! / transposed[ii].filter(v => v != null).length);
-		transposed[1] = transposed[1].map((v, i) => v !== transposed[2][i] ? v : null)
-			.map(v => v == null ? null : (v / avgOri - 1) * 100);
-		transposed[2] = transposed[2].map(v => v == null ? null : (v / avgOri - 1) * 100);
-		transposed[3] = transposed[3].map(v => v == null ? null : (v / avgCorr - 1) * 100);
+		console.log(gsmQuery.data)
+		const data = Object.fromEntries(query.data.fields.map((f, i) => [f, query.data.rows.map(row => row[i])]));
+		data['predicted'] = data['time'].map(t => gsmQuery.data?.rows.find(r => r[0] === t)?.[1] ?? null);
+		
+		const variationSeries = ['revised', 'corrected', 'predicted'];
+		const varAverages = variationSeries.map(ii =>
+			data[ii].reduce((a, b) => a! + (b ?? 0), 0)! / data[ii].filter(v => v != null).length);
+		console.log(varAverages)
+		data['original'] = data['original'].map((v, i) => v !== data['revised'][i] ? v : null);
+		for (const [i, ser] of variationSeries.entries())
+			data[ser] = data[ser].map(v => v == null ? null : (v - varAverages[i]) / (1 + varAverages[i] / 100));
+			// data[ser] = data[ser].map(v => v == null ? null : (v / varAverages[i] - 1) * 100);
 
-		return transposed[0].length < 2 ? null : transposed;
-	}, [query.data]);
+		return data['time'].length < 2 ? null : ORDER.map(s => data[s]);
+	}, [query.data, gsmQuery.data]);
 
 	const { min, max } = (navigation.state.selection ?? navigation.state.view);
-	const [fetchFrom, fetchTo] = (!data || (min === 0 && max === data[0].length - 1))
-		? interval : [min, max].map(i => data[0][i]!);
+	const [fetchFrom, fetchTo] = (!plotData || (min === 0 && max === plotData[0].length - 1))
+		? interval : [min, max].map(i => plotData[0][i]!);
 
 	type mutResp = { status: 'busy'|'ok'|'error', downloading?: { [key: string]: number }, message?: string };
 	const obtainMutation = useMutation(() => apiPost<mutResp>('muon/obtain', {
@@ -123,6 +135,14 @@ export default function MuonApp() {
 				setTimeout(() => obtainMutation.isSuccess && obtainMutation.reset(), 3000);
 			}
 		}
+	});
+	
+	const computeMutation = useMutation(() => apiPost('muon/compute', {
+		from: fetchFrom,
+		to: fetchTo,
+		experiment
+	}), {
+		onSuccess: () => queryClient.invalidateQueries('muon')
 	});
 
 	const isObtaining = obtainMutation.isLoading || (obtainMutation.isSuccess && obtainMutation.data.status === 'busy');
@@ -142,26 +162,28 @@ export default function MuonApp() {
 							&nbsp;&nbsp;to {prettyDate(fetchTo)}
 						</div>
 					</div>
-					<div>
+					<div style={{ paddingBottom: 8 }}>
 						<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
 							{isObtaining ? 'stand by...' : 'Obtain everything'}</button>
 						{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
 					</div>
-					{/* <button style={{ padding: '2px 12px' }} onClick={() => computeMutation.mutate()}>Compute</button> */}
+					<button style={{ padding: 2, width: 196 }} disabled={computeMutation.isLoading}
+						onClick={() => computeMutation.mutate()}>{computeMutation.isLoading ? '...' : 'Compute corrected'}</button>
 					<div style={{ paddingTop: 4 }}>
 						<div>{(obtainMutation.data?.status === 'busy' && obtainMutation.data?.message)}</div>
 						{Object.entries(obtainMutation.data?.downloading ?? {}).map(([year, progr]) => <div key={year}>
 							downloading {year}: <span style={{ color: color('acid') }}>{(progr * 100).toFixed(0)} %</span>
 						</div>)}
 						<div style={{ color: color('red') }}>{obtainMutation.error?.toString() ??
-							(obtainMutation.data?.status === 'error' && obtainMutation.data?.message)}</div>
+							(obtainMutation.data?.status === 'error' && obtainMutation.data?.message)}
+						{computeMutation.error?.toString()}</div>
 					</div>
 				</div>
 			</div>
 			<div style={{ position: 'relative' }}>
 				{query.isLoading && <div className='center'>LOADING...</div>}
-				{query.data && !data && <div className='center'>NO DATA</div>}
-				{data && <NavigatedPlot {...{ data, options, legendHeight: 72 }}/>}
+				{query.data && !plotData && <div className='center'>NO DATA</div>}
+				{plotData && <NavigatedPlot {...{ data: plotData, options, legendHeight: 72 }}/>}
 			</div>
 		</div>
 	</NavigationContext.Provider>;
