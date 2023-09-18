@@ -30,11 +30,14 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 			}, {
 				...axisDefaults(true, filter(-1)),
 				scale: 'variation',
+				values: (u, vals) => vals.map(v => v == null ? '' : v.toString() + ' %')
 			}, {
 				...axisDefaults(false, filter(1)),
 				scale: 'temp',
 				ticks: { show: false },
 				gap: -36,
+				size: 12,
+				values: (u, vals) => vals.map(v => v == null ? '' : v.toString() + ' K')
 			}, {
 				...axisDefaults(false, filter(1)),
 				side: 1,
@@ -44,28 +47,29 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 		],
 		series: [
 			{
-				value: '{YYYY}-{MM}-{DD} {HH}:{mm} UTC',
+				label: 't',
+				value: '{YYYY}-{MM}-{DD} {HH}:{mm}',
 				stroke: color('text')
 			}, {
-				...seriesDefaults('pressure', 'purple', 'press'),
-				value: (u, val) => val?.toFixed(1) ?? '--',
-				width: 1,
+				...seriesDefaults('ori', 'purple', 'variation'),
+				value: (u, val) => val?.toFixed(2) ?? '--',
+				points: { show: true, size: 2, fill: color('purple') },
+				width: 2,
+			}, {
+				...seriesDefaults('rev', 'blue', 'variation'),
+				value: (u, val) => val?.toFixed(2) ?? '--',
+			}, {
+				...seriesDefaults('corr', 'magenta', 'variation'),
+				value: (u, val) => val?.toFixed(2) ?? '--',
+				width: 2,
 			}, {
 				...seriesDefaults('t_m', 'gold', 'temp'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
 				width: 1,
 			}, {
-				...seriesDefaults('original', 'purple', 'variation'),
-				value: (u, val) => val?.toFixed(2) ?? '--',
-				points: { show: true, size: 2, fill: color('purple') },
-				width: 2,
-			}, {
-				...seriesDefaults('revised', 'blue', 'variation'),
-				value: (u, val) => val?.toFixed(2) ?? '--',
-			}, {
-				...seriesDefaults('corrected', 'magenta', 'variation'),
-				value: (u, val) => val?.toFixed(2) ?? '--',
-				width: 2,
+				...seriesDefaults('p', 'purple', 'press'),
+				value: (u, val) => val?.toFixed(1) ?? '--',
+				width: 1,
 			}
 		]
 	};
@@ -83,19 +87,19 @@ export default function MuonApp() {
 			from: interval[0],
 			to: interval[1],
 			experiment,
-			query: 'pressure,t_mass_average,original,revised,corrected'
+			query: 'original,revised,corrected,t_mass_average,pressure'
 		})
 	});
 
 	const data = useMemo(() => {
 		if (!query.data) return null;
 		const transposed = query.data.fields.map((f, i) => query.data.rows.map(row => row[i]));
-		const [avgOri, avgCorr] = [3, 5].map(ii =>
+		const [avgOri, avgCorr] = [2, 3].map(ii =>
 			transposed[ii].reduce((a, b) => a! + (b ?? 0), 0)! / transposed[ii].filter(v => v != null).length);
-		transposed[3] = transposed[3].map((v, i) => v !== transposed[4][i] ? v : null)
+		transposed[1] = transposed[1].map((v, i) => v !== transposed[2][i] ? v : null)
 			.map(v => v == null ? null : (v / avgOri - 1) * 100);
-		transposed[4] = transposed[4].map(v => v == null ? null : (v / avgOri - 1) * 100);
-		transposed[5] = transposed[5].map(v => v == null ? null : (v / avgCorr - 1) * 100);
+		transposed[2] = transposed[2].map(v => v == null ? null : (v / avgOri - 1) * 100);
+		transposed[3] = transposed[3].map(v => v == null ? null : (v / avgCorr - 1) * 100);
 
 		return transposed[0].length < 2 ? null : transposed;
 	}, [query.data]);
@@ -141,8 +145,6 @@ export default function MuonApp() {
 					<div>
 						<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
 							{isObtaining ? 'stand by...' : 'Obtain everything'}</button>
-						<button style={{ padding: 2, marginTop: 4, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
-							{isObtaining ? 'stand by...' : 'Obtain muon counts'}</button>
 						{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
 					</div>
 					{/* <button style={{ padding: '2px 12px' }} onClick={() => computeMutation.mutate()}>Compute</button> */}

@@ -41,11 +41,12 @@ CREATE TABLE IF NOT EXISTS muon.counts_data (
 	UNIQUE(channel, time)
 );
 
-INSERT INTO muon.experiments(lat, lon, elevation_m, name, operational_since) VALUES
-(55.47, 37.32, 190, 'Moscow-pioneer', '2020-08-26'),
-(55.47, 37.32, 190, 'Moscow-CUBE',    '2007-10-23'),
-(67.57, 33.39, 181, 'Apatity',        '2020-11-26'),
-(78.06, 14.22, 70,  'Barentsburg',    '2021-10-03')
+INSERT INTO muon.experiments(lat, lon, elevation_m, name, operational_since, operational_until) VALUES
+(55.47, 37.32, 190, 'Moscow-cell',    '2020-08-26', '2022-02-01'),
+(55.47, 37.32, 190, 'Moscow-pioneer', '2022-02-05', null),
+(55.47, 37.32, 190, 'Moscow-CUBE',    '2007-10-23', null),
+(67.57, 33.39, 181, 'Apatity',        '2020-11-26', null),
+(78.06, 14.22, 70,  'Barentsburg',    '2021-10-03', null)
 ON CONFLICT(name) DO NOTHING;
 
 INSERT INTO muon.channels(experiment, name, angle_vertical, angle_azimuthal) VALUES

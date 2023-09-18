@@ -31,25 +31,23 @@ def select(t_from, t_to, experiment, channel_name, query):
 			('LEFT JOIN muon.conditions_data m ON m.experiment = '+\
 				' (SELECT id FROM muon.experiments WHERE name = %s) AND m.time = c.time ' if join_conditions else '') + \
 			'WHERE channel = (SELECT id FROM muon.channels WHERE experiment = %s AND name = %s)' + \
-			'AND to_timestamp(%s) <= c.time AND c.time <= to_timestamp(%s)' \
+			'AND to_timestamp(%s) <= c.time AND c.time <= to_timestamp(%s) ORDER BY c.time' \
 			, [*[experiment]*(2 if join_conditions else 1), channel_name, t_from, t_to])
 		return curs.fetchall(), [desc[0] for desc in curs.description]
-	
-def obtain_temperature(t_from, t_to, experiment):
-	pass
-
-def obtain_pressure(t_from, t_to, experiment):
-	pass
 
 def _do_obtain_all(t_from, t_to, experiment):
 	global obtain_status
 	try:
 		with pool.connection() as conn:
 			obtain_status = { 'status': 'busy' }
-			row = conn.execute('SELECT id, lat, lon FROM muon.experiments e WHERE name = %s', [experiment]).fetchone()
+			row = conn.execute('SELECT id, lat, lon, operational_since, operational_until ' + \
+				'FROM muon.experiments e WHERE name = %s', [experiment]).fetchone()
 			if row is None:
 				raise ValueError(f'Experiment not found: {experiment}')
-			exp_id, lat, lon = row
+			exp_id, lat, lon, since, until = row
+			t_from = max(since.timestamp(), t_from)
+			t_to   = min(until.timestamp(), t_to) if until is not None else t_to
+
 			obtain_status['message'] = 'obtaining temperature..'
 			while True:
 				progress, result = ncep.obtain([t_from, t_to], lat, lon)
