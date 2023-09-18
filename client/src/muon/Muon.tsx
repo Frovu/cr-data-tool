@@ -81,6 +81,7 @@ export default function MuonApp() {
 	const queryClient = useQueryClient();
 	const [interval, monthInput] = useMonthInput(new Date(Date.now() - 864e5*365), 12);
 	const [experiment, setExperiment] = useState('Moscow-pioneer');
+	const [averaging, setAveraging] = useState(1);
 	const navigation = useNavigationState();
 
 	const query = useQuery({
@@ -99,22 +100,50 @@ export default function MuonApp() {
 	}));
 
 	const plotData = useMemo(() => {
-		if (!query.data) return null;
-		console.log(gsmQuery.data)
+		if (!query.data || query.data.rows.length < 2) return null;
+
+		const length = query.data.rows.length;
+		const gsmData = gsmQuery.data?.rows;
 		const data = Object.fromEntries(query.data.fields.map((f, i) => [f, query.data.rows.map(row => row[i])]));
-		data['predicted'] = data['time'].map(t => gsmQuery.data?.rows.find(r => r[0] === t)?.[1] ?? null);
+		const indexGsm = data['time'].findIndex(t => gsmData?.[0]?.[0] === t); // NOTE: presumes that gsm result has no gaps
+		data['predicted'] = Array(length).fill(null);
+		if (gsmData && indexGsm >= 0) {
+			for (let i = 0; i < gsmData.length && indexGsm + i < length; ++i) {
+				data['predicted'][indexGsm + i] = gsmData[i][1];
+			}
+		}
 		
 		const variationSeries = ['revised', 'corrected', 'predicted'];
 		const varAverages = variationSeries.map(ii =>
 			data[ii].reduce((a, b) => a! + (b ?? 0), 0)! / data[ii].filter(v => v != null).length);
-		console.log(varAverages)
 		data['original'] = data['original'].map((v, i) => v !== data['revised'][i] ? v : null);
 		for (const [i, ser] of variationSeries.entries())
 			data[ser] = data[ser].map(v => v == null ? null : (v - varAverages[i]) / (1 + varAverages[i] / 100));
-			// data[ser] = data[ser].map(v => v == null ? null : (v / varAverages[i] - 1) * 100);
+		
+		const series = ORDER.map(s => data[s]);
+		if (averaging === 1)
+			return series;
 
-		return data['time'].length < 2 ? null : ORDER.map(s => data[s]);
-	}, [query.data, gsmQuery.data]);
+		const averaged = series.map(s => Array(Math.ceil(length / averaging) + 1).fill(null));
+		for (let ai = 0; ai < averaged[0].length; ++ai) {
+			const cur = ai * averaging;
+			averaged[0][ai] = series[0][cur];
+			for (let si = 1; si < series.length; ++si) {
+				let acc = 0, cnt = 0;
+				for (let i = 0; i < averaging; ++i) {
+					const val = series[si][cur + i];
+					if (val == null)
+						continue;
+					acc += val;
+					++cnt;
+				}
+				averaged[si][ai] = cnt === 0 ? null : acc / cnt;
+			}
+		}
+		averaged[0][averaged[0].length - 1] = data['time'][length-1]; // a hack to prevent plot reset due to bound times change
+
+		return averaged;
+	}, [query.data, gsmQuery.data, averaging]);
 
 	const { min, max } = (navigation.state.selection ?? navigation.state.view);
 	const [fetchFrom, fetchTo] = (!plotData || (min === 0 && max === plotData[0].length - 1))
@@ -161,6 +190,11 @@ export default function MuonApp() {
 							{prettyDate(fetchFrom)}<br/>
 							&nbsp;&nbsp;to {prettyDate(fetchTo)}
 						</div>
+					</div>
+					<div style={{ padding: 16 }}>
+						<label>Average over <input style={{ width: 48, textAlign: 'center' }}
+							type='number' min='1' max='24' value={averaging} onChange={e => setAveraging(e.target.valueAsNumber)}/> h</label>
+
 					</div>
 					<div style={{ paddingBottom: 8 }}>
 						<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
