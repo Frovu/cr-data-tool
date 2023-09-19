@@ -249,3 +249,50 @@ export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight }:
 		{size.width > 0 && plot}
 	</div>);
 }
+
+export function ScatterPlot({ data, colour }: { data: [number[], number[]][], colour: string }) {
+	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const size = useSize(container?.parentElement);
+	return <div ref={setContainer} style={{ position: 'absolute' }}>
+		<UplotReact data={[[], ...data] as any} options={{
+			...size,
+			mode: 2,
+			padding: [8, 8, 0, 0],
+			legend: { show: false },
+			cursor: { show: false },
+			axes: [
+				{
+					...axisDefaults(),
+					scale: 'x',
+					size: 36
+				},
+				{
+					...axisDefaults(),
+					scale: 'y'
+				},
+			],
+			scales: {
+				x: {
+					time: false,
+				},
+				y: {
+					range: (u, min, max) => [min, max]
+				}
+			},
+			series: [
+				{},
+				{
+					fill: color(colour),
+					width: 1,
+					paths: uPlot.paths.points!()
+				},
+				{
+					stroke: color('white'),
+					width: 1,
+					paths: uPlot.paths.linear!({ alignGaps: 1 })
+				}
+			]
+		}}/>
+
+	</div>;
+}

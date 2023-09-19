@@ -103,7 +103,7 @@ export default function TemperatureApp() {
 					lat: {coords.lat}, lon: {coords.lon}
 				</div>
 				<div style={{ padding: '8px 0 16px 8px' }}>
-					<div>status: {query.data?.status ?? 'loading..'}</div>
+					{query.data?.status !== 'ok' && <div>status: {query.data?.status ?? 'loading..'}</div>}
 					<div style={{ color: color('red') }}>{query.error?.toString()}</div>
 					{Object.entries(query.data?.downloading ?? {}).map(([year, progr]) => <div key={year}>
 						downloading {year}: <span style={{ color: color('acid') }}>{(progr * 100).toFixed(0)} %</span>

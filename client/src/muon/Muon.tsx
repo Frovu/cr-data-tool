@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { apiGet, apiPost, prettyDate, useMonthInput } from '../util';
-import { NavigatedPlot, NavigationContext, useNavigationState, axisDefaults, seriesDefaults, color } from '../plotUtil';
+import { NavigatedPlot, NavigationContext, useNavigationState, axisDefaults, seriesDefaults, color, ScatterPlot } from '../plotUtil';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
+import regression from 'regression';
 import uPlot from 'uplot';
 
 const ORDER = ['time', 'original', 'revised', 'corrected', 'predicted', 't_mass_average', 'pressure'];
@@ -124,7 +125,7 @@ export default function MuonApp() {
 		if (averaging === 1)
 			return series;
 
-		const averaged = series.map(s => Array(Math.ceil(length / averaging) + 1).fill(null));
+		const averaged: (number | null)[][] = series.map(s => Array(Math.ceil(length / averaging) + 1).fill(null));
 		for (let ai = 0; ai < averaged[0].length; ++ai) {
 			const cur = ai * averaging;
 			averaged[0][ai] = series[0][cur];
@@ -147,7 +148,31 @@ export default function MuonApp() {
 
 	const { min, max } = (navigation.state.selection ?? navigation.state.view);
 	const [fetchFrom, fetchTo] = (!plotData || (min === 0 && max === plotData[0].length - 1))
-		? interval : [min, max].map(i => plotData[0][i]!);
+		? interval : [min, max].map(i => plotData[0][i]!) as [number, number]; // can this be null??
+
+	const correlationPlot = useMemo(() => {
+		if (!plotData) return null;
+		const [xColIdx, yColIdx] = ['corrected', 'predicted'].map(f => ORDER.indexOf(f));
+		const data = plotData;
+		const filtered: [number, number][] = [...data[0].keys()].filter(i => fetchFrom <= data[0][i]! && data[0][i]! <= fetchTo
+			&& data[xColIdx][i] != null && data[yColIdx][i] != null).map(i => [data[xColIdx][i]!, data[yColIdx][i]!]);
+		const transposed = [0, 1].map(i => filtered.map(r => r[i])) as [number[], number[]];
+		
+		const minX = Math.min.apply(null, transposed[0]);
+		const maxX = Math.max.apply(null, transposed[0]);
+		const regr = regression.linear(filtered, { precision: 8 });
+		const regrX = Array(128).fill(0).map((_, i) => minX + i * (maxX - minX) / 128);
+		const regrY = regrX.map(x => regr.predict(x)[1]);
+
+		return <>
+			<div style={{ padding: 4 }}>
+				pred(corr): a={regr.equation[0].toFixed(2)}, R<sup>2</sup>={regr.r2.toFixed(2)}
+			</div>
+			<div style={{ position: 'relative', height: 280 }}>
+				<ScatterPlot data={[transposed, [regrX, regrY]]} colour='orange'/>
+			</div>
+		</>;
+	}, [plotData, fetchFrom, fetchTo]);
 
 	type mutResp = { status: 'busy'|'ok'|'error', downloading?: { [key: string]: number }, message?: string };
 	const obtainMutation = useMutation(() => apiPost<mutResp>('muon/obtain', {
@@ -194,7 +219,6 @@ export default function MuonApp() {
 					<div style={{ padding: 16 }}>
 						<label>Average over <input style={{ width: 48, textAlign: 'center' }}
 							type='number' min='1' max='24' value={averaging} onChange={e => setAveraging(e.target.valueAsNumber)}/> h</label>
-
 					</div>
 					<div style={{ paddingBottom: 8 }}>
 						<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
@@ -211,6 +235,9 @@ export default function MuonApp() {
 						<div style={{ color: color('red') }}>{obtainMutation.error?.toString() ??
 							(obtainMutation.data?.status === 'error' && obtainMutation.data?.message)}
 						{computeMutation.error?.toString()}</div>
+					</div>
+					<div style={{ paddingTop: 8 }}>
+						{correlationPlot}
 					</div>
 				</div>
 			</div>
