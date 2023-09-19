@@ -123,8 +123,8 @@ function MuonApp() {
 		experiment,
 	}));
 
-	const plotData = useMemo(() => {
-		if (!query.data || query.data.rows.length < 2) return null;
+	const [plotData, nonnull] = useMemo(() => {
+		if (!query.data || query.data.rows.length < 2) return [null, null];
 
 		const length = query.data.rows.length;
 		const gsmData = gsmQuery.data?.rows;
@@ -143,10 +143,13 @@ function MuonApp() {
 		data['original'] = data['original'].map((v, i) => v !== data['revised'][i] ? v : null);
 		for (const [i, ser] of [...variationSeries.entries()].concat([[0, 'original']]))
 			data[ser] = data[ser].map(v => v == null ? null : (v - varAverages[i]) / (1 + varAverages[i] / 100));
+
+		const counts = Object.fromEntries(Object.entries(data)
+			.map(([ser, vals]) => [ser, vals.filter(v => v != null).length]));
 		
 		const series = ORDER.map(s => data[s]);
 		if (averaging === 1)
-			return series;
+			return [series, counts];
 
 		const averaged: (number | null)[][] = series.map(s => Array(Math.ceil(length / averaging) + 1).fill(null));
 		for (let ai = 0; ai < averaged[0].length; ++ai) {
@@ -166,7 +169,7 @@ function MuonApp() {
 		}
 		averaged[0][averaged[0].length - 1] = data['time'][length-1]; // a hack to prevent plot reset due to bound times change
 
-		return averaged;
+		return [averaged, counts];
 	}, [query.data, gsmQuery.data, averaging]);
 
 	const { min, max } = (navigation.state.selection ?? navigation.state.view);
@@ -256,6 +259,16 @@ function MuonApp() {
 				<div style={{ paddingTop: 4 }}>
 					Show: {monthInput}
 				</div>
+				{nonnull && <div style={{ paddingTop: 8, paddingRight: 8, display: 'flex', justifyContent: 'space-between' }}>
+					
+					<span style={{ color: color('border') }}>[<span title='Total points'>{nonnull['time']}</span>
+						{nonnull['original'] > 0 && <span title='Revised points' style={{ color: color('magenta') }}>-{nonnull['original']}</span>}
+					]</span>
+					<span title='Revised coverage' style={{ color: color('cyan') }}>[{(nonnull['revised']/nonnull['time']*100).toFixed(1)}%]</span>
+					<span title='Corrected coverage' style={{ color: color('green') }}>[{(nonnull['corrected']/nonnull['time']*100).toFixed(1)}%]</span>
+					<span title='Temperature coverage' style={{ color: color('gold') }}>[{(nonnull['t_mass_average']/nonnull['time']*100).toFixed(0)}%]</span>
+					<span title='GSM predicted coverage' style={{ color: color('orange') }}>[{(nonnull['predicted']/nonnull['time']*100).toFixed(0)}%]</span>
+				</div>}
 				<div style={{ paddingTop: 8 }}>
 					{plotData && <div style={{ paddingTop: 8 }}>
 						<label>Average over <input style={{ width: 42, textAlign: 'center' }}
@@ -266,7 +279,7 @@ function MuonApp() {
 					</div>
 					<div style={{ paddingTop: 8 }}>
 						<div style={{ color: color('text'), verticalAlign: 'top' }}>
-								[{Math.ceil((fetchTo - fetchFrom) / 3600)} h]
+								[{Math.ceil((fetchTo - fetchFrom) / 3600) + 1} h]
 							<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
 								{prettyDate(fetchFrom)}<br/>
 								&nbsp;&nbsp;to {prettyDate(fetchTo)}
@@ -276,17 +289,17 @@ function MuonApp() {
 							<button style={{ padding: 2, width: 196 }} disabled={computeMutation.isLoading}
 								onClick={() => computeMutation.mutate()}>{computeMutation.isLoading ? '...' : 'Compute corrected'}</button>
 						</div>
-						<div style={{ paddingTop: 8 }}>
+						<div style={{ paddingTop: 8 }} title='Re-obatin all data for focused interval'>
 							<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
 								{isObtaining ? 'stand by...' : 'Obtain everything'}</button>
 							{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
 						</div>
-						{plotData && <div style={{ paddingTop: 8 }}>
+						{plotData && <div style={{ paddingTop: 8 }} title='Mask selected points (this is kind of reversible)'>
 							<button style={{ padding: 2, width: 196 }} disabled={revisionMut.isLoading}
 								onClick={() => revisionMut.mutate('remove')}>{revisionMut.isLoading ? '...' : `Remove ${rmCount} point${rmCount === 1 ? '' : 's'}`}</button>
 						</div>}
-						{plotData && <div style={{ paddingTop: 8 }}>
-							<button style={{ padding: 2, width: 196 }} disabled={revisionMut.isLoading}
+						{plotData && <div style={{ paddingTop: 8 }} title='Clear all revisions (this action is irreversible)'>
+							<button style={{ padding: 2, width: 196, borderColor: color('red') }} disabled={revisionMut.isLoading}
 								onClick={() => revisionMut.mutate('revert')}>{revisionMut.isLoading ? '...' : 'Clear revisions'}</button>
 						</div>}
 					</div>
