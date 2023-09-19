@@ -1,6 +1,6 @@
 import { useQuery } from 'react-query';
 import { color, axisDefaults, seriesDefaults } from '../plotUtil';
-import { apiGet, useMonthInput, useSize } from '../util';
+import { apiGet, clamp, useMonthInput, useSize } from '../util';
 import { useEffect, useMemo, useState } from 'react';
 import UplotReact from 'uplot-react';
 import uPlot from 'uplot';
@@ -50,8 +50,8 @@ export default function TemperatureApp() {
 	const [coords, setCoords] = useState({ lat: 55.47, lon: 37.32 });
 
 	const query = useQuery({
-		queryKey: ['temperature', interval],
-		queryFn: () => apiGet<{ status: 'ok' | 'busy', downloading?: { [key: string]: number },
+		queryKey: ['temperature', interval, coords.lat, coords.lon],
+		queryFn: () => apiGet<{ status: 'ok' | 'busy', downloading?: { [key: string]: number }, coords: { lat: number, lon: number },
 			fields: string[], rows: null | number[][] }>('temperature', {
 			from: interval[0],
 			to: interval[1],
@@ -80,15 +80,16 @@ export default function TemperatureApp() {
 	}, [query.data]); // eslint-disable-line
 
 	const download = () => {
+		if (!query.data) return;
 		const a = document.createElement('a');
 		a.href = URL.createObjectURL(new Blob([
 			JSON.stringify({
 				createdAt: new Date().toISOString(),
 				info: 'Atmospheric temperature data of NCEP/NCAR Reanalysis project (https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html) interpolated for scpecific location and for 1 hour time resolution. Obtained at: '+document.location.toString(),
-				latitude: coords.lat,
-				longitude: coords.lon,
-				fields: query.data?.fields,
-				rows: query.data?.rows?.map(row => [new Date(row[0] * 1e3), ...row.slice(1)])
+				latitude: query.data.coords.lat,
+				longitude: query.data.coords.lon,
+				fields: query.data.fields,
+				rows: query.data.rows?.map(row => [new Date(row[0] * 1e3), ...row.slice(1)])
 			}, null, 2)
 		], { type: 'application/json' }));
 		a.download = 'air_temperature.json';
@@ -99,10 +100,18 @@ export default function TemperatureApp() {
 		<div style={{ height: '100%', display: 'grid', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
 			<div>
 				{monthInput}
-				<div style={{ padding: '8px 0 0 8px' }}>
-					lat: {coords.lat}, lon: {coords.lon}
+				<div style={{ padding: '8px 0 0 8px', display: 'flex', gap: 16 }}>
+					{['lat', 'lon'].map(coord => <label title={`geographical ${coord === 'lat' ? 'latitude (-90 to 90)' : 'longitude (-180 to 180)'}`}>
+						{coord} = <input type='text' defaultValue={coords[coord as 'lat'|'lon']}
+							style={{ width: 56, textAlign: 'center', borderColor: color('border') }}
+							onKeyDown={e => e.target instanceof HTMLInputElement && ['Enter', 'Escape'].includes(e.code) && e.target.blur()}
+							onBlur={e => setCoords(c => {
+								const val = parseFloat(e.target.value);
+								return isNaN(val) ? c : { ...c,
+									[coord]: coord === 'lat' ?  clamp(-90, 90, val) : clamp(-180, 180, val) };
+							})}/></label>)}
 				</div>
-				<div style={{ padding: '8px 0 16px 8px' }}>
+				<div style={{ padding: '8px 0 4px 8px' }}>
 					{query.data?.status !== 'ok' && <div>status: {query.data?.status ?? 'loading..'}</div>}
 					<div style={{ color: color('red') }}>{query.error?.toString()}</div>
 					{Object.entries(query.data?.downloading ?? {}).map(([year, progr]) => <div key={year}>
@@ -110,12 +119,15 @@ export default function TemperatureApp() {
 					</div>)}
 				</div>
 				<div ref={el => setLegendContainer(el)} style={{ border: '2px var(--color-border) solid' }}/>
-				<div style={{ padding: '16px 4px' }}>
-					<details style={{ paddingBottom: 16, textAlign: 'justify' }}>
+				<div style={{ padding: '8px 4px' }}>
+					<details style={{ paddingBottom: 8, textAlign: 'justify' }}>
 						<summary>Dataset info</summary>
 						Atmospheric temperature on 18 barometric levels is obtained from <a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> and interpolated for scpecific location and for 1 hour time resolution using B-splines.
 					</details>
-					<button style={{ padding: '2px 12px' }} onClick={download}>Download .json</button>
+					{query.data?.status === 'ok' && <button style={{ padding: '2px 12px' }} onClick={download}>Download .json</button>}
+					{query.data?.status === 'ok' && <div style={{ color: color('text-dark'), paddingTop: 4 }}>
+						lat={query.data.coords.lat}, lon={query.data.coords.lon}
+					</div>}
 				</div>
 			</div>
 			<div ref={el => setContainer(el)} style={{ position: 'relative' }}>

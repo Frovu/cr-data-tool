@@ -6,6 +6,9 @@ export function prettyDate(inp: Date | number | null) {
 	return isNaN(date.getTime()) ? 'Invalid' : date.toISOString().replace('T', ' ').replace(/(:00)?\..*/, '');
 }
 
+export const clamp = (min: number, max: number, val: number, minFirst: boolean=false) =>
+	minFirst ? Math.min(max, Math.max(min, val)) : Math.max(min, Math.min(max, val));
+
 export async function apiPost<T = { message?: string }>(url: string, body?: { [k: string]: any }): Promise<T> {
 	const res = await fetch(process.env.REACT_APP_API + 'api/' + url, {
 		method: 'POST', credentials: 'include',

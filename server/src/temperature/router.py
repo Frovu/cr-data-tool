@@ -19,5 +19,6 @@ def get_result():
 	return {
 		'status': 'ok',
 		'fields': ['time', 't_mass_average', *[f't_{l}mb' for l in ncep.LEVELS]],
+		'coords': { 'lat': lat, 'lon': lon },
 		'rows': np.where(np.isnan(data), None, np.round(data, 2)).tolist() if data is not None else None
 	}

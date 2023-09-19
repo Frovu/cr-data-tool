@@ -24,20 +24,25 @@ def file_name(year):
 	return f'air.{year}.nc'
 
 def _download(year):
-	fname = file_name(year)
-	ftp = FTP('ftp2.psl.noaa.gov')
-	log.debug('FTP login: %s', ftp.login())
-	log.info(f'Downloading file: {fname}')
-	ftp.cwd('Datasets/ncep.reanalysis/pressure')
-	download_progress[year] = [0, ftp.size(fname)]
-	if year == datetime.utcnow().year:
-		last_downloaded[0] = datetime.utcnow()
-	with open(os.path.join(PATH, fname), 'wb') as file:
-		def write(data):
-			file.write(data)
-			download_progress[year][0] += len(data)
-		ftp.retrbinary(f'RETR {fname}', write)
-	log.info(f'Downloaded file: {fname}')
+	try:
+		fname = file_name(year)
+		ftp = FTP('ftp2.psl.noaa.gov')
+		log.debug('FTP login: %s', ftp.login())
+		log.info(f'Downloading file: {fname}')
+		ftp.cwd('Datasets/ncep.reanalysis/pressure')
+		download_progress[year] = [0, ftp.size(fname)]
+		if year == datetime.utcnow().year:
+			last_downloaded[0] = datetime.utcnow()
+		with open(os.path.join(PATH, fname), 'wb') as file:
+			def write(data):
+				file.write(data)
+				download_progress[year][0] += len(data)
+			ftp.retrbinary(f'RETR {fname}', write)
+		log.info(f'Downloaded file: {fname}')
+	except Exception as err:
+		os.remove(os.path.join(PATH, file_name(year)))
+		log.error(str(err))
+		raise err
 
 def _parse_file(dt_from, dt_to, include_last=True):
 	try:
@@ -54,6 +59,7 @@ def _parse_file(dt_from, dt_to, include_last=True):
 		return epoch_times, data.variables['air'][start_idx:end_idx]
 	except Exception as err:
 		os.remove(os.path.join(PATH, file_name(year)))
+		log.error(str(err))
 		raise err
 
 def ensure_downloaded(dt_from, dt_to):

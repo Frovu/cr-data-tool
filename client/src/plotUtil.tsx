@@ -263,12 +263,15 @@ export function ScatterPlot({ data, colour }: { data: [number[], number[]][], co
 			axes: [
 				{
 					...axisDefaults(),
+					ticks: { show: false },
 					scale: 'x',
-					size: 36
+					size: 24
 				},
 				{
 					...axisDefaults(),
-					scale: 'y'
+					ticks: { show: false },
+					scale: 'y',
+					size: 36
 				},
 			],
 			scales: {
