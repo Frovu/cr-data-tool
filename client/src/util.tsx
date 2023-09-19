@@ -1,9 +1,9 @@
 import React, { ReactElement, Reducer, SetStateAction, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 
-export function prettyDate(inp: Date | number | null) {
+export function prettyDate(inp: Date | number | null, short=false) {
 	if (inp == null) return 'N/A';
 	const date = inp instanceof Date ? inp : new Date(1e3 * inp);
-	return isNaN(date.getTime()) ? 'Invalid' : date.toISOString().replace('T', ' ').replace(/(:00)?\..*/, '');
+	return isNaN(date.getTime()) ? 'Invalid' : date.toISOString().replace('T', ' ').replace(short ? /\s.*/ : /(:00)?\..*/, '');
 }
 
 export const clamp = (min: number, max: number, val: number, minFirst: boolean=false) =>
@@ -98,7 +98,7 @@ export function useSize<T extends HTMLElement>(target: T | null | undefined) {
 }
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-export function useMonthInput(initial?: Date, initialMonths?: number) {
+export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?: number) {
 	type R = Reducer<{ year: number, month: number, count: number, interval: number[]}, { action: 'month'|'year'|'count', value: number }>;
 	const init = initial ?? new Date();
 	const [{ year, month, count, interval }, dispatch] = useReducer<R>((state, { action, value }) => {
@@ -119,7 +119,7 @@ export function useMonthInput(initial?: Date, initialMonths?: number) {
 			{monthNames.map(mon => <option key={mon} id={mon}>{mon}</option>)}
 		</select> <input style={{ width: '6ch' }} type='number' min='1957' max={new Date().getFullYear()}
 			value={year} onChange={e => set('year', e.target.valueAsNumber)}
-		/> + <input style={{ width: '4ch', textAlign: 'center' }} type='number' min='1' max='24'
+		/> + <input style={{ width: '4ch', textAlign: 'center' }} type='number' min='1' max={maxMonths ?? 24}
 			value={count} onChange={e => set('count', e.target.valueAsNumber)}
 		/> month{count === 1 ? '' : 's'}
 	</div>] as [number[], ReactElement];

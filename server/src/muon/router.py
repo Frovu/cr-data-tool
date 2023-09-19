@@ -1,14 +1,19 @@
 from flask import Blueprint, request
 
-from muon.database import select, obtain_all
+from muon.database import select, select_experiments, obtain_all
 from muon.corrections import do_compute, get_predicted
 from utils import route_shielded, require_auth, msg
 
 bp = Blueprint('muon', __name__, url_prefix='/api/muon')
 
+@bp.route('experiments', methods=['GET'])
+@route_shielded
+def do_select_experiments():
+	return { 'experiments': select_experiments() }
+
 @bp.route('', methods=['GET'])
 @route_shielded
-def select_result():
+def do_select_result():
 	t_from = int(request.args.get('from'))
 	t_to = int(request.args.get('to'))
 	experiment = request.args.get('experiment')

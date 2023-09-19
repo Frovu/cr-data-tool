@@ -16,11 +16,7 @@ CREATE TABLE IF NOT EXISTS muon.channels (
 	experiment TEXT NOT NULL REFERENCES muon.experiments (name) ON DELETE CASCADE,
 	angle_vertical REAL DEFAULT 0,
 	angle_azimuthal REAL DEFAULT 0,
-	coef_pressure REAL,
-	coef_tm REAL,
-	mean_pressure REAL,
-	mean_tm REAL,
-	coef_per_len INT,
+	correction_info JSON,
 	UNIQUE(experiment, name)
 );
 
@@ -51,6 +47,7 @@ ON CONFLICT(name) DO NOTHING;
 
 INSERT INTO muon.channels(experiment, name, angle_vertical, angle_azimuthal) VALUES
 ('Moscow-pioneer', 'V' , 0, 0),
+('Moscow-cell', 'V' , 0, 0),
 ('Moscow-CUBE', 'V' , 0, 0),
 ('Apatity', 'V' , 0, 0),
 ('Barentsburg', 'V' , 0, 0)

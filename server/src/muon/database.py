@@ -18,8 +18,17 @@ def _init():
 		init_text = file.read()
 	with pool.connection() as conn:
 		conn.execute(init_text)
-
 _init()
+
+def select_experiments():
+	with pool.connection() as conn:
+		exps = conn.execute('SELECT name, operational_since, operational_until FROM muon.experiments ORDER BY id').fetchall()
+		chas = conn.execute('SELECT name, experiment, correction_info FROM muon.channels ORDER BY id').fetchall()
+	result = []
+	for experiment, since, until in exps:
+		channels = [{ 'name': nm, 'correction': corr } for nm, exp, corr in chas if exp == experiment]
+		result.append({ 'name': experiment, 'since': since, 'until': until, 'channels': channels })
+	return result
 
 def select(t_from, t_to, experiment, channel_name, query):
 	fields = [f for f in query if f in ['original', 'revised', 'corrected', 't_mass_average', 'pressure' ]]
@@ -47,6 +56,8 @@ def _do_obtain_all(t_from, t_to, experiment):
 			exp_id, lat, lon, since, until = row
 			t_from = max(since.timestamp(), t_from)
 			t_to   = min(until.timestamp(), t_to) if until is not None else t_to
+			if t_to - t_from < 86400:
+				raise ValueError('Interval too short (out of bounds?)')
 
 			obtain_status['message'] = 'obtaining temperature..'
 			while True:
