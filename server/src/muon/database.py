@@ -101,8 +101,17 @@ def obtain_all(t_from, t_to, experiment):
 			if obtain_status['status'] in ['ok', 'error']:
 				obtain_status = { 'status': 'idle' }
 			return saved
-		
+
 		obtain_status = { 'status': 'busy' }
 		Thread(target=_do_obtain_all, args=(t_from, t_to, experiment)).start()
 		time.sleep(.1) # meh
 		return obtain_status
+
+def do_revision(t_from, t_to, experiment, channel, action):
+	if action not in ['remove', 'revert']:
+		raise Exception('Action not implemented: '+str(action))
+	with pool.connection() as conn:
+		conn.execute('UPDATE muon.counts_data SET revised = %s ' +\
+			'WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) AND ' +\
+			'channel = (SELECT id FROM muon.channels WHERE experiment = %s AND name = %s)',
+			[np.nan if action == 'remove' else None, t_from, t_to, experiment, channel])

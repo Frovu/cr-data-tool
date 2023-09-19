@@ -74,10 +74,10 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 				value: '{YYYY}-{MM}-{DD} {HH}:{mm}',
 				stroke: color('text')
 			}, {
-				...seriesDefaults('original', 'purple', 'variation'),
+				...seriesDefaults('original', 'magenta', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
-				points: { show: true, size: 2, fill: color('purple') },
-				width: 2,
+				points: { show: true, width: .1, size: 4, fill: color('magenta') },
+				width: 1,
 			}, {
 				...seriesDefaults('revori', 'blue', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
@@ -102,7 +102,7 @@ function MuonApp() {
 	const queryClient = useQueryClient();
 	const { experiments } = useContext(MuonContext);
 	const experimentNames = experiments.map(exp => exp.name);
-	const [interval, monthInput] = useMonthInput(new Date(Date.now() - 864e5*365), 12);
+	const [interval, monthInput] = useMonthInput(new Date(Date.now() - 864e5*365), 12, 48);
 	const [{ experiment, channel }, setExperiment] = useState(() => ({ experiment: experimentNames[0], channel: 'V' }));
 	const { channels, until, since } = experiments.find(exp => exp.name === experiment)!;
 	const [averaging, setAveraging] = useState(1);
@@ -141,7 +141,7 @@ function MuonApp() {
 		const varAverages = variationSeries.map(ii =>
 			data[ii].reduce((a, b) => a! + (b ?? 0), 0)! / data[ii].filter(v => v != null).length);
 		data['original'] = data['original'].map((v, i) => v !== data['revised'][i] ? v : null);
-		for (const [i, ser] of variationSeries.entries())
+		for (const [i, ser] of [...variationSeries.entries()].concat([[0, 'original']]))
 			data[ser] = data[ser].map(v => v == null ? null : (v - varAverages[i]) / (1 + varAverages[i] / 100));
 		
 		const series = ORDER.map(s => data[s]);
@@ -202,7 +202,8 @@ function MuonApp() {
 	const obtainMutation = useMutation(() => apiPost<mutResp>('muon/obtain', {
 		from: fetchFrom,
 		to: fetchTo,
-		experiment
+		experiment,
+		channel
 	}), {
 		onSuccess: ({ status }) => {
 			if (status === 'busy') {
@@ -218,11 +219,23 @@ function MuonApp() {
 	const computeMutation = useMutation(() => apiPost('muon/compute', {
 		from: fetchFrom,
 		to: fetchTo,
-		experiment
+		experiment,
+		channel
 	}), {
 		onSuccess: () => queryClient.invalidateQueries('muon')
 	});
 
+	const revisionMut = useMutation((action: 'remove'|'revert') => apiPost('muon/revision', {
+		from: navigation.state.cursor?.lock ? plotData![0][navigation.state.cursor.idx] : fetchFrom,
+		to: navigation.state.cursor?.lock ? plotData![0][navigation.state.cursor.idx] : fetchTo,
+		experiment,
+		channel,
+		action
+	}), {
+		onSuccess: () => queryClient.invalidateQueries('muon')
+	});
+
+	const rmCount = plotData && (navigation.state.cursor?.lock ? 1 : (fetchTo - fetchFrom) / 3600);
 	const isObtaining = obtainMutation.isLoading || (obtainMutation.isSuccess && obtainMutation.data.status === 'busy');
 	return <NavigationContext.Provider value={navigation}>
 		<div style={{ height: '100%', display: 'grid', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
@@ -243,7 +256,42 @@ function MuonApp() {
 				<div style={{ paddingTop: 4 }}>
 					Show: {monthInput}
 				</div>
-				<div>
+				<div style={{ paddingTop: 8 }}>
+					{plotData && <div style={{ paddingTop: 8 }}>
+						<label>Average over <input style={{ width: 42, textAlign: 'center' }}
+							type='number' min='1' max='24' value={averaging} onChange={e => setAveraging(e.target.valueAsNumber)}/> h</label>
+					</div>}
+					<div style={{ paddingTop: 4 }}>
+						{correlationPlot}
+					</div>
+					<div style={{ paddingTop: 8 }}>
+						<div style={{ color: color('text'), verticalAlign: 'top' }}>
+								[{Math.ceil((fetchTo - fetchFrom) / 3600)} h]
+							<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
+								{prettyDate(fetchFrom)}<br/>
+								&nbsp;&nbsp;to {prettyDate(fetchTo)}
+							</div>
+						</div>
+						<div style={{ paddingTop: 8 }}>
+							<button style={{ padding: 2, width: 196 }} disabled={computeMutation.isLoading}
+								onClick={() => computeMutation.mutate()}>{computeMutation.isLoading ? '...' : 'Compute corrected'}</button>
+						</div>
+						<div style={{ paddingTop: 8 }}>
+							<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
+								{isObtaining ? 'stand by...' : 'Obtain everything'}</button>
+							{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
+						</div>
+						{plotData && <div style={{ paddingTop: 8 }}>
+							<button style={{ padding: 2, width: 196 }} disabled={revisionMut.isLoading}
+								onClick={() => revisionMut.mutate('remove')}>{revisionMut.isLoading ? '...' : `Remove ${rmCount} point${rmCount === 1 ? '' : 's'}`}</button>
+						</div>}
+						{plotData && <div style={{ paddingTop: 8 }}>
+							<button style={{ padding: 2, width: 196 }} disabled={revisionMut.isLoading}
+								onClick={() => revisionMut.mutate('revert')}>{revisionMut.isLoading ? '...' : 'Clear revisions'}</button>
+						</div>}
+					</div>
+				</div>
+				<div style={{ paddingTop: 8 }}>
 					<div>{(obtainMutation.data?.status === 'busy' && obtainMutation.data?.message)}</div>
 					{Object.entries(obtainMutation.data?.downloading ?? {}).map(([year, progr]) => <div key={year}>
 						downloading {year}: <span style={{ color: color('acid') }}>{(progr * 100).toFixed(0)} %</span>
@@ -258,31 +306,6 @@ function MuonApp() {
 						{computeMutation.error?.toString()}
 					</div>
 				</div>
-				<div style={{ paddingTop: 8 }}>
-					{plotData && <div style={{ paddingTop: 8 }}>
-						<label>Average over <input style={{ width: 42, textAlign: 'center' }}
-							type='number' min='1' max='24' value={averaging} onChange={e => setAveraging(e.target.valueAsNumber)}/> h</label>
-					</div>}
-					<div style={{ paddingTop: 8 }}>
-						{correlationPlot}
-					</div>
-					<div style={{ paddingTop: 8 }}>
-						<div style={{ color: color('text'), paddingBottom: 8, verticalAlign: 'top' }}>
-								[{Math.ceil((fetchTo - fetchFrom) / 3600)} h]
-							<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
-								{prettyDate(fetchFrom)}<br/>
-								&nbsp;&nbsp;to {prettyDate(fetchTo)}
-							</div>
-						</div>
-						<div style={{ paddingBottom: 8 }}>
-							<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
-								{isObtaining ? 'stand by...' : 'Obtain everything'}</button>
-							{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
-						</div>
-						<button style={{ padding: 2, width: 196 }} disabled={computeMutation.isLoading}
-							onClick={() => computeMutation.mutate()}>{computeMutation.isLoading ? '...' : 'Compute corrected'}</button>
-					</div>
-				</div>
 			</div>
 			<div style={{ position: 'relative' }}>
 				{query.isLoading && <div className='center'>LOADING...</div>}
@@ -294,7 +317,7 @@ function MuonApp() {
 }
 
 export default function MuonWrapper() {
-	const query = useQuery(['muon', 'context'], () =>
+	const query = useQuery(['muon', 'experiments'], () =>
 		apiGet<MuonContextType>('muon/experiments'));
 
 	const parsed = useMemo((): MuonContextType | null => {

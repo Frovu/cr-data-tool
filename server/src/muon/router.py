@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 
-from muon.database import select, select_experiments, obtain_all
+from muon.database import select, select_experiments, obtain_all, do_revision
 from muon.corrections import do_compute, get_predicted
 from utils import route_shielded, require_auth, msg
 
@@ -50,4 +50,16 @@ def do_comp_corr():
 	experiment = request.json.get('experiment')
 	channel = request.json.get('channel', 'V')
 	do_compute(t_from, t_to, experiment, channel)
+	return msg('OK')
+
+@bp.route('revision', methods=['POST'])
+@route_shielded
+@require_auth
+def do_insert_revision():
+	t_from = int(request.json.get('from'))
+	t_to = int(request.json.get('to'))
+	experiment = request.json.get('experiment')
+	channel = request.json.get('channel')
+	action = request.json.get('action')
+	do_revision(t_from, t_to, experiment, channel, action)
 	return msg('OK')

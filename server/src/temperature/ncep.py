@@ -107,7 +107,7 @@ def _t_mass_average(data):
 
 
 def obtain(t_interval, lat, lon):
-	q_from, q_to = [datetime.utcfromtimestamp(t) for t in t_interval]
+	q_from, q_to = [datetime.utcfromtimestamp(t // MODEL_PERIOD * MODEL_PERIOD) for t in t_interval]
 	dt_from, dt_to = [
 		max(q_from, MODEL_EPOCH),
 		min(q_to, datetime.utcnow())

@@ -25,6 +25,7 @@
 	--color-white: rgb(255,255,255);
 
 	--color-bg: rgb(0,0,0);
+	--color-input-bg: rgb(25, 25, 25);
 	--color-text: rgb(190,190,190);
 	--color-text-dark: rgb(76,76,76);
 	--color-border: grey;
@@ -46,14 +47,17 @@ body, .bbox {
 input, button, select {
 	-ms-box-sizing:content-box;
 	-moz-box-sizing:content-box;
-	-webkit-box-sizing:content-box; 
-	box-sizing:content-box;
+	-webkit-box-sizing:content-box;
 	background-color: var(--color-bg);
+	box-sizing:content-box;
 	font-family: inherit;
 	font-size: inherit;
 	color: inherit;
 	outline: none;
 	border: 1px transparent solid
+}
+input, select {
+	background-color: var(--color-input-bg);
 }
 option {
 	color: var(--color-text);

@@ -28,7 +28,7 @@ def do_compute(t_from, t_to, experiment, channel_name):
 		gsm_var = np.full(len(data), np.nan, 'f8')
 		gsm_var[np.in1d(time, gsm_time)] = gsm_var_unaligned
 
-		mask = np.where(~np.isnan(gsm_var) & ~np.isnan(pres_data) & ~np.isnan(tm_data))
+		mask = np.where(~np.isnan(raw_counts) & ~np.isnan(gsm_var) & ~np.isnan(pres_data) & ~np.isnan(tm_data))
 
 		mean_pres, mean_tm = np.nanmean(pres_data), np.nanmean(tm_data)
 		diff_pres, diff_tm = mean_pres - pres_data, mean_tm - tm_data
@@ -44,4 +44,4 @@ def do_compute(t_from, t_to, experiment, channel_name):
 		result = np.column_stack((time, corrected)).tolist()
 
 		upsert_many(conn, 'muon.counts_data', ['channel', 'time', 'corrected'],
-			result, constants=[ch_id], conflict_constraint='time, channel')
+			result, constants=[ch_id], conflict_constraint='time, channel', write_nulls=True)
