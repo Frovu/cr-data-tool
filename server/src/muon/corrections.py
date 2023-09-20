@@ -17,7 +17,7 @@ def _select(t_from, t_to, experiment, channel_name):
 	fields = ['original', 'revised', 'pressure', 't_mass_average']
 	res = select(t_from, t_to, experiment, channel_name, fields)
 	if len(res) < 1:
-		raise ValueError('No data')
+		return None, None
 	all_data = np.array(res, 'f8')
 	data = { f: all_data[:,i] for i, f in enumerate(['time'] + fields) }
 	time = data['time']
@@ -25,11 +25,14 @@ def _select(t_from, t_to, experiment, channel_name):
 	gsm_q_interval = [max(time[0], t_from), min(time[-1], t_to)]
 	gsm_time, gsm_var_unaligned = get_variation(gsm_q_interval, lat, lon, channel_name)
 	data['expected'] = np.full(len(time), np.nan, 'f8')
-	data['expected'][np.in1d(time, gsm_time)] = gsm_var_unaligned
+	if gsm_var_unaligned is not None:
+		data['expected'][np.in1d(time, gsm_time)] = gsm_var_unaligned[np.in1d(gsm_time, time)] # is this ever slow?
 	return data, corr_info
 
 def compute_coefficients(t_from, t_to, experiment, channel_name, rich=False):
 	data, _ = _select(t_from, t_to, experiment, channel_name)
+	if data is None:
+		return (0, 0, 0, 0) if rich else (0, 0)
 
 	pres_data, tm_data, gsm_var = data['pressure'], data['t_mass_average'], data['expected']
 	mask = np.where(~np.isnan(data['revised']) & ~np.isnan(gsm_var) & ~np.isnan(pres_data) & ~np.isnan(tm_data))
@@ -45,6 +48,8 @@ def compute_coefficients(t_from, t_to, experiment, channel_name, rich=False):
 
 def select_with_corrected(t_from, t_to, experiment, channel_name, query):
 	data, corr_info = _select(t_from, t_to, experiment, channel_name)
+	if data is None:
+		return [], []
 
 	if corr_info is None:
 		coef_pres, coef_tm = compute_coefficients(t_from, t_to, experiment, channel_name)

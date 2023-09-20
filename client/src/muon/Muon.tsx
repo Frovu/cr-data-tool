@@ -111,6 +111,7 @@ function MuonApp() {
 	const navigation = useNavigationState();
 
 	const query = useQuery({
+		retry: false,
 		queryKey: ['muon', interval, experiment, channel],
 		queryFn: () => apiGet<{ fields: string[], rows: (number | null)[][] }>('muon', {
 			from: interval[0],
@@ -314,7 +315,7 @@ function MuonApp() {
 					{correlationPlot}
 				</div>
 				<div style={{ textAlign: 'right', paddingRight: 8, paddingTop: 4 }}>
-					<div style={{ display: 'inline-block', padding: 8, width: 216, border: '1px solid', borderColor: color('red', .6) }}>
+					<div style={{ display: 'inline-block', padding: 8, width: 236, border: '1px solid', borderColor: color('red', .6) }}>
 						<div style={{ color: color('text'), verticalAlign: 'top', fontSize: 14 }}>
 							<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
 								<span style={{ color: color('text') }}>[{Math.ceil((fetchTo - fetchFrom) / 3600) + 1} h] </span>{prettyDate(fetchFrom)}<br/>
@@ -322,16 +323,15 @@ function MuonApp() {
 							</div>
 						</div>
 						<div style={{ paddingTop: 8 }} title='Re-obatin all data for focused interval'>
-							<button style={{ padding: 2, width: 210 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
+							<button style={{ padding: 2, width: 230 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
 								{isObtaining ? 'stand by...' : 'Obtain data'}</button>
-							{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
 						</div>
 						{plotData && <div style={{ paddingTop: 8 }} title='Mask selected points (this is kind of reversible)'>
-							<button style={{ padding: 2, width: 210 }} disabled={revisionMut.isLoading}
+							<button style={{ padding: 2, width: 230 }} disabled={revisionMut.isLoading}
 								onClick={() => revisionMut.mutate('remove')}>{revisionMut.isLoading ? '...' : `Remove [${rmCount}]`}</button>
 						</div>}
 						{plotData && <div style={{ paddingTop: 8 }} title='Clear all revisions (this action is irreversible)'>
-							<button style={{ padding: 2, width: 210 }} disabled={revisionMut.isLoading}
+							<button style={{ padding: 2, width: 230 }} disabled={revisionMut.isLoading}
 								onClick={() => revisionMut.mutate('revert')}>{revisionMut.isLoading ? '...' : 'Clear revisions'}</button>
 						</div>}
 					</div>
@@ -346,12 +346,13 @@ function MuonApp() {
 						obtainMutation.reset();
 						coefMut.reset();
 					}}>
-						{query.error?.toString()}
+						{!obtainMutation.isIdle && query.error?.toString()}
 						{coefMut.error?.toString()}
 						{revisionMut.error?.toString()}
 						{obtainMutation.error?.toString()}
 						{obtainMutation.data?.status === 'error' && obtainMutation.data?.message}
 					</div>
+					{obtainMutation.data?.status === 'ok' && <div style={{ color: color('green') }}>Obtain successful</div>}
 				</div>
 			</div>
 			<div style={{ position: 'relative' }}>

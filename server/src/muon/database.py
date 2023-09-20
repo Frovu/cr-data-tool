@@ -54,8 +54,8 @@ def _do_obtain_all(t_from, t_to, experiment):
 			if row is None:
 				raise ValueError(f'Experiment not found: {experiment}')
 			exp_id, lat, lon, since, until = row
-			t_from = max(since.timestamp(), t_from)
-			t_to   = min(until.timestamp(), t_to) if until is not None else t_to
+			t_from = max(int(since.timestamp()), t_from)
+			t_to   = min(int(until.timestamp()), t_to) if until is not None else t_to
 			if t_to - t_from < 86400:
 				raise ValueError('Interval too short (out of bounds?)')
 
@@ -92,6 +92,7 @@ def _do_obtain_all(t_from, t_to, experiment):
 	except Exception as err:
 		log.error('Failed muones obtain_all: %s', str(err))
 		obtain_status = { 'status': 'error', 'message': str(err) }
+		raise err
 
 def obtain_all(t_from, t_to, experiment):
 	global obtain_status
