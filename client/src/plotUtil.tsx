@@ -271,7 +271,7 @@ export function ScatterPlot({ data, colour }: { data: [number[], number[]][], co
 					...axisDefaults(),
 					ticks: { show: false },
 					scale: 'y',
-					size: 36
+					size: 30
 				},
 			],
 			scales: {

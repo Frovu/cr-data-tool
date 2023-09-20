@@ -195,14 +195,14 @@ function MuonApp() {
 		const regrX = Array(128).fill(0).map((_, i) => minX + i * (maxX - minX) / 128);
 		const regrY = regrX.map(x => regr.predict(x)[1]);
 
-		return <>
-			<div style={{ paddingBottom: 4 }}>
-				pred(corr): a={regr.equation[0].toFixed(2)}, R<sup>2</sup>={regr.r2.toFixed(2)}
+		return <div title='X: corrected, Y: gsm_expected'>
+			<div style={{ paddingBottom: 4, textAlign: 'center' }}>
+				a={regr.equation[0].toFixed(2)}, R<sup>2</sup>={regr.r2.toFixed(2)}
 			</div>
 			<div style={{ position: 'relative', height: 280 }}>
 				<ScatterPlot data={[transposed, [regrX, regrY]]} colour='orange'/>
 			</div>
-		</>;
+		</div>;
 	}, [plotData, fetchFrom, fetchTo]);
 
 	type mutResp = { status: 'busy'|'ok'|'error', downloading?: { [key: string]: number }, message?: string };
@@ -282,17 +282,17 @@ function MuonApp() {
 					</tr>
 					<tr title='Computed using all available data'>
 						<td>&nbsp;all:</td>{coefs[0] && <><td>{coefs[0][0]}</td><td>{coefs[0][1]}</td><td style={{ color: color('text-dark') }}>{coefs[0][2]}</td>
-							<td><button style={{ marginLeft: 4, padding: '0 12px' }}
+							<td><button style={{ marginLeft: 8, padding: '0 12px' }}
 								onClick={()=>coefMut.mutate({ ...queryCoef.data! })}>use</button></td></>}
 					</tr>
 					<tr title='Computed using data from viewed/selected interval'>
 						<td>&nbsp;cur:</td>{coefs[1] && <><td>{coefs[1][0]}</td><td>{coefs[1][1]}</td><td style={{ color: color('text-dark') }}>{coefs[1][2]}</td>
-							<td><button style={{ marginLeft: 4, padding: '0 12px' }}
+							<td><button style={{ marginLeft: 8, padding: '0 12px' }}
 								onClick={()=>coefMut.mutate({ ...queryCoefLocal.data! })}>use</button></td></>}
 					</tr>
 					<tr title='Actually used for corrections (saved)'>
 						<td>used:</td>
-						{(['coef_p', 'coef_t'] as const).map((coef, i) => <td>
+						{(['coef_p', 'coef_t'] as const).map((coef, i) => <td style={{ padding: '0 2px' }}>
 							<input type='text' style={{ width: 56, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
 								value={input[coef]}
 								onChange={e => setInputState(st => ({ ...st, [coef]: e.target.value }))}
@@ -313,29 +313,30 @@ function MuonApp() {
 				<div style={{ paddingTop: 4 }}>
 					{correlationPlot}
 				</div>
-				<div style={{ paddingTop: 8 }}>
-					<div style={{ color: color('text'), verticalAlign: 'top' }}>
-							[{Math.ceil((fetchTo - fetchFrom) / 3600) + 1} h]
-						<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
-							{prettyDate(fetchFrom)}<br/>
-							&nbsp;&nbsp;to {prettyDate(fetchTo)}
+				<div style={{ textAlign: 'right', paddingRight: 8, paddingTop: 4 }}>
+					<div style={{ display: 'inline-block', padding: 8, width: 216, border: '1px solid', borderColor: color('red', .6) }}>
+						<div style={{ color: color('text'), verticalAlign: 'top', fontSize: 14 }}>
+							<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
+								<span style={{ color: color('text') }}>[{Math.ceil((fetchTo - fetchFrom) / 3600) + 1} h] </span>{prettyDate(fetchFrom)}<br/>
+								&nbsp;&nbsp;to {prettyDate(fetchTo)}
+							</div>
 						</div>
+						<div style={{ paddingTop: 8 }} title='Re-obatin all data for focused interval'>
+							<button style={{ padding: 2, width: 210 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
+								{isObtaining ? 'stand by...' : 'Obtain data'}</button>
+							{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
+						</div>
+						{plotData && <div style={{ paddingTop: 8 }} title='Mask selected points (this is kind of reversible)'>
+							<button style={{ padding: 2, width: 210 }} disabled={revisionMut.isLoading}
+								onClick={() => revisionMut.mutate('remove')}>{revisionMut.isLoading ? '...' : `Remove [${rmCount}]`}</button>
+						</div>}
+						{plotData && <div style={{ paddingTop: 8 }} title='Clear all revisions (this action is irreversible)'>
+							<button style={{ padding: 2, width: 210 }} disabled={revisionMut.isLoading}
+								onClick={() => revisionMut.mutate('revert')}>{revisionMut.isLoading ? '...' : 'Clear revisions'}</button>
+						</div>}
 					</div>
-					<div style={{ paddingTop: 8 }} title='Re-obatin all data for focused interval'>
-						<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
-							{isObtaining ? 'stand by...' : 'Obtain everything'}</button>
-						{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
-					</div>
-					{plotData && <div style={{ paddingTop: 8 }} title='Mask selected points (this is kind of reversible)'>
-						<button style={{ padding: 2, width: 196 }} disabled={revisionMut.isLoading}
-							onClick={() => revisionMut.mutate('remove')}>{revisionMut.isLoading ? '...' : `Remove ${rmCount} point${rmCount === 1 ? '' : 's'}`}</button>
-					</div>}
-					{plotData && <div style={{ paddingTop: 8 }} title='Clear all revisions (this action is irreversible)'>
-						<button style={{ padding: 2, width: 196, borderColor: color('red') }} disabled={revisionMut.isLoading}
-							onClick={() => revisionMut.mutate('revert')}>{revisionMut.isLoading ? '...' : 'Clear revisions'}</button>
-					</div>}
 				</div>
-				<div style={{ paddingTop: 8 }}>
+				<div style={{ paddingTop: 12, paddingLeft: 8 }}>
 					<div>{(obtainMutation.data?.status === 'busy' && obtainMutation.data?.message)}</div>
 					{Object.entries(obtainMutation.data?.downloading ?? {}).map(([year, progr]) => <div key={year}>
 						downloading {year}: <span style={{ color: color('acid') }}>{(progr * 100).toFixed(0)} %</span>
