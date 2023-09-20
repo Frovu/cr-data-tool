@@ -27,18 +27,20 @@ def _select(t_from, t_to, experiment, channel_name):
 	data['expected'][np.in1d(time, gsm_time)] = gsm_var_unaligned
 	return data, corr_info
 
-def compute_coefficients(t_from, t_to, experiment, channel_name):
+def compute_coefficients(t_from, t_to, experiment, channel_name, rich=False):
 	data, _ = _select(t_from, t_to, experiment, channel_name)
 
 	pres_data, tm_data, gsm_var = data['pressure'], data['t_mass_average'], data['expected']
 	mask = np.where(~np.isnan(data['revised']) & ~np.isnan(gsm_var) & ~np.isnan(pres_data) & ~np.isnan(tm_data))
+	if not np.any(mask):
+		return (0, 0, 0, 0) if rich else (0, 0)
 
 	mean_pres, mean_tm = np.nanmean(pres_data), np.nanmean(tm_data)
 	diff_pres, diff_tm = mean_pres - pres_data, mean_tm - tm_data
 	regr_data = np.column_stack((diff_pres[mask], diff_tm[mask], gsm_var[mask]))
 	regr = LinearRegression().fit(regr_data, np.log(data['revised'][mask]))
-	coef_pr, coef_tm, _ = regr.coef_
-	return coef_pr, coef_tm
+	coef_p, coef_t, coef_v = regr.coef_
+	return (coef_p, coef_t) if not rich else (coef_p, coef_t, coef_v, np.count_nonzero(mask))
 
 def select_with_corrected(t_from, t_to, experiment, channel_name, query):
 	data, corr_info = _select(t_from, t_to, experiment, channel_name)

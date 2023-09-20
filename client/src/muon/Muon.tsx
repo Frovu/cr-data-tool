@@ -13,15 +13,16 @@ type ChannelDesc = {
 		coef_t: number,
 		coef_p: number,
 		coef_v: number,
-		time: Date,
-		base_length: number
+		time: number,
+		base_length: number,
+		modified: boolean
 	} | null
 };
 type MuonContextType = {
 	experiments: {
 		name: string,
-		since: Date,
-		until: Date | null,
+		since: number,
+		until: number | null,
 		channels: ChannelDesc[]
 	}[]
 };
@@ -105,6 +106,7 @@ function MuonApp() {
 	const [interval, monthInput] = useMonthInput(new Date(Date.now() - 864e5*365), 12, 48);
 	const [{ experiment, channel }, setExperiment] = useState(() => ({ experiment: experimentNames[0], channel: 'V' }));
 	const { channels, until, since } = experiments.find(exp => exp.name === experiment)!;
+	const corrInfo = channels.find(c => c.name === channel)?.correction;
 	const [averaging, setAveraging] = useState(1);
 	const navigation = useNavigationState();
 
@@ -163,6 +165,21 @@ function MuonApp() {
 	const [fetchFrom, fetchTo] = (!plotData || (min === 0 && max === plotData[0].length - 1))
 		? interval : [min, max].map(i => plotData[0][i]!) as [number, number]; // can this be null??
 
+	const queryParams = { from: fetchFrom, to: fetchTo, experiment, channel };
+	const queryCoef = useQuery(['muon', 'coef', interval, experiment, channel],
+		() => apiGet<{ coef_t: number, coef_p: number, coef_v: number, length: number }>('muon/compute', { 
+			...queryParams,
+			from: since,
+			to: until ?? Math.floor(Date.now()/1e3)
+		}));
+	const queryCoefLocal = useQuery(['muon', 'coef', fetchFrom, fetchTo, experiment, channel],
+		() => {
+			if (fetchTo - fetchFrom < 86400 * 10)
+				return null;
+			return apiGet<{ coef_t: number, coef_p: number, coef_v: number, length: number }>('muon/compute',
+				{ ...queryParams, from: fetchFrom, to: fetchTo });
+		});
+
 	const correlationPlot = useMemo(() => {
 		if (!plotData) return null;
 		const [xColIdx, yColIdx] = ['corrected', 'expected'].map(f => ORDER.indexOf(f));
@@ -189,12 +206,7 @@ function MuonApp() {
 	}, [plotData, fetchFrom, fetchTo]);
 
 	type mutResp = { status: 'busy'|'ok'|'error', downloading?: { [key: string]: number }, message?: string };
-	const obtainMutation = useMutation(() => apiPost<mutResp>('muon/obtain', {
-		from: fetchFrom,
-		to: fetchTo,
-		experiment,
-		channel
-	}), {
+	const obtainMutation = useMutation(() => apiPost<mutResp>('muon/obtain', queryParams), {
 		onSuccess: ({ status }) => {
 			if (status === 'busy') {
 				setTimeout(() => obtainMutation.mutate(), 500);
@@ -204,15 +216,6 @@ function MuonApp() {
 				setTimeout(() => obtainMutation.isSuccess && obtainMutation.reset(), 3000);
 			}
 		}
-	});
-	
-	const computeMutation = useMutation(() => apiPost('muon/compute', {
-		from: fetchFrom,
-		to: fetchTo,
-		experiment,
-		channel
-	}), {
-		onSuccess: () => queryClient.invalidateQueries('muon')
 	});
 
 	const revisionMut = useMutation((action: 'remove'|'revert') => apiPost('muon/revision', {
@@ -225,6 +228,15 @@ function MuonApp() {
 		onSuccess: () => queryClient.invalidateQueries('muon')
 	});
 
+	type MutCoef = { coef_p?: number, coef_t?: number, length?: number, modified?: boolean };
+	const coefMut = useMutation(({ coef_p, coef_t, length, modified }: MutCoef) => apiPost('muon/coefs', { // eslint-disable-line camelcase
+		experiment, channel, coef_p, coef_t, length, modified // eslint-disable-line camelcase
+	}), {
+		onSuccess: () => queryClient.invalidateQueries('muon')
+	});
+
+	const coefs = [queryCoef, queryCoefLocal].map(q => q.data &&
+		['coef_p', 'coef_t', 'coef_v'].map(c => (q.data![c as keyof typeof q.data] * 100).toFixed(3)));
 	const rmCount = plotData && (navigation.state.cursor?.lock ? 1 : (fetchTo - fetchFrom) / 3600);
 	const isObtaining = obtainMutation.isLoading || (obtainMutation.isSuccess && obtainMutation.data.status === 'busy');
 	return <NavigationContext.Provider value={navigation}>
@@ -255,6 +267,34 @@ function MuonApp() {
 					<span title='Temperature coverage' style={{ color: color('gold') }}>[{(nonnull['t_mass_average']/nonnull['time']*100).toFixed(0)}%]</span>
 					<span title='GSM expected coverage' style={{ color: color('orange') }}>[{(nonnull['expected']/nonnull['time']*100).toFixed(0)}%]</span>
 				</div>}
+				{plotData && <table style={{ textAlign: 'center' }}>
+					<tr>
+						<td></td><td>_p</td><td>_t</td><td style={{ color: color('text-dark') }}>_v</td>
+					</tr>
+					<tr title='Computed using all available data'>
+						<td>&nbsp;all:</td>{coefs[0] && <><td>{coefs[0][0]}</td><td>{coefs[0][1]}</td><td style={{ color: color('text-dark') }}>{coefs[0][2]}</td>
+							<td><button style={{ marginLeft: 4, padding: '0 12px' }}
+								onClick={()=>coefMut.mutate({ ...queryCoef.data! })}>use</button></td></>}
+					</tr>
+					<tr title='Computed using data from viewed/selected interval'>
+						<td>&nbsp;cur:</td>{coefs[1] && <><td>{coefs[1][0]}</td><td>{coefs[1][1]}</td><td style={{ color: color('text-dark') }}>{coefs[1][2]}</td>
+							<td><button style={{ marginLeft: 4, padding: '0 12px' }}
+								onClick={()=>coefMut.mutate({ ...queryCoef.data! })}>use</button></td></>}
+					</tr>
+					<tr title='Actually used for corrections (saved)'>
+						<td>used:</td>
+						{(['coef_p', 'coef_t'] as (keyof typeof corrInfo)[]).map((coef, i) => <td>
+							<input type='text' style={{ width: 56, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
+								value={corrInfo?.[coef] ?? '?'}
+								onKeyDown={e => ['Escape', 'Enter'].includes(e.code) && (e.target as HTMLInputElement)?.blur()}
+								onBlur={e => !isNaN(parseFloat(e.target.value)) &&
+									coefMut.mutate({ ...corrInfo, modified: true })}/>
+						</td>)}
+					</tr>
+				</table>}
+				{plotData && <div style={{ paddingLeft: 8, fontSize: 14, color: color('text-dark') }}>
+					{corrInfo == null && <>coefficients are not set</>}
+				</div>}
 				<div style={{ paddingTop: 8 }}>
 					{plotData && <div style={{ paddingTop: 8 }}>
 						<label>Average over <input style={{ width: 42, textAlign: 'center' }}
@@ -270,10 +310,6 @@ function MuonApp() {
 								{prettyDate(fetchFrom)}<br/>
 								&nbsp;&nbsp;to {prettyDate(fetchTo)}
 							</div>
-						</div>
-						<div style={{ paddingTop: 8 }}>
-							<button style={{ padding: 2, width: 196 }} disabled={computeMutation.isLoading}
-								onClick={() => computeMutation.mutate()}>{computeMutation.isLoading ? '...' : 'Compute corrected'}</button>
 						</div>
 						<div style={{ paddingTop: 8 }} title='Re-obatin all data for focused interval'>
 							<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
@@ -297,12 +333,10 @@ function MuonApp() {
 					</div>)}
 					<div style={{ color: color('red'), cursor: 'pointer' }} onClick={() => {
 						obtainMutation.reset();
-						computeMutation.reset();
 					}}>
 						{query.error?.toString()}
 						{obtainMutation.error?.toString()}
 						{obtainMutation.data?.status === 'error' && obtainMutation.data?.message}
-						{computeMutation.error?.toString()}
 					</div>
 				</div>
 			</div>
@@ -321,19 +355,8 @@ export default function MuonWrapper() {
 
 	const parsed = useMemo((): MuonContextType | null => {
 		if (!query.data) return null;
-		const res = {
-			experiments: query.data.experiments.map(exp => ({
-				...exp,
-				since: new Date(exp.since),
-				until: exp.until && new Date(exp.until),
-				channels: exp.channels.map(ch => ({ ...ch, correction: ch.correction && {
-					...ch.correction,
-					time: new Date(ch.correction.time)
-				} }))
-			}))
-		};
-		console.log('muon experiments: ', res.experiments);
-		return res;
+		console.log('muon experiments: ', query.data.experiments);
+		return query.data;
 	}, [query.data]);
 
 	return <>

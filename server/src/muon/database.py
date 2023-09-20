@@ -27,7 +27,7 @@ def select_experiments():
 	result = []
 	for experiment, since, until in exps:
 		channels = [{ 'name': nm, 'correction': corr } for nm, exp, corr in chas if exp == experiment]
-		result.append({ 'name': experiment, 'since': since, 'until': until, 'channels': channels })
+		result.append({ 'name': experiment, 'since': since.timestamp(), 'until': until and until.timestamp(), 'channels': channels })
 	return result
 
 def select(t_from, t_to, experiment, channel_name, query):

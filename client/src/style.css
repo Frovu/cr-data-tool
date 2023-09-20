@@ -91,6 +91,10 @@ summary:hover {
 	text-decoration: underline;
 }
 
+td {
+	padding: 1px 4px;
+}
+
 .popupBackground {
 	background-color: var(--color-bg);
 	opacity: 0.7;
