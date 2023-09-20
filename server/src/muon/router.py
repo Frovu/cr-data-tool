@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 
 from muon.database import select_experiments, obtain_all, do_revision
-from muon.corrections import select_with_corrected, compute_coefficients
+from muon.corrections import select_with_corrected, compute_coefficients, set_coefficients
 from utils import route_shielded, require_auth, msg
 
 bp = Blueprint('muon', __name__, url_prefix='/api/muon')
@@ -52,4 +52,11 @@ def do_insert_revision():
 	channel = request.json.get('channel')
 	action = request.json.get('action')
 	do_revision(t_from, t_to, experiment, channel, action)
+	return msg('OK')
+
+@bp.route('coefs', methods=['POST'])
+@route_shielded
+@require_auth
+def do_set_coefs():
+	set_coefficients(request.json)
 	return msg('OK')

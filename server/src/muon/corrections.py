@@ -1,4 +1,5 @@
-import logging
+import logging, json
+from datetime import datetime
 from database import pool
 from muon.database import select
 from gsm.expected import get_variation
@@ -59,3 +60,17 @@ def select_with_corrected(t_from, t_to, experiment, channel_name, query):
 	fields = [f for f in query if f in data]
 	result = np.column_stack([data[f] for f in fields])
 	return np.where(np.isnan(result), None, np.round(result, 2)).tolist(), fields
+
+def set_coefficients(req):
+	experiment = req['experiment']
+	channel = req['channel']
+	with pool.connection() as conn:
+		info = {
+			'coef_p': req.get('coef_p', 0),
+			'coef_t': req.get('coef_t', 0),
+			'length': req.get('length'),
+			'modified': req.get('modified'),
+			'time': int(datetime.now().timestamp())
+		}
+		conn.execute('UPDATE muon.channels SET correction_info = %s WHERE experiment = %s AND name = %s',
+			[json.dumps(info), experiment, channel])

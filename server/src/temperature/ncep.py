@@ -31,8 +31,8 @@ def _download(year):
 		log.info(f'Downloading file: {fname}')
 		ftp.cwd('Datasets/ncep.reanalysis/pressure')
 		download_progress[year] = [0, ftp.size(fname)]
-		if year == datetime.utcnow().year:
-			last_downloaded[0] = datetime.utcnow()
+		if year == datetime.now().year:
+			last_downloaded[0] = datetime.now()
 		with open(os.path.join(PATH, fname), 'wb') as file:
 			def write(data):
 				file.write(data)
@@ -64,7 +64,7 @@ def _parse_file(dt_from, dt_to, include_last=True):
 
 def ensure_downloaded(dt_from, dt_to):
 	progress = {}
-	now = datetime.utcnow()
+	now = datetime.now()
 	for year in range(dt_from.year, dt_to.year + 1):
 		progr = download_progress.get(year)
 		value = progr and progr[0] / progr[1]
@@ -110,7 +110,7 @@ def obtain(t_interval, lat, lon):
 	q_from, q_to = [datetime.utcfromtimestamp(t // MODEL_PERIOD * MODEL_PERIOD) for t in t_interval]
 	dt_from, dt_to = [
 		max(q_from, MODEL_EPOCH),
-		min(q_to, datetime.utcnow())
+		min(q_to, datetime.now())
 	]
 	if dt_to <= dt_from:
 		return None, None

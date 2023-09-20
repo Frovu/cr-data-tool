@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost, prettyDate, useMonthInput } from '../util';
 import { NavigatedPlot, NavigationContext, useNavigationState, axisDefaults, seriesDefaults, color, ScatterPlot } from '../plotUtil';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
@@ -14,7 +14,7 @@ type ChannelDesc = {
 		coef_p: number,
 		coef_v: number,
 		time: number,
-		base_length: number,
+		length: number,
 		modified: boolean
 	} | null
 };
@@ -235,13 +235,18 @@ function MuonApp() {
 		onSuccess: () => queryClient.invalidateQueries('muon')
 	});
 
+	const defaultInput = () => Object.fromEntries((['coef_p', 'coef_t'] as const).map(coef =>
+		[coef, corrInfo ? (corrInfo[coef]*100).toFixed(3) : '?']));
+	const [input, setInputState] = useState(defaultInput);
+	useEffect(() => setInputState(defaultInput()), [corrInfo]); // eslint-disable-line
+
 	const coefs = [queryCoef, queryCoefLocal].map(q => q.data &&
-		['coef_p', 'coef_t', 'coef_v'].map(c => (q.data![c as keyof typeof q.data] * 100).toFixed(3)));
+		['coef_p', 'coef_t', 'coef_v'].map((c) => (q.data![c as keyof typeof q.data] * 100).toFixed(c === 'coef_v' ? 2 : 3)));
 	const rmCount = plotData && (navigation.state.cursor?.lock ? 1 : (fetchTo - fetchFrom) / 3600);
 	const isObtaining = obtainMutation.isLoading || (obtainMutation.isSuccess && obtainMutation.data.status === 'busy');
 	return <NavigationContext.Provider value={navigation}>
 		<div style={{ height: '100%', display: 'grid', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
-			<div>
+			<div style={{ overflowY: 'scroll' }}>
 				<div>
 					<label>Experiment: <select value={experiment} style={{ maxWidth: 150 }}
 						onChange={e => setExperiment(exp => ({ experiment: e.target.value, channel: 'V' }))}>
@@ -258,6 +263,10 @@ function MuonApp() {
 				<div style={{ paddingTop: 4 }}>
 					Show: {monthInput}
 				</div>
+				{plotData && <div style={{ paddingTop: 8 }}>
+					<label>Average over <input style={{ width: 42, textAlign: 'center' }}
+						type='number' min='1' max='24' value={averaging} onChange={e => setAveraging(e.target.valueAsNumber)}/> h</label>
+				</div>}
 				{nonnull && <div style={{ paddingTop: 8, paddingRight: 8, display: 'flex', justifyContent: 'space-between' }}>
 					<span style={{ color: color('border') }}>[<span title='Total points'>{nonnull['time']}</span>
 						{nonnull['original'] > 0 && <span title='Revised points' style={{ color: color('magenta') }}>-{nonnull['original']}</span>}
@@ -279,52 +288,52 @@ function MuonApp() {
 					<tr title='Computed using data from viewed/selected interval'>
 						<td>&nbsp;cur:</td>{coefs[1] && <><td>{coefs[1][0]}</td><td>{coefs[1][1]}</td><td style={{ color: color('text-dark') }}>{coefs[1][2]}</td>
 							<td><button style={{ marginLeft: 4, padding: '0 12px' }}
-								onClick={()=>coefMut.mutate({ ...queryCoef.data! })}>use</button></td></>}
+								onClick={()=>coefMut.mutate({ ...queryCoefLocal.data! })}>use</button></td></>}
 					</tr>
 					<tr title='Actually used for corrections (saved)'>
 						<td>used:</td>
-						{(['coef_p', 'coef_t'] as (keyof typeof corrInfo)[]).map((coef, i) => <td>
+						{(['coef_p', 'coef_t'] as const).map((coef, i) => <td>
 							<input type='text' style={{ width: 56, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
-								value={corrInfo?.[coef] ?? '?'}
+								value={input[coef]}
+								onChange={e => setInputState(st => ({ ...st, [coef]: e.target.value }))}
 								onKeyDown={e => ['Escape', 'Enter'].includes(e.code) && (e.target as HTMLInputElement)?.blur()}
 								onBlur={e => !isNaN(parseFloat(e.target.value)) &&
-									coefMut.mutate({ ...corrInfo, modified: true })}/>
+									coefMut.mutate({ ...corrInfo, [coef]: parseFloat(e.target.value)/100, modified: true })}/>
 						</td>)}
 					</tr>
 				</table>}
 				{plotData && <div style={{ paddingLeft: 8, fontSize: 14, color: color('text-dark') }}>
 					{corrInfo == null && <>coefficients are not set</>}
+					{corrInfo && <>
+						set per {corrInfo.length && `[${Math.floor(corrInfo.length / 24)} d] `}
+						at {prettyDate(corrInfo.time)}
+						{corrInfo.modified && <div>(modified manually)</div>}
+					</>}
 				</div>}
+				<div style={{ paddingTop: 4 }}>
+					{correlationPlot}
+				</div>
 				<div style={{ paddingTop: 8 }}>
-					{plotData && <div style={{ paddingTop: 8 }}>
-						<label>Average over <input style={{ width: 42, textAlign: 'center' }}
-							type='number' min='1' max='24' value={averaging} onChange={e => setAveraging(e.target.valueAsNumber)}/> h</label>
+					<div style={{ color: color('text'), verticalAlign: 'top' }}>
+							[{Math.ceil((fetchTo - fetchFrom) / 3600) + 1} h]
+						<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
+							{prettyDate(fetchFrom)}<br/>
+							&nbsp;&nbsp;to {prettyDate(fetchTo)}
+						</div>
+					</div>
+					<div style={{ paddingTop: 8 }} title='Re-obatin all data for focused interval'>
+						<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
+							{isObtaining ? 'stand by...' : 'Obtain everything'}</button>
+						{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
+					</div>
+					{plotData && <div style={{ paddingTop: 8 }} title='Mask selected points (this is kind of reversible)'>
+						<button style={{ padding: 2, width: 196 }} disabled={revisionMut.isLoading}
+							onClick={() => revisionMut.mutate('remove')}>{revisionMut.isLoading ? '...' : `Remove ${rmCount} point${rmCount === 1 ? '' : 's'}`}</button>
 					</div>}
-					<div style={{ paddingTop: 4 }}>
-						{correlationPlot}
-					</div>
-					<div style={{ paddingTop: 8 }}>
-						<div style={{ color: color('text'), verticalAlign: 'top' }}>
-								[{Math.ceil((fetchTo - fetchFrom) / 3600) + 1} h]
-							<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
-								{prettyDate(fetchFrom)}<br/>
-								&nbsp;&nbsp;to {prettyDate(fetchTo)}
-							</div>
-						</div>
-						<div style={{ paddingTop: 8 }} title='Re-obatin all data for focused interval'>
-							<button style={{ padding: 2, width: 196 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
-								{isObtaining ? 'stand by...' : 'Obtain everything'}</button>
-							{obtainMutation.data?.status === 'ok' && <span style={{ paddingLeft: 8, color: color('green') }}>OK</span>}
-						</div>
-						{plotData && <div style={{ paddingTop: 8 }} title='Mask selected points (this is kind of reversible)'>
-							<button style={{ padding: 2, width: 196 }} disabled={revisionMut.isLoading}
-								onClick={() => revisionMut.mutate('remove')}>{revisionMut.isLoading ? '...' : `Remove ${rmCount} point${rmCount === 1 ? '' : 's'}`}</button>
-						</div>}
-						{plotData && <div style={{ paddingTop: 8 }} title='Clear all revisions (this action is irreversible)'>
-							<button style={{ padding: 2, width: 196, borderColor: color('red') }} disabled={revisionMut.isLoading}
-								onClick={() => revisionMut.mutate('revert')}>{revisionMut.isLoading ? '...' : 'Clear revisions'}</button>
-						</div>}
-					</div>
+					{plotData && <div style={{ paddingTop: 8 }} title='Clear all revisions (this action is irreversible)'>
+						<button style={{ padding: 2, width: 196, borderColor: color('red') }} disabled={revisionMut.isLoading}
+							onClick={() => revisionMut.mutate('revert')}>{revisionMut.isLoading ? '...' : 'Clear revisions'}</button>
+					</div>}
 				</div>
 				<div style={{ paddingTop: 8 }}>
 					<div>{(obtainMutation.data?.status === 'busy' && obtainMutation.data?.message)}</div>
@@ -332,9 +341,13 @@ function MuonApp() {
 						downloading {year}: <span style={{ color: color('acid') }}>{(progr * 100).toFixed(0)} %</span>
 					</div>)}
 					<div style={{ color: color('red'), cursor: 'pointer' }} onClick={() => {
+						revisionMut.reset();
 						obtainMutation.reset();
+						coefMut.reset();
 					}}>
 						{query.error?.toString()}
+						{coefMut.error?.toString()}
+						{revisionMut.error?.toString()}
 						{obtainMutation.error?.toString()}
 						{obtainMutation.data?.status === 'error' && obtainMutation.data?.message}
 					</div>
