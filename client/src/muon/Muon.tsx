@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import regression from 'regression';
 import uPlot from 'uplot';
 
-const ORDER = ['time', 'original', 'revised', 'corrected', 'predicted', 't_mass_average', 'pressure'];
+const ORDER = ['time', 'original', 'revised', 'corrected', 'expected', 't_mass_average', 'pressure'];
 
 type ChannelDesc = {
 	name: string,
@@ -85,7 +85,7 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 				...seriesDefaults('corrected', 'green', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--'
 			}, {
-				...seriesDefaults('predicted', 'orange', 'variation'),
+				...seriesDefaults('expected', 'orange', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
 			}, {
 				...seriesDefaults('t_m', 'gold', 'temp'),
@@ -114,30 +114,17 @@ function MuonApp() {
 			from: interval[0],
 			to: interval[1],
 			experiment,
-			query: 'original,revised,corrected,t_mass_average,pressure'
+			query: 'original,revised,corrected,expected,t_mass_average,pressure'
 		})
 	});
-	const gsmQuery = useQuery(['muon/predicted', interval, experiment, channel], () => apiGet<{ fields: string[], rows: (number | null)[][] }>('muon/predicted', {
-		from: interval[0],
-		to: interval[1],
-		experiment,
-	}));
 
 	const [plotData, nonnull] = useMemo(() => {
 		if (!query.data || query.data.rows.length < 2) return [null, null];
 
 		const length = query.data.rows.length;
-		const gsmData = gsmQuery.data?.rows;
 		const data = Object.fromEntries(query.data.fields.map((f, i) => [f, query.data.rows.map(row => row[i])]));
-		const indexGsm = data['time'].findIndex(t => gsmData?.[0]?.[0] === t); // NOTE: presumes that gsm result has no gaps
-		data['predicted'] = Array(length).fill(null);
-		if (gsmData && indexGsm >= 0) {
-			for (let i = 0; i < gsmData.length && indexGsm + i < length; ++i) {
-				data['predicted'][indexGsm + i] = gsmData[i][1];
-			}
-		}
 		
-		const variationSeries = ['revised', 'corrected', 'predicted'];
+		const variationSeries = ['revised', 'corrected', 'expected'];
 		const varAverages = variationSeries.map(ii =>
 			data[ii].reduce((a, b) => a! + (b ?? 0), 0)! / data[ii].filter(v => v != null).length);
 		data['original'] = data['original'].map((v, i) => v !== data['revised'][i] ? v : null);
@@ -170,7 +157,7 @@ function MuonApp() {
 		averaged[0][averaged[0].length - 1] = data['time'][length-1]; // a hack to prevent plot reset due to bound times change
 
 		return [averaged, counts];
-	}, [query.data, gsmQuery.data, averaging]);
+	}, [query.data, averaging]);
 
 	const { min, max } = (navigation.state.selection ?? navigation.state.view);
 	const [fetchFrom, fetchTo] = (!plotData || (min === 0 && max === plotData[0].length - 1))
@@ -178,7 +165,7 @@ function MuonApp() {
 
 	const correlationPlot = useMemo(() => {
 		if (!plotData) return null;
-		const [xColIdx, yColIdx] = ['corrected', 'predicted'].map(f => ORDER.indexOf(f));
+		const [xColIdx, yColIdx] = ['corrected', 'expected'].map(f => ORDER.indexOf(f));
 		const data = plotData;
 		const filtered: [number, number][] = [...data[0].keys()].filter(i => fetchFrom <= data[0][i]! && data[0][i]! <= fetchTo
 			&& data[xColIdx][i] != null && data[yColIdx][i] != null).map(i => [data[xColIdx][i]!, data[yColIdx][i]!]);
@@ -260,14 +247,13 @@ function MuonApp() {
 					Show: {monthInput}
 				</div>
 				{nonnull && <div style={{ paddingTop: 8, paddingRight: 8, display: 'flex', justifyContent: 'space-between' }}>
-					
 					<span style={{ color: color('border') }}>[<span title='Total points'>{nonnull['time']}</span>
 						{nonnull['original'] > 0 && <span title='Revised points' style={{ color: color('magenta') }}>-{nonnull['original']}</span>}
 					]</span>
 					<span title='Revised coverage' style={{ color: color('cyan') }}>[{(nonnull['revised']/nonnull['time']*100).toFixed(1)}%]</span>
 					<span title='Corrected coverage' style={{ color: color('green') }}>[{(nonnull['corrected']/nonnull['time']*100).toFixed(1)}%]</span>
 					<span title='Temperature coverage' style={{ color: color('gold') }}>[{(nonnull['t_mass_average']/nonnull['time']*100).toFixed(0)}%]</span>
-					<span title='GSM predicted coverage' style={{ color: color('orange') }}>[{(nonnull['predicted']/nonnull['time']*100).toFixed(0)}%]</span>
+					<span title='GSM expected coverage' style={{ color: color('orange') }}>[{(nonnull['expected']/nonnull['time']*100).toFixed(0)}%]</span>
 				</div>}
 				<div style={{ paddingTop: 8 }}>
 					{plotData && <div style={{ paddingTop: 8 }}>

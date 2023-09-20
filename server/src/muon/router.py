@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 
-from muon.database import select, select_experiments, obtain_all, do_revision
-from muon.corrections import do_compute, get_predicted
+from muon.database import select_experiments, obtain_all, do_revision
+from muon.corrections import select_with_corrected
 from utils import route_shielded, require_auth, msg
 
 bp = Blueprint('muon', __name__, url_prefix='/api/muon')
@@ -18,19 +18,9 @@ def do_select_result():
 	t_to = int(request.args.get('to'))
 	experiment = request.args.get('experiment')
 	channel = request.args.get('cahnnel', 'V')
-	query = request.args.get('query', 'revised').split(',')
-	rows, fields = select(t_from, t_to, experiment, channel, query)
+	query = request.args.get('query', 'corrected').split(',')
+	rows, fields = select_with_corrected(t_from, t_to, experiment, channel, query)
 	return { 'fields': fields, 'rows': rows }
-
-@bp.route('predicted', methods=['GET'])
-@route_shielded
-def select_predicted_result():
-	t_from = int(request.args.get('from'))
-	t_to = int(request.args.get('to'))
-	experiment = request.args.get('experiment')
-	channel = request.args.get('cahnnel', 'V')
-	rows = get_predicted(t_from, t_to, experiment, channel)
-	return { 'fields': ['time', 'gsm_v'], 'rows': rows }
 
 @bp.route('obtain', methods=['POST'])
 @route_shielded

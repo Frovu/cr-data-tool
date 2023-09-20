@@ -31,7 +31,7 @@ def select_experiments():
 	return result
 
 def select(t_from, t_to, experiment, channel_name, query):
-	fields = [f for f in query if f in ['original', 'revised', 'corrected', 't_mass_average', 'pressure' ]]
+	fields = [f for f in query if f in ['original', 'revised', 't_mass_average', 'pressure' ]]
 	query = ', '.join((f if f != 'revised' else 'NULLIF(COALESCE(revised, original), \'NaN\') as revised' for f in fields)) 
 	join_conditions = any((a in fields for a in ['t_mass_average', 'pressure']))
 	with pool.connection() as conn:
@@ -42,7 +42,7 @@ def select(t_from, t_to, experiment, channel_name, query):
 			'WHERE channel = (SELECT id FROM muon.channels WHERE experiment = %s AND name = %s)' + \
 			'AND to_timestamp(%s) <= c.time AND c.time <= to_timestamp(%s) ORDER BY c.time' \
 			, [*[experiment]*(2 if join_conditions else 1), channel_name, t_from, t_to])
-		return curs.fetchall(), [desc[0] for desc in curs.description]
+		return curs.fetchall()
 
 def _do_obtain_all(t_from, t_to, experiment):
 	global obtain_status

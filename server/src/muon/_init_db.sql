@@ -33,7 +33,6 @@ CREATE TABLE IF NOT EXISTS muon.counts_data (
 	time timestamptz NOT NULL,
 	original REAL,
 	revised REAL,
-	corrected REAL,
 	UNIQUE(channel, time)
 );
 
