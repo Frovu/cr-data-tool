@@ -40,7 +40,8 @@ def do_obtain_all():
 	t_from = int(request.json.get('from'))
 	t_to = int(request.json.get('to'))
 	experiment = request.json.get('experiment')
-	return obtain_all(t_from, t_to, experiment)
+	partial = request.json.get('partial')
+	return obtain_all(t_from, t_to, experiment, partial)
 
 @bp.route('revision', methods=['POST'])
 @route_shielded

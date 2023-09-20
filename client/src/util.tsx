@@ -118,9 +118,9 @@ export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?
 			value={monthNames[month]} onChange={e => set('month', monthNames.indexOf(e.target.value))}>
 			{monthNames.map(mon => <option key={mon} id={mon}>{mon}</option>)}
 		</select> <input style={{ width: '6ch' }} type='number' min='1957' max={new Date().getFullYear()}
-			value={year} onChange={e => set('year', e.target.valueAsNumber)}
+			value={year} onChange={e => !isNaN(e.target.valueAsNumber) && set('year', e.target.valueAsNumber)}
 		/> + <input style={{ width: '4ch', textAlign: 'center' }} type='number' min='1' max={maxMonths ?? 24}
-			value={count} onChange={e => set('count', e.target.valueAsNumber)}
+			value={count} onChange={e => !isNaN(e.target.valueAsNumber) && set('count', e.target.valueAsNumber)}
 		/> month{count === 1 ? '' : 's'}
 	</div>] as [number[], ReactElement];
 }

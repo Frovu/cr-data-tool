@@ -207,10 +207,12 @@ function MuonApp() {
 	}, [plotData, fetchFrom, fetchTo]);
 
 	type mutResp = { status: 'busy'|'ok'|'error', downloading?: { [key: string]: number }, message?: string };
-	const obtainMutation = useMutation(() => apiPost<mutResp>('muon/obtain', queryParams), {
-		onSuccess: ({ status }) => {
+	const obtainMutation = useMutation((partial?: boolean) => apiPost<mutResp>('muon/obtain', {
+		...queryParams, partial
+	}), {
+		onSuccess: ({ status }, partial) => {
 			if (status === 'busy') {
-				setTimeout(() => obtainMutation.mutate(), 500);
+				setTimeout(() => obtainMutation.mutate(partial), 500);
 			} else {
 				if (status === 'ok')
 					queryClient.invalidateQueries('muon');
@@ -323,7 +325,11 @@ function MuonApp() {
 							</div>
 						</div>
 						<div style={{ paddingTop: 8 }} title='Re-obatin all data for focused interval'>
-							<button style={{ padding: 2, width: 230 }} disabled={isObtaining} onClick={() => obtainMutation.mutate()}>
+							<button style={{ padding: 2, width: 230 }} disabled={isObtaining} onClick={() => obtainMutation.mutate(false)}>
+								{isObtaining ? 'stand by...' : 'Obtain all'}</button>
+						</div>
+						<div style={{ paddingTop: 8 }} title='Re-obatin data for focused interval excluding temperature'>
+							<button style={{ padding: 2, width: 230 }} disabled={isObtaining} onClick={() => obtainMutation.mutate(true)}>
 								{isObtaining ? 'stand by...' : 'Obtain data'}</button>
 						</div>
 						{plotData && <div style={{ paddingTop: 8 }} title='Mask selected points (this is kind of reversible)'>
