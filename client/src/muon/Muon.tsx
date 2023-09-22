@@ -7,23 +7,36 @@ import uPlot from 'uplot';
 
 const ORDER = ['time', 'original', 'revised', 'corrected', 'expected', 'a0', 'axy', 'az', 't_mass_average', 'pressure'];
 
-type ChannelDesc = {
-	name: string,
-	correction: {
-		coef_t: number,
-		coef_p: number,
-		coef_v: number,
-		time: number,
-		length: number,
-		modified: boolean
-	} | null
+type CoefInfo = {
+	coef: {
+		tm?: number,
+		p?: number,
+		c0: number,
+		cx: number,
+		cy: number,
+		cz: number,
+	},
+	error: {
+		tm?: number,
+		p?: number,
+		c0: number,
+		cx: number,
+		cy: number,
+		cz: number,
+	},
+	length?: number,
+	time?: number,
+	modified?: boolean
 };
 type MuonContextType = {
 	experiments: {
 		name: string,
 		since: number,
 		until: number | null,
-		channels: ChannelDesc[]
+		channels: {
+			name: string,
+			correction: Required<CoefInfo> | null
+		}[]
 	}[]
 };
 const MuonContext = createContext<MuonContextType>({} as any);
@@ -179,20 +192,12 @@ function MuonApp() {
 	const [fetchFrom, fetchTo] = (!plotData || (min === 0 && max === plotData[0].length - 1))
 		? interval : [min, max].map(i => plotData[0][i]!) as [number, number]; // can this be null??
 
-	const queryParams = { from: fetchFrom, to: fetchTo, experiment, channel };
-	const queryCoef = useQuery(['muon', 'coef', interval, experiment, channel],
-		() => apiGet<{ coef_t: number, coef_p: number, coef_v: number, length: number }>('muon/compute', { 
-			...queryParams,
-			from: since,
-			to: until ?? Math.floor(Date.now()/1e3)
+	const queryCoef = useQuery(['muon', 'compute', fetchFrom, fetchTo, experiment, channel],
+		() => apiGet<{ info: CoefInfo | null, time: number[], expected: number[] }>('muon/compute', { 
+			from: fetchFrom,
+			to: fetchTo,
+			experiment, channel
 		}));
-	const queryCoefLocal = useQuery(['muon', 'coef', fetchFrom, fetchTo, experiment, channel],
-		() => {
-			if (!fetchTo || !fetchFrom || fetchTo - fetchFrom < 86400 * 10)
-				return null;
-			return apiGet<{ coef_t: number, coef_p: number, coef_v: number, length: number }>('muon/compute',
-				{ ...queryParams, from: fetchFrom, to: fetchTo });
-		});
 
 	const correlationPlot = useMemo(() => {
 		if (!plotData) return null;
@@ -221,7 +226,7 @@ function MuonApp() {
 
 	type mutResp = { status: 'busy'|'ok'|'error', downloading?: { [key: string]: number }, message?: string };
 	const obtainMutation = useMutation((partial?: boolean) => apiPost<mutResp>('muon/obtain', {
-		...queryParams, partial
+		from: fetchFrom, to: fetchTo, experiment, channel, partial
 	}), {
 		onSuccess: ({ status }, partial) => {
 			if (status === 'busy') {
@@ -244,20 +249,26 @@ function MuonApp() {
 		onSuccess: () => queryClient.invalidateQueries('muon')
 	});
 
-	type MutCoef = { coef_p?: number, coef_t?: number, length?: number, modified?: boolean };
-	const coefMut = useMutation(({ coef_p, coef_t, length, modified }: MutCoef) => apiPost('muon/coefs', { // eslint-disable-line camelcase
-		experiment, channel, coef_p, coef_t, length, modified // eslint-disable-line camelcase
+	type MutCoef = { p?: number, tm?: number, action: 'update'|'reset' };
+	const coefMut = useMutation(({ p, tm, action }: MutCoef) => apiPost('muon/coefs', {
+		experiment, channel, p, tm, action, from: fetchFrom, to: fetchTo
 	}), {
 		onSuccess: () => queryClient.invalidateQueries('muon')
 	});
 
-	const defaultInput = () => Object.fromEntries((['coef_p', 'coef_t'] as const).map(coef =>
-		[coef, corrInfo ? (corrInfo[coef]*100).toFixed(3) : '?']));
+	const defaultInput = () => Object.fromEntries((['p', 'tm'] as const).map(coef =>
+		[coef, corrInfo ? ((corrInfo.coef?.[coef]??0)*100).toFixed(3) : '?']));
 	const [input, setInputState] = useState(defaultInput);
 	useEffect(() => setInputState(defaultInput()), [corrInfo]); // eslint-disable-line
-
-	const coefs = [queryCoef, queryCoefLocal].map(q => q.data &&
-		['coef_p', 'coef_t', 'coef_v'].map((c) => (q.data![c as keyof typeof q.data] * 100).toFixed(c === 'coef_v' ? 2 : 3)));
+	
+	const calcDisplayCoef = (info: CoefInfo): { coef: any[], error: any[] } => {
+		const keys = ['p', 'tm', 'c0', 'cx', 'cy', 'cz'] as const;
+		const inf = { coef: { ...corrInfo?.coef, ...info.coef }, error: { ...corrInfo?.error, ...info.error } };
+		return Object.fromEntries((['coef', 'error'] as const).map(what => [what, keys.map(k =>
+			<td key={k} style={{ width: 46 }}>{inf[what][k] != null ? (Math.abs(inf[what][k]!)*100)?.toFixed(3).replace('0.', '.') : ''}</td>)])) as any;
+	};
+	const [displayCoef, displayCoefUsed] = [queryCoef.data?.info && calcDisplayCoef(queryCoef.data.info), corrInfo];
+	console.log(queryCoef.data , displayCoef)
 	const rmCount = plotData && (navigation.state.cursor?.lock ? 1 : (fetchTo - fetchFrom) / 3600);
 	const isObtaining = obtainMutation.isLoading || (obtainMutation.isSuccess && obtainMutation.data.status === 'busy');
 	return <NavigationContext.Provider value={navigation}>
@@ -292,30 +303,29 @@ function MuonApp() {
 					<span title='Temperature coverage' style={{ color: color('gold') }}>[{(nonnull['t_mass_average']/nonnull['time']*100).toFixed(0)}%]</span>
 					<span title='GSM expected coverage' style={{ color: color('orange') }}>[{(nonnull['expected']/nonnull['time']*100).toFixed(0)}%]</span>
 				</div>}
-				{plotData && <table style={{ textAlign: 'center' }}>
+				{plotData && <table style={{ textAlign: 'center', fontSize: 14 }}>
 					<tr>
-						<td></td><td>_p</td><td>_t</td><td style={{ color: color('text-dark') }}>_v</td>
-					</tr>
-					<tr title='Computed using all available data'>
-						<td>&nbsp;all:</td>{coefs[0] && <><td>{coefs[0][0]}</td><td>{coefs[0][1]}</td><td style={{ color: color('text-dark') }}>{coefs[0][2]}</td>
-							<td><button style={{ marginLeft: 8, padding: '0 12px' }}
-								onClick={()=>coefMut.mutate({ ...queryCoef.data! })}>use</button></td></>}
+						<td></td><td>p</td><td>t</td><td>c0</td><td>cx</td><td>cy</td><td>cz</td>
 					</tr>
 					<tr title='Computed using data from viewed/selected interval'>
-						<td>&nbsp;cur:</td>{coefs[1] && <><td>{coefs[1][0]}</td><td>{coefs[1][1]}</td><td style={{ color: color('text-dark') }}>{coefs[1][2]}</td>
-							<td><button style={{ marginLeft: 8, padding: '0 12px' }}
-								onClick={()=>coefMut.mutate({ ...queryCoefLocal.data! })}>use</button></td></>}
+						<td>&nbsp;cur</td>{displayCoef && displayCoef.coef}
+					</tr>
+					<tr title='Standard errors'>
+						<td>&nbsp;err</td>{displayCoef && displayCoef.error}
 					</tr>
 					<tr title='Actually used for corrections (saved)'>
-						<td>used:</td>
-						{(['coef_p', 'coef_t'] as const).map((coef, i) => <td style={{ padding: '0 2px' }}>
-							<input type='text' style={{ width: 56, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
+						<td>used</td>
+						{(['p', 'tm'] as const).map((coef, i) => <td style={{ padding: '0 2px' }}>
+							<input type='text' style={{ width: 42, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
 								value={input[coef]}
 								onChange={e => setInputState(st => ({ ...st, [coef]: e.target.value }))}
 								onKeyDown={e => ['Escape', 'Enter'].includes(e.code) && (e.target as HTMLInputElement)?.blur()}
-								onBlur={e => !isNaN(parseFloat(e.target.value)) &&
-									coefMut.mutate({ ...corrInfo, [coef]: parseFloat(e.target.value)/100, modified: true })}/>
+								onBlur={e => !isNaN(parseFloat(e.target.value)) && parseFloat(e.target.value)/100 !== corrInfo?.coef[coef] &&
+									coefMut.mutate({ [coef]: parseFloat(e.target.value)/100, action: 'update' })}/>
 						</td>)}
+						<td colSpan={2} style={{ textAlign: 'left' }}>
+							<button style={{ width: 42 }} onClick={() => coefMut.mutate({ action: 'reset' })}>reset</button>
+						</td>
 					</tr>
 				</table>}
 				{plotData && <div style={{ paddingLeft: 8, fontSize: 14, color: color('text-dark') }}>

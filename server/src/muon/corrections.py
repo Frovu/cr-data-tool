@@ -11,8 +11,8 @@ log = logging.getLogger('crdt')
 def _select(t_from, t_to, experiment, channel_name):
 	fields = ['time', 'original', 'revised', 'pressure', 't_mass_average', 'a0', 'ax', 'ay', 'az']
 	with pool.connection() as conn:
-		exp_id, ch_id, lat, lon, corr_info = conn.execute(
-			'''SELECT e.id, c.id, lat, lon, correction_info FROM muon.experiments e
+		exp_id, ch_id, corr_info = conn.execute(
+			'''SELECT e.id, c.id, correction_info FROM muon.experiments e
 			JOIN muon.channels c ON e.name = c.experiment
 			WHERE e.name = %s AND c.name = %s''', [experiment, channel_name]).fetchone()
 		res = conn.execute('''SELECT EXTRACT(EPOCH FROM c.time)::integer, original,
@@ -35,11 +35,7 @@ def _select(t_from, t_to, experiment, channel_name):
 	data['ay'] = ay_rotated
 	return data, corr_info
 
-def compute_coefficients(t_from, t_to, experiment, channel_name):
-	data, _ = _select(t_from, t_to, experiment, channel_name)
-	if data is None:
-		return None
-
+def compute_coefficients(data):
 	pres_data, tm_data = data['pressure'], data['t_mass_average']
 	mask = np.where(~np.isnan(data['revised']) & ~np.isnan(data['a0']) & ~np.isnan(pres_data) & ~np.isnan(tm_data))
 	if not np.any(mask):
@@ -54,7 +50,6 @@ def compute_coefficients(t_from, t_to, experiment, channel_name):
 	with_intercept = np.column_stack((np.full(len(regr_x), 1), regr_x))
 	ols = sm.OLS(regr_y, with_intercept)
 	ols_result = ols.fit()
-	print(ols_result.summary())
 	names = ['p', 'tm', 'c0', 'cx', 'cy', 'cz']
 	return {
 		'coef': { name: ols_result.params[i + 1] for i, name in enumerate(names) },
@@ -66,13 +61,39 @@ def compute_coefficients(t_from, t_to, experiment, channel_name):
 		}
 	}
 
+def get_local_coefficients(t_from, t_to, experiment, channel_name):
+	data, info = _select(t_from, t_to, experiment, channel_name)
+	if not info or 'coef' not in info:
+		return None
+
+	diff_tm, diff_pres = (info['mean'][i] - data[i] for i in ['t_mass_average', 'pressure'])
+	corrected = data['revised'] * (1 - info['coef']['p'] * diff_pres) * (1 - info['coef']['tm'] * diff_tm)
+	mask = np.where(~np.isnan(corrected) & ~np.isnan(data['a0']))
+	if not np.any(mask):
+		return None
+
+	regr_x = np.column_stack([data[i][mask] for i in ['a0', 'ax', 'ay', 'az']])
+	regr_y = np.log(corrected[mask])
+	
+	with_intercept = np.column_stack((np.full(len(regr_x), 1), regr_x))
+	ols = sm.OLS(regr_y, with_intercept)
+	ols_result = ols.fit()
+	names = ['c0', 'cx', 'cy', 'cz']
+	res = {
+		'coef': { name: ols_result.params[i + 1] for i, name in enumerate(names) },
+		'error': { name: ols_result.bse[i + 1] for i, name in enumerate(names) }
+	}
+	coef = res['coef']
+	expected = (data['a0'] * coef['c0'] + data['az'] * coef['cz'] \
+			  + data['ax'] * coef['cx'] + data['ay'] * coef['cy']) * 100
+	return res, data['time'].tolist(), expected.tolist()
+
 def select_with_corrected(t_from, t_to, experiment, channel_name, query):
 	data, corr_info = _select(t_from, t_to, experiment, channel_name)
 	if data is None:
 		return [], []
 
-	info = compute_coefficients(t_from, t_to, experiment, channel_name)
-	print(info)
+	info = corr_info if corr_info and 'coef' in corr_info else compute_coefficients(data)
 	coef = info['coef']
 
 	data['expected'] = (data['a0'] * coef['c0'] + data['az'] * coef['cz'] \
@@ -92,13 +113,22 @@ def select_with_corrected(t_from, t_to, experiment, channel_name, query):
 def set_coefficients(req):
 	experiment = req['experiment']
 	channel = req['channel']
+	action = req['action']
 	with pool.connection() as conn:
-		info = {
-			'coef_p': req.get('coef_p', 0),
-			'coef_t': req.get('coef_t', 0),
-			'length': req.get('length'),
-			'modified': req.get('modified'),
-			'time': int(datetime.now().timestamp())
-		}
+		if action == 'reset':
+			data, _ = _select(int(req['from']), int(req['to']), experiment, channel)
+			info = compute_coefficients(data)
+		elif action == 'update':
+			info = conn.execute('SELECT correction_info FROM muon.channels ' +\
+				'WHERE experiment = %s AND name = %s', [experiment, channel]).fetchone()[0]
+			if not info:
+				raise ValueError('Info is not set')
+			info['coef']['p'] = req.get('p', info['coef']['p'])
+			info['coef']['tm'] = req.get('tm', info['coef']['tm'])
+			info['modified'] = True
+		else:
+			assert False
+		info['time']: int(datetime.now().timestamp())
 		conn.execute('UPDATE muon.channels SET correction_info = %s WHERE experiment = %s AND name = %s',
 			[json.dumps(info), experiment, channel])
+			

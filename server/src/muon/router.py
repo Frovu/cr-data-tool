@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 
 from muon.database import select_experiments, obtain_all, do_revision
-from muon.corrections import select_with_corrected, compute_coefficients, set_coefficients
+from muon.corrections import select_with_corrected, get_local_coefficients, set_coefficients
 from utils import route_shielded, require_auth, msg
 
 bp = Blueprint('muon', __name__, url_prefix='/api/muon')
@@ -30,9 +30,9 @@ def do_comp_corr():
 	t_to = int(request.args.get('to'))
 	experiment = request.args.get('experiment')
 	channel = request.args.get('channel', 'V')
-	return {}
-	# coef_p, coef_t, coef_v, length = compute_coefficients(t_from, t_to, experiment, channel, rich=True)
-	# return { 'coef_p': coef_p, 'coef_t': coef_t, 'coef_v': coef_v, 'length': length }
+	res = get_local_coefficients(t_from, t_to, experiment, channel)
+	info, time, data = res or (None, [], [])
+	return { 'info': info, 'time': time, 'expected': data }
 
 @bp.route('obtain', methods=['POST'])
 @route_shielded

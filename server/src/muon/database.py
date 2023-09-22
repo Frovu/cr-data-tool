@@ -22,12 +22,18 @@ _init()
 
 def select_experiments():
 	with pool.connection() as conn:
-		exps = conn.execute('SELECT name, operational_since, operational_until FROM muon.experiments ORDER BY id').fetchall()
+		exps = conn.execute('SELECT name, lon, operational_since, operational_until FROM muon.experiments ORDER BY id').fetchall()
 		chas = conn.execute('SELECT name, experiment, correction_info FROM muon.channels ORDER BY id').fetchall()
 	result = []
-	for experiment, since, until in exps:
+	for experiment, lon, since, until in exps:
 		channels = [{ 'name': nm, 'correction': corr } for nm, exp, corr in chas if exp == experiment]
-		result.append({ 'name': experiment, 'since': since.timestamp(), 'until': until and until.timestamp(), 'channels': channels })
+		result.append({
+			'name': experiment,
+			'longitude': lon,
+			'since': since.timestamp(),
+			'until': until and until.timestamp(),
+			'channels': channels
+		})
 	return result
 
 def _do_obtain_all(t_from, t_to, experiment, partial):
