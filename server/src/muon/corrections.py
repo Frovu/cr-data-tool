@@ -128,7 +128,7 @@ def set_coefficients(req):
 			info['modified'] = True
 		else:
 			assert False
-		info['time']: int(datetime.now().timestamp())
+		info['time'] = int(datetime.now().timestamp())
 		conn.execute('UPDATE muon.channels SET correction_info = %s WHERE experiment = %s AND name = %s',
 			[json.dumps(info), experiment, channel])
 			

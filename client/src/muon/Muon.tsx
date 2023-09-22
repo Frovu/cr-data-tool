@@ -267,7 +267,7 @@ function MuonApp() {
 		return Object.fromEntries((['coef', 'error'] as const).map(what => [what, keys.map(k =>
 			<td key={k} style={{ width: 46 }}>{inf[what][k] != null ? (Math.abs(inf[what][k]!)*100)?.toFixed(3).replace('0.', '.') : ''}</td>)])) as any;
 	};
-	const [displayCoef, displayCoefUsed] = [queryCoef.data?.info && calcDisplayCoef(queryCoef.data.info), corrInfo];
+	const [displayCoef, displayCoefUsed] = [queryCoef.data?.info && calcDisplayCoef(queryCoef.data.info), corrInfo && calcDisplayCoef(corrInfo)];
 	console.log(queryCoef.data , displayCoef)
 	const rmCount = plotData && (navigation.state.cursor?.lock ? 1 : (fetchTo - fetchFrom) / 3600);
 	const isObtaining = obtainMutation.isLoading || (obtainMutation.isSuccess && obtainMutation.data.status === 'busy');
@@ -303,7 +303,7 @@ function MuonApp() {
 					<span title='Temperature coverage' style={{ color: color('gold') }}>[{(nonnull['t_mass_average']/nonnull['time']*100).toFixed(0)}%]</span>
 					<span title='GSM expected coverage' style={{ color: color('orange') }}>[{(nonnull['expected']/nonnull['time']*100).toFixed(0)}%]</span>
 				</div>}
-				{plotData && <table style={{ textAlign: 'center', fontSize: 14 }}>
+				{plotData && <table style={{ textAlign: 'center', fontSize: 14, borderSpacing: 3 }}>
 					<tr>
 						<td></td><td>p</td><td>t</td><td>c0</td><td>cx</td><td>cy</td><td>cz</td>
 					</tr>
@@ -313,28 +313,27 @@ function MuonApp() {
 					<tr title='Standard errors'>
 						<td>&nbsp;err</td>{displayCoef && displayCoef.error}
 					</tr>
-					<tr title='Actually used for corrections (saved)'>
+					<tr title='Actually used for corrections (saved)' style={{ boxShadow: '0 -1px 0 var(--color-border)' }}>
 						<td>used</td>
-						{(['p', 'tm'] as const).map((coef, i) => <td style={{ padding: '0 2px' }}>
-							<input type='text' style={{ width: 42, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
+						{(['p', 'tm'] as const).map((coef, i) => <td style={{ padding: '4px 2px 0 1px' }}>
+							<input type='text' style={{ width: 40, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
 								value={input[coef]}
 								onChange={e => setInputState(st => ({ ...st, [coef]: e.target.value }))}
 								onKeyDown={e => ['Escape', 'Enter'].includes(e.code) && (e.target as HTMLInputElement)?.blur()}
 								onBlur={e => !isNaN(parseFloat(e.target.value)) && parseFloat(e.target.value)/100 !== corrInfo?.coef[coef] &&
 									coefMut.mutate({ [coef]: parseFloat(e.target.value)/100, action: 'update' })}/>
 						</td>)}
-						<td colSpan={2} style={{ textAlign: 'left' }}>
-							<button style={{ width: 42 }} onClick={() => coefMut.mutate({ action: 'reset' })}>reset</button>
-						</td>
+						{displayCoefUsed && displayCoefUsed.coef.slice(2)}
 					</tr>
 				</table>}
-				{plotData && <div style={{ paddingLeft: 8, fontSize: 14, color: color('text-dark') }}>
+				{plotData && <div style={{ paddingTop: 4, fontSize: 14 }}>
+					<button style={{ width: 42, marginRight: 8 }} onClick={() => coefMut.mutate({ action: 'reset' })}>reset</button>
 					{corrInfo == null && <>coefficients are not set</>}
-					{corrInfo && <>
-						set per {corrInfo.length && `[${Math.floor(corrInfo.length / 24)} d] `}
+					{corrInfo && <span style={{ color: color('text-dark'), fontSize: 12 }}>
+						set /{corrInfo.length && `[${Math.floor(corrInfo.length / 24)} d] `}
 						at {prettyDate(corrInfo.time)}
 						{corrInfo.modified && <div>(modified manually)</div>}
-					</>}
+					</span>}
 				</div>}
 				<div style={{ paddingTop: 4 }}>
 					{correlationPlot}
