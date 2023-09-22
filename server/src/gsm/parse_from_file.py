@@ -1,6 +1,7 @@
 from datetime import datetime
 import sys, os
-from gsm.database import pool, series, upsert_many
+from gsm.database import pool, series
+from database import upsert_many
 from math import atan2, pi
 
 PATH = 'data/A0A1.txt'

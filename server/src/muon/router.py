@@ -30,8 +30,9 @@ def do_comp_corr():
 	t_to = int(request.args.get('to'))
 	experiment = request.args.get('experiment')
 	channel = request.args.get('channel', 'V')
-	coef_p, coef_t, coef_v, length = compute_coefficients(t_from, t_to, experiment, channel, rich=True)
-	return { 'coef_p': coef_p, 'coef_t': coef_t, 'coef_v': coef_v, 'length': length }
+	return {}
+	# coef_p, coef_t, coef_v, length = compute_coefficients(t_from, t_to, experiment, channel, rich=True)
+	# return { 'coef_p': coef_p, 'coef_t': coef_t, 'coef_v': coef_v, 'length': length }
 
 @bp.route('obtain', methods=['POST'])
 @route_shielded

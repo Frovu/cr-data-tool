@@ -30,20 +30,6 @@ def select_experiments():
 		result.append({ 'name': experiment, 'since': since.timestamp(), 'until': until and until.timestamp(), 'channels': channels })
 	return result
 
-def select(t_from, t_to, experiment, channel_name, query):
-	fields = [f for f in query if f in ['original', 'revised', 't_mass_average', 'pressure' ]]
-	query = ', '.join((f if f != 'revised' else 'NULLIF(COALESCE(revised, original), \'NaN\') as revised' for f in fields)) 
-	join_conditions = any((a in fields for a in ['t_mass_average', 'pressure']))
-	with pool.connection() as conn:
-		curs = conn.execute('SELECT EXTRACT(EPOCH FROM c.time)::integer as time, ' + query + \
-			' FROM muon.counts_data c ' +\
-			('LEFT JOIN muon.conditions_data m ON m.experiment = '+\
-				' (SELECT id FROM muon.experiments WHERE name = %s) AND m.time = c.time ' if join_conditions else '') + \
-			'WHERE channel = (SELECT id FROM muon.channels WHERE experiment = %s AND name = %s)' + \
-			'AND to_timestamp(%s) <= c.time AND c.time <= to_timestamp(%s) ORDER BY c.time' \
-			, [*[experiment]*(2 if join_conditions else 1), channel_name, t_from, t_to])
-		return curs.fetchall()
-
 def _do_obtain_all(t_from, t_to, experiment, partial):
 	global obtain_status
 	try:

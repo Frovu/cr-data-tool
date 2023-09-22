@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import regression from 'regression';
 import uPlot from 'uplot';
 
-const ORDER = ['time', 'original', 'revised', 'corrected', 'expected', 't_mass_average', 'pressure'];
+const ORDER = ['time', 'original', 'revised', 'corrected', 'expected', 'a0', 'axy', 'az', 't_mass_average', 'pressure'];
 
 type ChannelDesc = {
 	name: string,
@@ -79,14 +79,27 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 				value: (u, val) => val?.toFixed(2) ?? '--',
 				points: { show: true, width: .1, size: 4, fill: color('magenta') },
 				width: 1,
+				show: false,
 			}, {
 				...seriesDefaults('revori', 'blue', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
+				show: false,
 			}, {
 				...seriesDefaults('corrected', 'green', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--'
 			}, {
 				...seriesDefaults('expected', 'orange', 'variation'),
+				value: (u, val) => val?.toFixed(2) ?? '--',
+			}, {
+				...seriesDefaults('a0', 'magenta', 'variation'),
+				value: (u, val) => val?.toFixed(2) ?? '--',
+			}, {
+				...seriesDefaults('axy', 'cyan', 'variation'),
+				show: false,
+				value: (u, val) => val?.toFixed(2) ?? '--',
+			}, {
+				...seriesDefaults('az', 'blue', 'variation'),
+				show: false,
 				value: (u, val) => val?.toFixed(2) ?? '--',
 			}, {
 				...seriesDefaults('t_m', 'gold', 'temp'),
@@ -103,7 +116,7 @@ function MuonApp() {
 	const queryClient = useQueryClient();
 	const { experiments } = useContext(MuonContext);
 	const experimentNames = experiments.map(exp => exp.name);
-	const [interval, monthInput] = useMonthInput(new Date(Date.now() - 864e5*365), 12, 48);
+	const [interval, monthInput] = useMonthInput(new Date(new Date().getUTCFullYear() - 2, 0, 1), 24, 48);
 	const [{ experiment, channel }, setExperiment] = useState(() => ({ experiment: experimentNames[0], channel: 'V' }));
 	const { channels, until, since } = experiments.find(exp => exp.name === experiment)!;
 	const corrInfo = channels.find(c => c.name === channel)?.correction;
@@ -117,7 +130,7 @@ function MuonApp() {
 			from: interval[0],
 			to: interval[1],
 			experiment,
-			query: 'original,revised,corrected,expected,t_mass_average,pressure'
+			query: 'original,revised,corrected,a0,axy,az,expected,t_mass_average,pressure'
 		})
 	});
 
@@ -127,7 +140,7 @@ function MuonApp() {
 		const length = query.data.rows.length;
 		const data = Object.fromEntries(query.data.fields.map((f, i) => [f, query.data.rows.map(row => row[i])]));
 		
-		const variationSeries = ['revised', 'corrected', 'expected'];
+		const variationSeries = ['revised', 'corrected', 'expected', 'a0'];
 		const varAverages = variationSeries.map(ii =>
 			data[ii].reduce((a, b) => a! + (b ?? 0), 0)! / data[ii].filter(v => v != null).length);
 		data['original'] = data['original'].map((v, i) => v !== data['revised'][i] ? v : null);
@@ -175,7 +188,7 @@ function MuonApp() {
 		}));
 	const queryCoefLocal = useQuery(['muon', 'coef', fetchFrom, fetchTo, experiment, channel],
 		() => {
-			if (fetchTo - fetchFrom < 86400 * 10)
+			if (!fetchTo || !fetchFrom || fetchTo - fetchFrom < 86400 * 10)
 				return null;
 			return apiGet<{ coef_t: number, coef_p: number, coef_v: number, length: number }>('muon/compute',
 				{ ...queryParams, from: fetchFrom, to: fetchTo });
@@ -198,7 +211,7 @@ function MuonApp() {
 
 		return <div title='X: corrected, Y: gsm_expected'>
 			<div style={{ paddingBottom: 4, textAlign: 'center' }}>
-				a={regr.equation[0].toFixed(2)}, R<sup>2</sup>={regr.r2.toFixed(2)}
+				a={regr.equation[0].toFixed(3)}, R<sup>2</sup>={regr.r2.toFixed(3)}
 			</div>
 			<div style={{ position: 'relative', height: 280 }}>
 				<ScatterPlot data={[transposed, [regrX, regrY]]} colour='orange'/>
