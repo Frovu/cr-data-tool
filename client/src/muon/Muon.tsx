@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import regression from 'regression';
 import uPlot from 'uplot';
 
-const ORDER = ['time', 'original', 'revised', 'corrected', 'expected', 'expected+', 'a0', 'axy', 'az', 't_mass_average', 'pressure'];
+const ORDER = ['time', 'original', 'revised', 'corrected', 'expected', 'expected+', 'a0', 'axy', 'az', 't_mass_average', 'pressure'] as const;
 
 type CoefInfo = {
 	coef: {
@@ -225,9 +225,11 @@ function MuonApp() {
 		return [averaged, counts];
 	}, [query.data, queryCoef.data, averaging]);
 
+	const [correlationTarget, setCorrelationTarget] = useState<typeof ORDER[number]>('expected+');
 	const correlationPlot = useMemo(() => {
 		if (!plotData) return null;
-		const [xColIdx, yColIdx] = ['corrected', 'expected'].map(f => ORDER.indexOf(f));
+		const target = correlationTarget === 'expected+' && (fetchFrom === interval[0] && fetchTo === interval[1]) ? 'expected' : correlationTarget;
+		const [xColIdx, yColIdx] = (['corrected', target] as const).map(f => ORDER.indexOf(f));
 		const data = plotData;
 		const filtered: [number, number][] = [...data[0].keys()].filter(i => fetchFrom <= data[0][i]! && data[0][i]! <= fetchTo
 			&& data[xColIdx][i] != null && data[yColIdx][i] != null).map(i => [data[xColIdx][i]!, data[yColIdx][i]!]);
@@ -240,15 +242,21 @@ function MuonApp() {
 		const regrX = Array(128).fill(0).map((_, i) => minX + i * (maxX - minX) / 128);
 		const regrY = regrX.map(x => regr.predict(x)[1]);
 
-		return <div title='X: corrected, Y: gsm_expected'>
+		return <div title={'X: corrected, Y: ' + correlationTarget}>
 			<div style={{ paddingBottom: 4, textAlign: 'center' }}>
+				<label style={{ fontSize: 14, paddingRight: 12 }}>
+					target <select style={{ width: 92, textAlign: 'center' }}
+						value={correlationTarget} onChange={e => setCorrelationTarget(e.target.value as any)}>
+						{ORDER.slice(2).map(s => <option key={s} value={s}>{s}</option>)}
+					</select>
+				</label>
 				a={regr.equation[0].toFixed(3)}, R<sup>2</sup>={regr.r2.toFixed(3)}
 			</div>
 			<div style={{ position: 'relative', height: 280 }}>
 				<ScatterPlot data={[transposed, [regrX, regrY]]} colour='orange'/>
 			</div>
 		</div>;
-	}, [plotData, fetchFrom, fetchTo]);
+	}, [plotData, fetchFrom, fetchTo, correlationTarget, interval]);
 
 	type mutResp = { status: 'busy'|'ok'|'error', downloading?: { [key: string]: number }, message?: string };
 	const obtainMutation = useMutation((partial?: boolean) => apiPost<mutResp>('muon/obtain', {
