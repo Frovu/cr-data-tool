@@ -61,28 +61,32 @@ def compute_coefficients(data):
 		}
 	}
 
-def get_local_coefficients(t_from, t_to, experiment, channel_name):
+def get_local_coefficients(t_from, t_to, experiment, channel_name, fix_meteo):
 	data, info = _select(t_from, t_to, experiment, channel_name)
 	if not info or 'coef' not in info:
 		return None
 
-	diff_tm, diff_pres = (info['mean'][i] - data[i] for i in ['t_mass_average', 'pressure'])
-	corrected = data['revised'] * (1 - info['coef']['p'] * diff_pres) * (1 - info['coef']['tm'] * diff_tm)
-	mask = np.where(~np.isnan(corrected) & ~np.isnan(data['a0']))
-	if not np.any(mask):
-		return None
+	if fix_meteo:
+		diff_tm, diff_pres = (info['mean'][i] - data[i] for i in ['t_mass_average', 'pressure'])
+		corrected = data['revised'] * (1 - info['coef']['p'] * diff_pres) * (1 - info['coef']['tm'] * diff_tm)
+		mask = np.where(~np.isnan(corrected) & ~np.isnan(data['a0']))
+		if not np.any(mask):
+			return None
 
-	regr_x = np.column_stack([data[i][mask] for i in ['a0', 'ax', 'ay', 'az']])
-	regr_y = np.log(corrected[mask])
-	
-	with_intercept = np.column_stack((np.full(len(regr_x), 1), regr_x))
-	ols = sm.OLS(regr_y, with_intercept)
-	ols_result = ols.fit()
-	names = ['c0', 'cx', 'cy', 'cz']
-	res = {
-		'coef': { name: ols_result.params[i + 1] for i, name in enumerate(names) },
-		'error': { name: ols_result.bse[i + 1] for i, name in enumerate(names) }
-	}
+		regr_x = np.column_stack([data[i][mask] for i in ['a0', 'ax', 'ay', 'az']])
+		regr_y = np.log(corrected[mask])
+		
+		with_intercept = np.column_stack((np.full(len(regr_x), 1), regr_x))
+		ols = sm.OLS(regr_y, with_intercept)
+		ols_result = ols.fit()
+		names = ['c0', 'cx', 'cy', 'cz']
+		res = {
+			'coef': { name: ols_result.params[i + 1] for i, name in enumerate(names) },
+			'error': { name: ols_result.bse[i + 1] for i, name in enumerate(names) }
+		}
+	else:
+		res = compute_coefficients(data)
+
 	coef = res['coef']
 	expected = (data['a0'] * coef['c0'] + data['az'] * coef['cz'] \
 			  + data['ax'] * coef['cx'] + data['ay'] * coef['cy']) * 100

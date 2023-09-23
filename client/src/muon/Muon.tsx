@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import regression from 'regression';
 import uPlot from 'uplot';
 
-const ORDER = ['time', 'original', 'revised', 'corrected', 'expected', 'a0', 'axy', 'az', 't_mass_average', 'pressure'];
+const ORDER = ['time', 'original', 'revised', 'corrected', 'expected', 'expected+', 'a0', 'axy', 'az', 't_mass_average', 'pressure'];
 
 type CoefInfo = {
 	coef: {
@@ -15,6 +15,8 @@ type CoefInfo = {
 		cx: number,
 		cy: number,
 		cz: number,
+		cxy?: number,
+		phi?: number
 	},
 	error: {
 		tm?: number,
@@ -23,6 +25,8 @@ type CoefInfo = {
 		cx: number,
 		cy: number,
 		cz: number,
+		cxy?: number,
+		phi?: number
 	},
 	length?: number,
 	time?: number,
@@ -33,6 +37,7 @@ type MuonContextType = {
 		name: string,
 		since: number,
 		until: number | null,
+		longitude: number,
 		channels: {
 			name: string,
 			correction: Required<CoefInfo> | null
@@ -104,6 +109,9 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 				...seriesDefaults('expected', 'orange', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
 			}, {
+				...seriesDefaults('expected+', 'acid', 'variation'),
+				value: (u, val) => val?.toFixed(2) ?? '--'
+			}, {
 				...seriesDefaults('a0', 'magenta', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
 			}, {
@@ -131,7 +139,7 @@ function MuonApp() {
 	const experimentNames = experiments.map(exp => exp.name);
 	const [interval, monthInput] = useMonthInput(new Date(new Date().getUTCFullYear() - 2, 0, 1), 24, 48);
 	const [{ experiment, channel }, setExperiment] = useState(() => ({ experiment: experimentNames[0], channel: 'V' }));
-	const { channels, until, since } = experiments.find(exp => exp.name === experiment)!;
+	const { channels, until, since, longitude } = experiments.find(exp => exp.name === experiment)!;
 	const corrInfo = channels.find(c => c.name === channel)?.correction;
 	const [averaging, setAveraging] = useState(1);
 	const navigation = useNavigationState();
@@ -147,18 +155,44 @@ function MuonApp() {
 		})
 	});
 
+	const { min, max } = (navigation.state.selection ?? navigation.state.view);
+	const [fetchFrom, fetchTo] = (!query.data || (min === 0 && max === query.data.rows.length - 1))
+		? interval : [min, max].map((i, n) => query.data.rows[i]?.[0] ?? interval[n]);
+
+	const [showCxy, setShowCxy] = useState(true);
+	const [fixMeteo, setFixMeteo] = useState(true);
+	const queryCoef = useQuery(['muon', 'compute', fetchFrom, fetchTo, fixMeteo, experiment, channel],
+		() => apiGet<{ info: CoefInfo | null, time: number[], expected: number[] }>('muon/compute', {
+			fixMeteo,
+			from: fetchFrom,
+			to: fetchTo,
+			experiment, channel
+		}));
+
 	const [plotData, nonnull] = useMemo(() => {
 		if (!query.data || query.data.rows.length < 2) return [null, null];
 
 		const length = query.data.rows.length;
 		const data = Object.fromEntries(query.data.fields.map((f, i) => [f, query.data.rows.map(row => row[i])]));
+
+		data['expected+'] = Array(length).fill(null);
+		if (queryCoef.data?.info != null) {
+			const etime = queryCoef.data.time, edata = queryCoef.data.expected;
+			const i0 = data['time'].findIndex(t => t === etime.at(0));
+			const i1 = data['time'].findLastIndex(t => t === etime.at(-1));
+			if (i0 >= 0 && i1 >= 0 && i1 - i0 === edata.length - 1 && edata.length !== length) {
+				for (let i = 0; i <= edata.length; ++i)
+					data['expected+'][i0 + i] = edata[i];
+			}
+		}
 		
-		const variationSeries = ['revised', 'corrected', 'expected', 'a0'];
+		const variationSeries = ['revised', 'corrected', 'a0', 'expected'];
 		const varAverages = variationSeries.map(ii =>
 			data[ii].reduce((a, b) => a! + (b ?? 0), 0)! / data[ii].filter(v => v != null).length);
 		data['original'] = data['original'].map((v, i) => v !== data['revised'][i] ? v : null);
 		for (const [i, ser] of [...variationSeries.entries()].concat([[0, 'original']]))
 			data[ser] = data[ser].map(v => v == null ? null : (v - varAverages[i]) / (1 + varAverages[i] / 100));
+		data['expected+'] = data['expected+'].map(v => v == null ? null : (v - varAverages.at(-1)!) / (1 + varAverages.at(-1)! / 100));
 
 		const counts = Object.fromEntries(Object.entries(data)
 			.map(([ser, vals]) => [ser, vals.filter(v => v != null).length]));
@@ -186,18 +220,7 @@ function MuonApp() {
 		averaged[0][averaged[0].length - 1] = data['time'][length-1]; // a hack to prevent plot reset due to bound times change
 
 		return [averaged, counts];
-	}, [query.data, averaging]);
-
-	const { min, max } = (navigation.state.selection ?? navigation.state.view);
-	const [fetchFrom, fetchTo] = (!plotData || (min === 0 && max === plotData[0].length - 1))
-		? interval : [min, max].map(i => plotData[0][i]!) as [number, number]; // can this be null??
-
-	const queryCoef = useQuery(['muon', 'compute', fetchFrom, fetchTo, experiment, channel],
-		() => apiGet<{ info: CoefInfo | null, time: number[], expected: number[] }>('muon/compute', { 
-			from: fetchFrom,
-			to: fetchTo,
-			experiment, channel
-		}));
+	}, [query.data, queryCoef.data, averaging]);
 
 	const correlationPlot = useMemo(() => {
 		if (!plotData) return null;
@@ -262,13 +285,19 @@ function MuonApp() {
 	useEffect(() => setInputState(defaultInput()), [corrInfo]); // eslint-disable-line
 	
 	const calcDisplayCoef = (info: CoefInfo): { coef: any[], error: any[] } => {
-		const keys = ['p', 'tm', 'c0', 'cx', 'cy', 'cz'] as const;
+		const keys = ['p', 'tm', 'c0', ...(showCxy ? ['cxy', 'phi'] as const: ['cx', 'cy'] as const), 'cz'] as const;
 		const inf = { coef: { ...corrInfo?.coef, ...info.coef }, error: { ...corrInfo?.error, ...info.error } };
-		return Object.fromEntries((['coef', 'error'] as const).map(what => [what, keys.map(k =>
-			<td key={k} style={{ width: 46 }}>{inf[what][k] != null ? (Math.abs(inf[what][k]!)*100)?.toFixed(3).replace('0.', '.') : ''}</td>)])) as any;
+		if (showCxy) {
+			inf.coef['cxy'] = Math.hypot(inf.coef['cx'], inf.coef['cy']);
+			inf.coef['phi'] = Math.atan2(inf.coef['cy']*-100, inf.coef['cx']*-100) * 180 / Math.PI - longitude;
+			inf.error['cxy'] = Math.hypot(inf.error['cx'], inf.error['cy']);
+			inf.error['phi'] = Math.abs(Math.atan2((inf.error['cy']-inf.coef['cy'])*100, (inf.error['cx']-inf.coef['cx'])*100) * 180 / Math.PI - inf.coef['phi']);
+		}
+		return Object.fromEntries((['coef', 'error'] as const).map(what => [what, keys.map((k, i) =>
+			<td key={k} style={{ width: 46, color: i < 2 && fixMeteo ? color('text-dark') : 'unset' }}>
+				{inf[what][k] != null ? k === 'phi' ? inf[what][k]?.toFixed(1) : (Math.abs(inf[what][k]!)*100)?.toFixed(3).replace('0.', '.') : ''}</td>)])) as any;
 	};
 	const [displayCoef, displayCoefUsed] = [queryCoef.data?.info && calcDisplayCoef(queryCoef.data.info), corrInfo && calcDisplayCoef(corrInfo)];
-	console.log(queryCoef.data , displayCoef)
 	const rmCount = plotData && (navigation.state.cursor?.lock ? 1 : (fetchTo - fetchFrom) / 3600);
 	const isObtaining = obtainMutation.isLoading || (obtainMutation.isSuccess && obtainMutation.data.status === 'busy');
 	return <NavigationContext.Provider value={navigation}>
@@ -284,28 +313,32 @@ function MuonApp() {
 						{channels.map(({ name }) => <option key={name} value={name}>{name}</option>)}
 					</select></label>
 				</div>
-				<div style={{ color: color('text-dark'), fontSize: 14, textAlign: 'right', paddingRight: 14 }}>
+				<div title={'longitude = ' + longitude} style={{ color: color('text-dark'), fontSize: 14, textAlign: 'right', paddingRight: 14 }}>
 					operational { until ? 'from' : 'since'} {prettyDate(since, true)} { until ? 'to ' + prettyDate(until, true) : '' }
 				</div>
 				<div style={{ paddingTop: 4 }}>
 					Show: {monthInput}
 				</div>
 				{plotData && <div style={{ paddingTop: 8 }}>
-					<label>Average over <input style={{ width: 42, textAlign: 'center' }}
-						type='number' min='1' max='24' value={averaging} onChange={e => setAveraging(e.target.valueAsNumber)}/> h</label>
+					<label title='Only visual'>Average <input style={{ width: 42, textAlign: 'center' }}
+						type='number' min='1' max='24' value={averaging} onChange={e => setAveraging(e.target.valueAsNumber)}/> h, </label>
+					<label> fix p,t coefs<input type='checkbox' checked={fixMeteo} onChange={e => setFixMeteo(e.target.checked)}/></label>
 				</div>}
 				{nonnull && <div style={{ paddingTop: 8, paddingRight: 8, display: 'flex', justifyContent: 'space-between' }}>
 					<span style={{ color: color('border') }}>[<span title='Total points'>{nonnull['time']}</span>
 						{nonnull['original'] > 0 && <span title='Revised points' style={{ color: color('magenta') }}>-{nonnull['original']}</span>}
 					]</span>
-					<span title='Revised coverage' style={{ color: color('cyan') }}>[{(nonnull['revised']/nonnull['time']*100).toFixed(1)}%]</span>
-					<span title='Corrected coverage' style={{ color: color('green') }}>[{(nonnull['corrected']/nonnull['time']*100).toFixed(1)}%]</span>
+					<span title='Revised coverage' style={{ color: color('cyan') }}>[{(nonnull['revised']/nonnull['time']*100).toFixed(0)}%]</span>
+					<span title='Corrected coverage' style={{ color: color('green') }}>[{(nonnull['corrected']/nonnull['time']*100).toFixed(0)}%]</span>
 					<span title='Temperature coverage' style={{ color: color('gold') }}>[{(nonnull['t_mass_average']/nonnull['time']*100).toFixed(0)}%]</span>
 					<span title='GSM expected coverage' style={{ color: color('orange') }}>[{(nonnull['expected']/nonnull['time']*100).toFixed(0)}%]</span>
 				</div>}
 				{plotData && <table style={{ textAlign: 'center', fontSize: 14, borderSpacing: 3 }}>
-					<tr>
-						<td></td><td>p</td><td>t</td><td>c0</td><td>cx</td><td>cy</td><td>cz</td>
+					<tr title='Switch between cx/cy and cxy/φ' style={{ cursor: 'pointer' }} onClick={() => setShowCxy(s => !s)}>
+						<td></td><td>p</td><td>t</td><td>c0</td>
+						{showCxy && <><td>cxy</td><td>φ</td></>}
+						{!showCxy && <><td>cx</td><td>cy</td></>}
+						<td>cz</td>
 					</tr>
 					<tr title='Computed using data from viewed/selected interval'>
 						<td>&nbsp;cur</td>{displayCoef && displayCoef.coef}
@@ -315,8 +348,8 @@ function MuonApp() {
 					</tr>
 					<tr title='Actually used for corrections (saved)' style={{ boxShadow: '0 -1px 0 var(--color-border)' }}>
 						<td>used</td>
-						{(['p', 'tm'] as const).map((coef, i) => <td style={{ padding: '4px 2px 0 1px' }}>
-							<input type='text' style={{ width: 40, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
+						{(['p', 'tm'] as const).map((coef, i) => <td style={{ padding: '4px 1px 0 1px' }}>
+							<input type='text' style={{ width: 42, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
 								value={input[coef]}
 								onChange={e => setInputState(st => ({ ...st, [coef]: e.target.value }))}
 								onKeyDown={e => ['Escape', 'Enter'].includes(e.code) && (e.target as HTMLInputElement)?.blur()}
