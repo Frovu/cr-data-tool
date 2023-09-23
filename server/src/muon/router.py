@@ -30,8 +30,8 @@ def do_comp_corr():
 	t_to = int(request.args.get('to'))
 	experiment = request.args.get('experiment')
 	channel = request.args.get('channel', 'V')
-	fix_meteo = request.args.get('fixMeteo') != 'false'
-	res = get_local_coefficients(t_from, t_to, experiment, channel, fix_meteo)
+	fit = request.args.get('fit')
+	res = get_local_coefficients(t_from, t_to, experiment, channel, fit)
 	info, time, data = res or (None, [], [])
 	return { 'info': info, 'time': time, 'expected': data }
 

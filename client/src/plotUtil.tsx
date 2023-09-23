@@ -50,16 +50,17 @@ export function useNavigationState() {
 	return { state, setState };
 }
 
-export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight }:
+export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight, onCreate }:
 { data: (number | null)[][], options: () => Omit<uPlot.Options, 'width'|'height'>, legendHeight?: number,
-	moveChosen?: (inc: number, st: NavigationState, pdata: (number | null)[][]) => NavigationState }) {
+	moveChosen?: (inc: number, st: NavigationState, pdata: (number | null)[][]) => NavigationState, onCreate?: (u: uPlot) => void }) {
 	const { state: { cursor, selection, focused, chosen },
 		setState } = useContext(NavigationContext);
 	const set = useCallback((changes: Partial<NavigationState>) => setState(st => ({ ...st, ...changes })), [setState]);
 	
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
-	const [u, setUplot] = useState<uPlot>();
+	const [u, setU] = useState<uPlot>();
+	const setUplot = (uu: uPlot) => { onCreate?.(uu); setU(uu); }; 
 
 	useEffect(() => {
 		if (!u) return;
@@ -111,6 +112,7 @@ export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight }:
 			|| !u.scales.x.max || u.scales.x.max <= scale.min || u.scales.x.min! >= scale.max;
 		u.setData(data as any, resetScale);
 		u.redraw(true, true);
+		u.setSelect(u.select);
 		if (resetScale || !u.scales.x.max || !u.scales.x.min)
 			u.setScale('x', scale);
 	}, [u, data]);

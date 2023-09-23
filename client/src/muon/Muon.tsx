@@ -103,10 +103,11 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 				value: (u, val) => val?.toFixed(2) ?? '--',
 				show: false,
 			}, {
-				...seriesDefaults('corrected', 'green', 'variation'),
+				...seriesDefaults('corrected', '', 'variation'),
+				stroke: 'rgb(0,170,90)',
 				value: (u, val) => val?.toFixed(2) ?? '--'
 			}, {
-				...seriesDefaults('expected', 'orange', 'variation'),
+				...seriesDefaults('expected', 'peach', 'variation'),
 				value: (u, val) => val?.toFixed(2) ?? '--',
 			}, {
 				...seriesDefaults('expected+', 'acid', 'variation'),
@@ -142,6 +143,7 @@ function MuonApp() {
 	const { channels, until, since, longitude } = experiments.find(exp => exp.name === experiment)!;
 	const corrInfo = channels.find(c => c.name === channel)?.correction;
 	const [averaging, setAveraging] = useState(1);
+	const [upl, setUpl] = useState<uPlot>();
 	const navigation = useNavigationState();
 
 	const query = useQuery({
@@ -156,14 +158,15 @@ function MuonApp() {
 	});
 
 	const { min, max } = (navigation.state.selection ?? navigation.state.view);
-	const [fetchFrom, fetchTo] = (!query.data || (min === 0 && max === query.data.rows.length - 1))
-		? interval : [min, max].map((i, n) => query.data.rows[i]?.[0] ?? interval[n]);
+	const [fetchFrom, fetchTo] = (!upl?.data || (min === 0 && max === upl.data[0].length - 1))
+		? interval : [min, max].map((i, n) => upl.data[0][i] ?? interval[n]);
 
+	const fitOptions = ['all', 'gsm', 'axy'] as const;
 	const [showCxy, setShowCxy] = useState(true);
-	const [fixMeteo, setFixMeteo] = useState(true);
-	const queryCoef = useQuery(['muon', 'compute', fetchFrom, fetchTo, fixMeteo, experiment, channel],
+	const [fitCoefs, setFitCoefs] = useState<typeof fitOptions[number]>('all');
+	const queryCoef = useQuery(['muon', 'compute', fetchFrom, fetchTo, fitCoefs, experiment, channel],
 		() => apiGet<{ info: CoefInfo | null, time: number[], expected: number[] }>('muon/compute', {
-			fixMeteo,
+			fit: fitCoefs,
 			from: fetchFrom,
 			to: fetchTo,
 			experiment, channel
@@ -284,20 +287,23 @@ function MuonApp() {
 	const [input, setInputState] = useState(defaultInput);
 	useEffect(() => setInputState(defaultInput()), [corrInfo]); // eslint-disable-line
 	
-	const calcDisplayCoef = (info: CoefInfo): { coef: any[], error: any[] } => {
-		const keys = ['p', 'tm', 'c0', ...(showCxy ? ['cxy', 'phi'] as const: ['cx', 'cy'] as const), 'cz'] as const;
-		const inf = { coef: { ...corrInfo?.coef, ...info.coef }, error: { ...corrInfo?.error, ...info.error } };
-		if (showCxy) {
-			inf.coef['cxy'] = Math.hypot(inf.coef['cx'], inf.coef['cy']);
-			inf.coef['phi'] = Math.atan2(inf.coef['cy']*-100, inf.coef['cx']*-100) * 180 / Math.PI - longitude;
-			inf.error['cxy'] = Math.hypot(inf.error['cx'], inf.error['cy']);
-			inf.error['phi'] = Math.abs(Math.atan2((inf.error['cy']-inf.coef['cy'])*100, (inf.error['cx']-inf.coef['cx'])*100) * 180 / Math.PI - inf.coef['phi']);
-		}
-		return Object.fromEntries((['coef', 'error'] as const).map(what => [what, keys.map((k, i) =>
-			<td key={k} style={{ width: 46, color: i < 2 && fixMeteo ? color('text-dark') : 'unset' }}>
-				{inf[what][k] != null ? k === 'phi' ? inf[what][k]?.toFixed(1) : (Math.abs(inf[what][k]!)*100)?.toFixed(3).replace('0.', '.') : ''}</td>)])) as any;
-	};
-	const [displayCoef, displayCoefUsed] = [queryCoef.data?.info && calcDisplayCoef(queryCoef.data.info), corrInfo && calcDisplayCoef(corrInfo)];
+	const [displayCoef, displayCoefUsed] = useMemo(() => {
+		const calcDisplayCoef = (info: CoefInfo): { coef: any[], error: any[] } => {
+			const keys = ['p', 'tm', 'c0', ...(showCxy ? ['cxy', 'phi'] as const: ['cx', 'cy'] as const), 'cz'] as const;
+			const inf = { coef: { ...corrInfo?.coef, ...info.coef }, error: { ...corrInfo?.error, ...info.error } };
+			if (showCxy) {
+				inf.coef['cxy'] = Math.hypot(inf.coef['cx'], inf.coef['cy']);
+				inf.coef['phi'] = Math.atan2(inf.coef['cy']*-100, inf.coef['cx']*-100) * 180 / Math.PI - longitude;
+				inf.error['cxy'] = Math.hypot(inf.error['cx'], inf.error['cy']);
+				inf.error['phi'] = Math.abs(Math.atan2((inf.error['cy']-inf.coef['cy'])*100, (inf.error['cx']-inf.coef['cx'])*100) * 180 / Math.PI - inf.coef['phi']);
+			}
+			const grey = fitCoefs === 'gsm' ? ['tm', 'p'] : fitCoefs === 'axy' ? ['tm', 'p', 'c0', 'cz'] : [];
+			return Object.fromEntries((['coef', 'error'] as const).map(what => [what, keys.map((k, i) =>
+				<td key={k} style={{ width: 46, color: grey.includes(k) ? color('text-dark') : 'unset' }}>
+					{inf[what][k] != null ? k === 'phi' ? inf[what][k]?.toFixed(1) : (Math.abs(inf[what][k]!)*100)?.toFixed(3).replace('0.', '.') : ''}</td>)])) as any;
+		};
+		return [queryCoef.data?.info && calcDisplayCoef(queryCoef.data.info), corrInfo && calcDisplayCoef(corrInfo)];
+	}, [queryCoef.data, corrInfo, fitCoefs, longitude, showCxy]);
 	const rmCount = plotData && (navigation.state.cursor?.lock ? 1 : (fetchTo - fetchFrom) / 3600);
 	const isObtaining = obtainMutation.isLoading || (obtainMutation.isSuccess && obtainMutation.data.status === 'busy');
 	return <NavigationContext.Provider value={navigation}>
@@ -319,11 +325,6 @@ function MuonApp() {
 				<div style={{ paddingTop: 4 }}>
 					Show: {monthInput}
 				</div>
-				{plotData && <div style={{ paddingTop: 8 }}>
-					<label title='Only visual'>Average <input style={{ width: 42, textAlign: 'center' }}
-						type='number' min='1' max='24' value={averaging} onChange={e => setAveraging(e.target.valueAsNumber)}/> h, </label>
-					<label> fix p,t coefs<input type='checkbox' checked={fixMeteo} onChange={e => setFixMeteo(e.target.checked)}/></label>
-				</div>}
 				{nonnull && <div style={{ paddingTop: 8, paddingRight: 8, display: 'flex', justifyContent: 'space-between' }}>
 					<span style={{ color: color('border') }}>[<span title='Total points'>{nonnull['time']}</span>
 						{nonnull['original'] > 0 && <span title='Revised points' style={{ color: color('magenta') }}>-{nonnull['original']}</span>}
@@ -332,6 +333,12 @@ function MuonApp() {
 					<span title='Corrected coverage' style={{ color: color('green') }}>[{(nonnull['corrected']/nonnull['time']*100).toFixed(0)}%]</span>
 					<span title='Temperature coverage' style={{ color: color('gold') }}>[{(nonnull['t_mass_average']/nonnull['time']*100).toFixed(0)}%]</span>
 					<span title='GSM expected coverage' style={{ color: color('orange') }}>[{(nonnull['expected']/nonnull['time']*100).toFixed(0)}%]</span>
+				</div>}
+				{plotData && <div style={{ paddingTop: 8, display: 'flex', justifyContent: 'space-between', paddingRight: 12 }}>
+					<label title='Only visual'>Average <input style={{ width: 42, textAlign: 'center' }}
+						type='number' min='1' max='24' value={averaging} onChange={e => setAveraging(e.target.valueAsNumber)}/> h</label>
+					<span title='Fix some coefficients' style={{ cursor: 'pointer' }} onClick={() => setFitCoefs(s => fitOptions[(fitOptions.indexOf(s) + 1) % fitOptions.length])}>
+						fit={fitCoefs}</span>
 				</div>}
 				{plotData && <table style={{ textAlign: 'center', fontSize: 14, borderSpacing: 3 }}>
 					<tr title='Switch between cx/cy and cxy/φ' style={{ cursor: 'pointer' }} onClick={() => setShowCxy(s => !s)}>
@@ -419,7 +426,7 @@ function MuonApp() {
 			<div style={{ position: 'relative' }}>
 				{query.isLoading && <div className='center'>LOADING...</div>}
 				{query.data && !plotData && <div className='center'>NO DATA</div>}
-				{plotData && <NavigatedPlot {...{ data: plotData, options, legendHeight: 72 }}/>}
+				{plotData && <NavigatedPlot {...{ data: plotData, options, legendHeight: 72, onCreate: setUpl }}/>}
 			</div>
 		</div>
 	</NavigationContext.Provider>;
